@@ -16,7 +16,8 @@ gl.grm.network(
   link.size = 2,
   relatedness_factor = 0.125,
   title = "Network based on a genomic relationship matrix",
-  palette_discrete = NULL,
+  palette_discrete = gl.select.colors(x, library = "brewer", palette = "PuOr", ncolors =
+    nPop(x), verbose = 0),
   save2tmp = FALSE,
   verbose = NULL
 )
@@ -38,7 +39,7 @@ gl.grm.network(
 \item{node.label.color}{Color of the text of the node labels
 [default 'black'].}
 
-\item{link.color}{Color palette for links [default NULL].}
+\item{link.color}{Colors for links [default gl.select.colors].}
 
 \item{link.size}{Size of the links [default 2].}
 
@@ -47,9 +48,9 @@ gl.grm.network(
 \item{title}{Title for the plot
 [default 'Network based on genomic relationship matrix'].}
 
-\item{palette_discrete}{A discrete palette for the color of populations or a
-list with as many colors as there are populations in the dataset
- [default NULL].}
+\item{palette_discrete}{A discrete set of colors 
+with as many colors as there are populations in the dataset
+[default NULL].}
 
 \item{save2tmp}{If TRUE, saves any ggplots and listings to the session
 temporary directory (tempdir) [default FALSE].}

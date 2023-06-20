@@ -11,9 +11,9 @@
 #' @param plotheatmap A switch if a heatmap should be shown [default TRUE].
 #' @param palette_discrete A discrete palette for the color of populations or a
 #' list with as many colors as there are populations in the dataset
-#'  [default discrete_palette].
+#'  [default via gl.set.colors].
 #' @param palette_convergent A convergent palette for the IBD values
-#'  [default convergent_palette].
+#'  [default via gl.set.colors].
 #' @param legendx x coordinates for the legend[default 0].
 #' @param legendy y coordinates for the legend[default 1].
 #' @param verbose Verbosity: 0, silent or fatal errors; 1, begin and end; 2,
@@ -56,8 +56,8 @@
 
 gl.grm <- function(x,
                    plotheatmap = TRUE,
-                   palette_discrete = discrete_palette,
-                   palette_convergent = convergent_palette,
+                   palette_discrete = gl.select.colors(x, library="baseR", palette="topo.colors", ncolors = nPop(x), verbose = 0),
+                   palette_convergent = gl.select.colors(x, library="brewer", palette="PuOr", ncolors = nPop(x), verbose = 0),
                    legendx = 0,
                    legendy = 0.5,
                    verbose = NULL,
@@ -114,14 +114,8 @@ gl.grm <- function(x,
     # DO THE JOB
     
     # assigning colors to populations
-    if (is(palette_discrete, "function")) {
-        colors_pops <- palette_discrete(length(levels(pop(x))))
-    }
-    
-    if (!is(palette_discrete, "function")) {
         colors_pops <- palette_discrete
-    }
-    
+
     names(colors_pops) <- as.character(levels(x$pop))
     
     # calculating the realized additive relationship matrix
@@ -146,7 +140,7 @@ gl.grm <- function(x,
         par(mar = c(1, 1, 1, 1))
         gplots::heatmap.2(
             G,
-            col = palette_convergent(255),
+            col = gl.select.colors(ncolors = 255, verbose=0),
             dendrogram = "column",
             ColSideColors = df_colors$color,
             RowSideColors = df_colors$color,

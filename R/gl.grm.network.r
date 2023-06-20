@@ -16,13 +16,13 @@
 #' @param node.label.size Size of the node labels [default 3].
 #' @param node.label.color Color of the text of the node labels
 #' [default 'black'].
-#' @param link.color  Color palette for links [default NULL].
+#' @param link.color  Colors for links [default gl.select.colors].
 #' @param link.size Size of the links [default 2].
 #' @param relatedness_factor Factor of relatedness [default 0.125].
 #' @param title Title for the plot
 #' [default 'Network based on genomic relationship matrix'].
-#' @param palette_discrete A discrete palette for the color of populations or a
-#' list with as many colors as there are populations in the dataset
+#' @param palette_discrete A discrete set of colors 
+#'  with as many colors as there are populations in the dataset
 #'  [default NULL].
 #' @param save2tmp If TRUE, saves any ggplots and listings to the session
 #' temporary directory (tempdir) [default FALSE].
@@ -139,7 +139,7 @@ gl.grm.network <- function(G,
                            link.size = 2,
                            relatedness_factor = 0.125,
                   title = "Network based on a genomic relationship matrix",
-                           palette_discrete = NULL,
+                           palette_discrete = gl.select.colors(x, library="brewer", palette="PuOr", ncolors = nPop(x), verbose = 0),
                            save2tmp = FALSE,
                            verbose = NULL) {
     # SET VERBOSITY
@@ -281,32 +281,22 @@ gl.grm.network <- function(G,
     plotcord$kinship <- as.numeric(plotcord$kinship)
     plotcord$kinship <- scales::rescale(plotcord$kinship, to = c(0.1, 1))
     
-    # assigning colors to populations
-    if(is.null(palette_discrete)){
-      palette_discrete <- discrete_palette
-    }
     
-    if (is(palette_discrete, "function")) {
-        colors_pops <- palette_discrete(length(levels(pop(x))))
-    }
-    
-    if (!is(palette_discrete, "function")) {
         colors_pops <- palette_discrete
-    }
     
     if(is.null(link.color)){
-      link.color <- diverging_palette
+      link.color <- gl.select.colors(library="baseR", palette = "rainbow", ncolors = 10, verbose = 0)
     }
     
     names(colors_pops) <- as.character(levels(x$pop))
-    pal <- link.color(10)
+    
     size <- NULL
     p1 <-
         ggplot() + 
       geom_segment(data = edges,
                    aes( x = X1, y = Y1, xend = X2,yend = Y2,color = size),
                    size = link.size) +
-      scale_colour_gradientn(name = "Relatedness",colours = pal) + 
+      scale_colour_gradientn(name = "Relatedness",colours = link.color) + 
       geom_point(data = plotcord,aes(x = X1,y = X2, fill = pop), 
                   pch = 21,
                  size = node.size,

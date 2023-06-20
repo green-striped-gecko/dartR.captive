@@ -5,7 +5,7 @@
 #' @importFrom methods getPackageName is new
 #' @importFrom grDevices rainbow hcl
 #' @importFrom graphics lines par
-#' @importFrom stats ave pchisq var variable.names complete.cases
+#' @importFrom stats ave pchisq var variable.names complete.cases pnorm quantile sd
 #' @import adegenet
 #' @import dartR.base
 #' @import ggplot2

@@ -7,8 +7,10 @@
 gl.grm(
   x,
   plotheatmap = TRUE,
-  palette_discrete = discrete_palette,
-  palette_convergent = convergent_palette,
+  palette_discrete = gl.select.colors(x, library = "baseR", palette = "topo.colors",
+    ncolors = nPop(x), verbose = 0),
+  palette_convergent = gl.select.colors(x, library = "brewer", palette = "PuOr", ncolors
+    = nPop(x), verbose = 0),
   legendx = 0,
   legendy = 0.5,
   verbose = NULL,
@@ -22,10 +24,10 @@ gl.grm(
 
 \item{palette_discrete}{A discrete palette for the color of populations or a
 list with as many colors as there are populations in the dataset
- [default discrete_palette].}
+ [default via gl.set.colors].}
 
 \item{palette_convergent}{A convergent palette for the IBD values
-[default convergent_palette].}
+[default via gl.set.colors].}
 
 \item{legendx}{x coordinates for the legend[default 0].}
 
