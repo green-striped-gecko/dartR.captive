@@ -26,14 +26,8 @@ Suggests:
   igraph,
   reshape2,
   rrBLUP,
-  scales,
-  dartR.popgenomics,
-  dartR.sim,
-  dartR.spatial
-Remotes: github::green-striped-gecko/dartR.base,
-         github::green-striped-gecko/dartR.spatial, 
-         github::green-striped-gecko/dartR.sim,
-	 github::green-striped-gecko/dartR.popgenomics
+  scales
+Remotes: github::green-striped-gecko/dartR.base
 License: GPL (>= 3)
 RoxygenNote: 7.2.3
 NeedsCompilation: no
