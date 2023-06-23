@@ -9,16 +9,12 @@
 #' @import adegenet
 #' @import dartR.base
 #' @import ggplot2
-#' @import stringr
-#' @import data.table
-#' @importFrom dplyr "%>%" arrange bind_rows everything group_by mutate mutate_all mutate_at n n_distinct rename select starts_with ungroup vars
-
+#' @importFrom crayon red yellow green blue cyan
 #' @keywords internal
 
 
 #needed to avoid error
 zzz<-NULL
-
 
 build = "Jody"
 error <- crayon::red

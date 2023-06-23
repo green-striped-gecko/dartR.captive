@@ -18,7 +18,7 @@ Authors@R: c(
 Description: dartR.captive package from the dartRverse. Functions are provided that facilitate the analysis of 'SNP' (single nucleotide polymorphism) data to answer questions regarding captive breeding and relatedness between individuals. 
 Encoding: UTF-8
 Depends: R (>= 3.5), adegenet (>= 2.0.0),  dartR.base, dartR.data
-Imports: methods, utils, MASS, dplyr, patchwork, crayon, ggplot2, data.table, stringr
+Imports: methods, utils,  crayon, ggplot2, patchwork
 Suggests: 
   SIBER,
   gplots,
@@ -35,7 +35,7 @@ Remotes: github::green-striped-gecko/dartR.base,
          github::green-striped-gecko/dartR.sim,
 	 github::green-striped-gecko/dartR.popgenomics
 License: GPL (>= 3)
-RoxygenNote: 7.2.2
+RoxygenNote: 7.2.3
 NeedsCompilation: no
 Packaged: 2021-04-28 23:28:46 UTC; 
 Author: Bernd Gruber [aut, cre],
