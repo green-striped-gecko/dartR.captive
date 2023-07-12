@@ -16,16 +16,16 @@
 #' @param node.label.size Size of the node labels [default 3].
 #' @param node.label.color Color of the text of the node labels
 #' [default 'black'].
-#' @param link.color  Colors for links [default gl.select.colors].
+#' @param link.color Color palette for links [default NULL].
 #' @param link.size Size of the links [default 2].
 #' @param relatedness_factor Factor of relatedness [default 0.125].
 #' @param title Title for the plot
 #' [default 'Network based on genomic relationship matrix'].
-#' @param palette_discrete A discrete set of colors 
-#'  with as many colors as there are populations in the dataset
+#' @param palette_discrete A discrete palette for the color of populations or a
+#' list with as many colors as there are populations in the dataset
 #'  [default NULL].
-#' @param save2tmp If TRUE, saves any ggplots and listings to the session
-#' temporary directory (tempdir) [default FALSE].
+#' @param plot.dir Directory in which to save files [default = working directory]
+#' @param plot.file Name for the RDS binary file to save (base name only, exclude extension) [default NULL]
 #' @param verbose Verbosity: 0, silent or fatal errors; 1, begin and end; 2,
 #'  progress log ; 3, progress and results summary; 5, full report
 #'  [default 2 or as specified using gl.set.verbosity].
@@ -70,7 +70,8 @@
 #'  and their confidence intervals (CI), for different relationships that could 
 #'  be used to guide the choosing of the relatedness threshold in the function.
 #'
-#'|Relationship|Kinship|95% CI|
+#'|Relationship                               |Kinship  |     95% CI       |
+#'
 #'|Identical twins/clones/same individual     | 0.5     |        -         |
 #'
 #'|Sibling/Parent-Offspring                   | 0.25    |    (0.204, 0.296)|
@@ -138,12 +139,16 @@ gl.grm.network <- function(G,
                            link.color = NULL,
                            link.size = 2,
                            relatedness_factor = 0.125,
-                  title = "Network based on a genomic relationship matrix",
-                           palette_discrete = gl.select.colors(x, library="brewer", palette="PuOr", ncolors = nPop(x), verbose = 0),
-                           save2tmp = FALSE,
+                           title = "Network based on a genomic relationship matrix",
+                           palette_discrete = NULL,
+                           plot.file=NULL,
+                           plot.dir=NULL,
                            verbose = NULL) {
     # SET VERBOSITY
     verbose <- gl.check.verbosity(verbose)
+    
+    # SET WORKING DIRECTORY
+    plot.dir <- gl.check.wd(plot.dir,verbose=0)
     
     # FLAG SCRIPT START
     funname <- match.call()[[1]]
@@ -281,22 +286,26 @@ gl.grm.network <- function(G,
     plotcord$kinship <- as.numeric(plotcord$kinship)
     plotcord$kinship <- scales::rescale(plotcord$kinship, to = c(0.1, 1))
     
+    # assigning colors to populations
+    if(is.null(palette_discrete))
+      colors_pops <- gl.select.colors(x, library='gr.hcl',palette='Spectral', verbose = 0)
+     else colors_pops <- palette_discrete
     
-        colors_pops <- palette_discrete
+   
     
     if(is.null(link.color)){
-      link.color <- gl.select.colors(library="baseR", palette = "rainbow", ncolors = 10, verbose = 0)
+      link.color <- gl.select.colors(library='gr.hcl',palette='Spectral',ncolors=10, verbose = 0)
     }
     
     names(colors_pops) <- as.character(levels(x$pop))
-    
+    pal <- link.color
     size <- NULL
     p1 <-
         ggplot() + 
       geom_segment(data = edges,
                    aes( x = X1, y = Y1, xend = X2,yend = Y2,color = size),
                    size = link.size) +
-      scale_colour_gradientn(name = "Relatedness",colours = link.color) + 
+      scale_colour_gradientn(name = "Relatedness",colours = pal) + 
       geom_point(data = plotcord,aes(x = X1,y = X2, fill = pop), 
                   pch = 21,
                  size = node.size,
@@ -326,27 +335,15 @@ gl.grm.network <- function(G,
     # PRINTING OUTPUTS
     print(p1)
     
-    # SAVE INTERMEDIATES TO TEMPDIR
-    if (save2tmp) {
-        # creating temp file names
-        temp_plot <- tempfile(pattern = "Plot_")
-        match_call <-
-            paste0(names(match.call()),
-                   "_",
-                   as.character(match.call()),
-                   collapse = "_")
-        # saving to tempdir
-        saveRDS(list(match_call, p1), file = temp_plot)
-        if (verbose >= 2) {
-            cat(report("  Saving the ggplot to session tempfile\n"))
-            cat(
-                report(
-                    "  NOTE: Retrieve output files from tempdir using 
-                    gl.list.reports() and gl.print.reports()\n"
-                )
-            )
-        }
+    # Optionally save the plot ---------------------
+    
+    if(!is.null(plot.file)){
+      tmp <- utils.plot.save(p1,
+                             dir=plot.dir,
+                             file=plot.file,
+                             verbose=verbose)
     }
+    
     
     # FLAG SCRIPT END
     

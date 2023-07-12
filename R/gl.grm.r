@@ -9,13 +9,13 @@
 #'
 #' @param x Name of the genlight object containing the SNP data [required].
 #' @param plotheatmap A switch if a heatmap should be shown [default TRUE].
-#' @param palette_discrete A discrete palette for the color of populations or a
-#' list with as many colors as there are populations in the dataset
-#'  [default via gl.set.colors].
+#' @param palette_discrete the color of populations [gl.select.colors].
 #' @param palette_convergent A convergent palette for the IBD values
-#'  [default via gl.set.colors].
+#'  [default convergent_palette].
 #' @param legendx x coordinates for the legend[default 0].
 #' @param legendy y coordinates for the legend[default 1].
+#' @param plot.file Name for the RDS binary file to save (base name only, exclude extension) [default NULL]
+#' @param plot.dir Directory in which to save files [default = working directory]
 #' @param verbose Verbosity: 0, silent or fatal errors; 1, begin and end; 2,
 #'  progress log ; 3, progress and results summary; 5, full report
 #'  [default 2 or as specified using gl.set.verbosity].
@@ -56,10 +56,12 @@
 
 gl.grm <- function(x,
                    plotheatmap = TRUE,
-                   palette_discrete = gl.select.colors(x, library="baseR", palette="topo.colors", ncolors = nPop(x), verbose = 0),
-                   palette_convergent = gl.select.colors(x, library="brewer", palette="PuOr", ncolors = nPop(x), verbose = 0),
+                   palette_discrete = NULL,
+                   palette_convergent = NULL,
                    legendx = 0,
                    legendy = 0.5,
+                   plot.file=NULL,
+                   plot.dir=NULL,
                    verbose = NULL,
                    ...) {
     # SET VERBOSITY
@@ -114,8 +116,8 @@ gl.grm <- function(x,
     # DO THE JOB
     
     # assigning colors to populations
-        colors_pops <- palette_discrete
-
+    
+    colors_pops <- gl.select.colors(x, verbose = 0)
     names(colors_pops) <- as.character(levels(x$pop))
     
     # calculating the realized additive relationship matrix
@@ -136,11 +138,13 @@ gl.grm <- function(x,
     df_colors_2 <- unique(df_colors_2)
     
     if (plotheatmap == T) {
+        if (is.null(palette_convergent)) 
+          cols <- gl.select.colors(library="baseR",palette="cm.colors",ncolors = 255, verbose=0) else cols <- palette_convergent
         # plotting heatmap
         par(mar = c(1, 1, 1, 1))
-        gplots::heatmap.2(
+        p3 <- gplots::heatmap.2(
             G,
-            col = gl.select.colors(ncolors = 255, verbose=0),
+            col = cols,
             dendrogram = "column",
             ColSideColors = df_colors$color,
             RowSideColors = df_colors$color,
@@ -157,6 +161,18 @@ gl.grm <- function(x,
             cex = 0.75,
             title = "Populations"
         )
+        
+        
+        
+    }
+    
+    # Optionally save the plot ---------------------
+    
+    if(!is.null(plot.file)){
+      tmp <- utils.plot.save(p3,
+                             dir=plot.dir,
+                             file=plot.file,
+                             verbose=verbose)
     }
     
     # FLAG SCRIPT END

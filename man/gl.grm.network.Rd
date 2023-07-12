@@ -16,9 +16,9 @@ gl.grm.network(
   link.size = 2,
   relatedness_factor = 0.125,
   title = "Network based on a genomic relationship matrix",
-  palette_discrete = gl.select.colors(x, library = "brewer", palette = "PuOr", ncolors =
-    nPop(x), verbose = 0),
-  save2tmp = FALSE,
+  palette_discrete = NULL,
+  plot.file = NULL,
+  plot.dir = NULL,
   verbose = NULL
 )
 }
@@ -39,7 +39,7 @@ gl.grm.network(
 \item{node.label.color}{Color of the text of the node labels
 [default 'black'].}
 
-\item{link.color}{Colors for links [default gl.select.colors].}
+\item{link.color}{Color palette for links [default NULL].}
 
 \item{link.size}{Size of the links [default 2].}
 
@@ -48,12 +48,13 @@ gl.grm.network(
 \item{title}{Title for the plot
 [default 'Network based on genomic relationship matrix'].}
 
-\item{palette_discrete}{A discrete set of colors 
-with as many colors as there are populations in the dataset
-[default NULL].}
+\item{palette_discrete}{A discrete palette for the color of populations or a
+list with as many colors as there are populations in the dataset
+ [default NULL].}
 
-\item{save2tmp}{If TRUE, saves any ggplots and listings to the session
-temporary directory (tempdir) [default FALSE].}
+\item{plot.file}{Name for the RDS binary file to save (base name only, exclude extension) [default NULL]}
+
+\item{plot.dir}{Directory in which to save files [default = working directory]}
 
 \item{verbose}{Verbosity: 0, silent or fatal errors; 1, begin and end; 2,
 progress log ; 3, progress and results summary; 5, full report
@@ -110,7 +111,8 @@ Below is a table modified from Speed & Balding (2015) showing kinship values,
  and their confidence intervals (CI), for different relationships that could 
  be used to guide the choosing of the relatedness threshold in the function.
 
-|Relationship|Kinship|95% CI|
+|Relationship                               |Kinship  |     95% CI       |
+
 |Identical twins/clones/same individual     | 0.5     |        -         |
 
 |Sibling/Parent-Offspring                   | 0.25    |    (0.204, 0.296)|
