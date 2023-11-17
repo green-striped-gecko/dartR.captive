@@ -12,8 +12,7 @@ gl.report.parent.offspring(
   plot.out = TRUE,
   plot_theme = theme_dartR(),
   plot_colors = gl.colors(2),
-  plot.file = NULL,
-  plot.dir = NULL,
+  save2tmp = FALSE,
   verbose = NULL
 )
 }
@@ -37,9 +36,8 @@ delimiting outliers [default 1.5 interquartile ranges].}
 \item{plot_colors}{List of two color names for the borders and fill of the
 plots [default gl.colors(2)].}
 
-\item{plot.file}{Name for the RDS binary file to save (base name only, exclude extension) [default NULL]}
-
-\item{plot.dir}{Directory in which to save files [default = working directory]}
+\item{save2tmp}{If TRUE, saves any ggplots and listings to the session
+temporary directory (tempdir) [default FALSE].}
 
 \item{verbose}{Verbosity: 0, silent or fatal errors; 1, begin and end; 2,
 progress log; 3, progress and results summary; 5, full report
@@ -88,17 +86,22 @@ individuals in a parent offspring relationship.
 Note that if your dataset does not contain RepAvg or rdepth among the locus
 metrics, the filters for reproducibility and read depth are no used.
 \strong{ Function's output }
- Plots and table are saved to the working directory (plot.dir) if plot.file is specified.
+ Plots and table are saved to the temporal directory (tempdir) and can be
+ accessed with the function \code{\link{gl.print.reports}} and listed with
+ the function \code{\link{gl.list.reports}}. Note that they can be accessed
+ only in the current R session because tempdir is cleared each time that the
+  R session is closed.
  Examples of other themes that can be used can be consulted in \itemize{
  \item \url{https://ggplot2.tidyverse.org/reference/ggtheme.html} and \item
  \url{https://yutannihilation.github.io/allYourFigureAreBelongToUs/ggthemes/}
  }
 }
 \examples{
-out <- gl.report.parent.offspring(testset.gl[1:10,1:100])
+out <- gl.report.parent.offspring(testset.gl[1:10, 1:100])
 }
 \seealso{
-\code{\link{gl.report.rdepth}} , \code{\link{gl.report.reproducibility}},
+\code{\link{gl.list.reports}}, \code{\link{gl.report.rdepth}} ,
+ \code{\link{gl.print.reports}},\code{\link{gl.report.reproducibility}},
  \code{\link{gl.filter.parent.offspring}}
 }
 \author{
