@@ -16,12 +16,6 @@
 #'  [default getwd()].
 #' @param Inbreed A Boolean, taking values 0 or 1 to indicate inbreeding is not
 #'  and is allowed in estimating IBD coefficients [default 1].
-#' @param GtypeFile A string, giving the path and name of the genotype file
-#' [default "EMIBD9_Gen.dat"].
-#' @param OutFileName_par A string, giving the path and name of the parameter
-#'  file [default "MyData.par"].
-#' @param OutFileName A string, giving the path and name of the output file
-#' [default "EMIBD9_Res.ibd9"].
 #' @param ISeed An integer used to seed the random number generator [default 52].
 #' @param plot.dir Directory to save the plot RDS files [default as specified 
 #' by the global working directory or tempdir()]
@@ -60,11 +54,9 @@
 gl.run.EMIBD9 <- function(x,
                           outfile = "EMIBD9_Res.ibd9",
                           outpath = tempdir(),
+                          emibd9.path = getwd(),
                           Inbreed = TRUE,
-                          outfile=
-                          GtypeFile = "EMIBD9_Gen.dat",
-                          OutFileName_par = "MyData.par",
-                          ISeed = 52,
+                          ISeed = 42,
                           plot.out = TRUE,
                           plot.dir=NULL,
                           plot.file = NULL,
@@ -87,7 +79,50 @@ gl.run.EMIBD9 <- function(x,
   
   # CHECK DATATYPE
   datatype <- utils.check.datatype(x, verbose = verbose)
+ 
+  #check if embid9 is available
   
+  os <- Sys.info()["sysname"]
+  
+  if (Sys.info()["sysname"] == "Windows") {
+    prog <- c("EM_IBD_P.exe", "impi.dll", "libiomp5md.dll")
+    cmd <- "EM_IBD_P.exe INP:MyData.par"
+  }
+  
+  if (Sys.info()["sysname"] == "Linux") {
+    prog <- "EM_IBD_P"
+    cmd <- "./EM_IBD_P INP:MyData.par"
+  }
+  
+  if (Sys.info()["sysname"] == "Darwin") {
+    prog <- "EM_IBD_P"
+    cmd <- "./EM_IBD_P INP:MyData.par"
+  }
+  
+  # check if file program can be found
+  if (all(file.exists(file.path(emibd9.path, prog)))) {
+    file.copy(file.path(emibd9.path, prog),
+              to = tempdir(),
+              overwrite = TRUE
+    )
+    if (verbose > 0) cat(report("Found necessary files to run EMIBD9."))
+  } else {
+    cat(
+      error(
+        "  Cannot find",
+        prog,
+        "in the specified folder given by emibd9.path:",
+        neest.path,
+        "\n"
+      )
+    )
+    stop()
+  }
+  
+  
+  rundir <- tempdir()
+  
+   
   
   # individual IDs must have a maximal length of 20 characters. The IDs must NOT
   # contain blank space and other illegal characters (such as /), and must be
@@ -107,8 +142,8 @@ gl.run.EMIBD9 <- function(x,
   DataForm <- 2
   if (Inbreed) Inbreed <- 1 else Inbreed <- 0
   # Inbreed <- Inbreed
-  # GtypeFile <- GtypeFile
-  # OutFileName <- OutFileName
+  GtypeFile <- "EMIBD9_Gen.dat"
+  OutFileName <-  outfile
   # ISeed <- ISeed
   RndDelta0 <- 1
   EM_Method <- 1
@@ -131,7 +166,7 @@ gl.run.EMIBD9 <- function(x,
     quote = FALSE,
     row.names = FALSE,
     col.names = FALSE,
-    file = file.path(outpath, OutFileName_par)
+    file = file.path(rundir, "MyData.par")
   )
 
   IndivID <- paste(indNames(x2))
@@ -143,24 +178,29 @@ gl.run.EMIBD9 <- function(x,
     Reduce(paste0, y)
   }))
 
-  tmp <- rbind(paste(indNames(x), collapse = " "), tmp)
+  tmp <- rbind(paste(indNames(x2), collapse = " "), tmp)
 
   write.table(tmp,
-    file = file.path(outpath,GtypeFile),
+    file = file.path(rundir, "EMIBD9_Gen.dat"),
     quote = FALSE,
     row.names = FALSE,
     col.names = FALSE
   )
   
-  # Find executable makeblastdb if unix
-  if (grepl("unix", .Platform$OS.type, ignore.case = TRUE)) {
-    system("./EM_IBD_P INP:MyData.par")
-  }
-  ## if windows
-  if (!grepl("unix", .Platform$OS.type, ignore.case = TRUE)) {
-    system("EM_IBD_P.exe INP:MyData.par")
-  }
 
+
+  
+  # run EMIBD9
+  # change into tempdir (run it there)
+  old.path <- getwd()
+  setwd(rundir)
+  system(cmd)
+  
+  ### get output  
+  
+ 
+  
+  
   x_lines <- readLines("EMIBD9_Res.ibd9")
   strt <- which(grepl("^IBD", x_lines)) + 2
   stp <- which(grepl("Indiv genotypes", x_lines)) - 4
@@ -168,35 +208,63 @@ gl.run.EMIBD9 <- function(x,
   linez_data <- x_lines[(strt + 1):stp]
   tmp_headings <- unlist(stringr::str_split(linez_headings, " "))
   tmp_data <- stringr::str_split(linez_data, " ")
-  tmp_data_2 <- lapply(tmp_data, "[", c(2, 3, 22))
-  tmp_data_3 <- do.call("rbind", tmp_data_2)
-  tmp_data_4 <- as.data.frame(tmp_data_3)
-  tmp_data_4$V3 <- lapply(tmp_data_4$V3, as.numeric)
-  colnames(tmp_data_4) <- c("ind1", "ind2", "rel")
-
-  res <- as.matrix(reshape2::acast(tmp_data_4, ind1 ~ ind2, value.var = "rel"))
-
-  restore_names_2 <- merge(data.frame(id2 = rownames(res)), restore_names, by = "id2")
-
-  res <- apply(res, 2, as.numeric)
-
-  colnames(res) <- restore_names_2$id
-  rownames(res) <- restore_names_2$id
-
-  order_mat <- colnames(res)[order(colnames(res))]
-
-  out <- list()
-
-  out$res <- res[order_mat, order_mat]
-  out$table <- 1:3
+  #Raw data 
+  tmp_data_raw_1 <- lapply(tmp_data, "[", c(2:22))
+  tmp_data_raw_2 <- do.call("rbind", tmp_data_raw_1)
+  tmp_data_raw_3 <- as.data.frame(tmp_data_raw_2)
+  tmp_data_raw_3$V3 <- lapply(tmp_data_raw_3$V3, as.numeric)
+  colnames(tmp_data_raw_3) <- tmp_headings[2:22]
   
+  df <- data.frame(ind1=tmp_data_raw_3$Indiv1, ind2=tmp_data_raw_3$Indiv2,rel= tmp_data_raw_3$`r(1,2)`)
+  df<- apply(df, 2, as.numeric)
+  #Relatedness
+  res <- matrix(NA, nrow = nInd(x), ncol = nInd(x))
+  
+  for (i in 1:nrow(df)) {
+    res[df[i, 1], df[i, 2]] <- df[i, 3]
+  }
+
+ 
+ 
+
+  colnames(res) <- indNames(x)
+  rownames(res) <- indNames(x)
+
+
+ 
+  
+  #return to old path
+  setwd(old.path)
+  
+  #compile the two dataframes into on list for output
+  if (verbose>0)
+  {
+  cat(
+    report(
+      "Returning a list containing the input gl object, a square matrix  of pairwise relatedness, and the raw EMIBD9 results table as follows:\n",
+      "          $rel -- a square matrix of relatedness \n",
+      "          $raw -- raw EMIBD9 results table \n")
+  )
+  }
+
+  # PRINTING OUTPUTS
+  p1 <- gl.plot.heatmap(res) 
+    if (plot.out) print(p1)
+
+  # Optionally save the plot ---------------------
   if(!is.null(plot.file)){
-    tmp <- utils.plot.save(p3,
+    tmp <- utils.plot.save(p1,
                            dir=plot.dir,
                            file=plot.file,
                            verbose=verbose)
   }
   
+  #Make a list
+  results <-
+    list(
+      rel = res,
+      raw = tmp_data_raw_3
+    )
   
-  return(res)
+  return(results)
 }
