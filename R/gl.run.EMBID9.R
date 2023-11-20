@@ -5,13 +5,13 @@
 #' @param x Name of the genlight object containing the SNP data [required].
 #' @param Inbreed A Boolean, taking values 0 or 1 to indicate inbreeding is not
 #'  and is allowed in estimating IBD coefficients [default 1].
-#' @param GtypeFile: A string, giving the path and name of the genotype file
+#' @param GtypeFile A string, giving the path and name of the genotype file
 #' [default "EMIBD9_Gen.dat"].
 #' @param OutFileName_par A string, giving the path and name of the parameter
 #'  file [default "MyData.par"].
 #' @param OutFileName A string, giving the path and name of the output file
 #' [default "EMIBD9_Res.ibd9"].
-#' @param ISeed: An integer used to seed the random number generator [default 52].
+#' @param ISeed An integer used to seed the random number generator [default 52].
 #' @details
 #' Download the program from here:
 #'
@@ -37,6 +37,7 @@
 #'  frequencies from a small sample of individuals. Methods in Ecology and
 #'  Evolution, 13(11), 2443-2462.
 #' }
+#' @importFrom stringr str_split
 #' @export
 
 gl.run.EMIBD9 <- function(x,
@@ -58,7 +59,7 @@ gl.run.EMIBD9 <- function(x,
   NumIndiv <- nInd(x)
   NumLoci <- nLoc(x)
   DataForm <- 2
-  if (Inbreed)  Inbreed=1 else Inbreed=0
+  if (Inbreed) Inbreed <- 1 else Inbreed <- 0
   # Inbreed <- Inbreed
   # GtypeFile <- GtypeFile
   # OutFileName <- OutFileName
@@ -137,9 +138,9 @@ gl.run.EMIBD9 <- function(x,
   rownames(res) <- restore_names_2$id
 
   order_mat <- colnames(res)[order(colnames(res))]
-  
+
   out <- list()
-  
+
   out$res <- res[order_mat, order_mat]
   out$table <- 1:3
   return(res)

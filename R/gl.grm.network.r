@@ -24,8 +24,9 @@
 #' @param palette_discrete A discrete set of colors
 #'  with as many colors as there are populations in the dataset
 #'  [default NULL].
-#' @param save2tmp If TRUE, saves any ggplots and listings to the session
-#' temporary directory (tempdir) [default FALSE].
+#' @param plot.dir Directory to save the plot RDS files [default as specified
+#' by the global working directory or tempdir()]
+#' @param plot.file Name for the RDS binary file to save (base name only, exclude extension) [default NULL]
 #' @param verbose Verbosity: 0, silent or fatal errors; 1, begin and end; 2,
 #'  progress log ; 3, progress and results summary; 5, full report
 #'  [default 2 or as specified using gl.set.verbosity].
@@ -110,7 +111,7 @@
 #'   t1 <- possums.gl
 #'   # filtering on call rate
 #'   t1 <- gl.filter.callrate(t1)
-#'   t1 <- gl.subsample.loci(t1, n = 100)
+#'   t1 <- gl.subsample.loc(t1, n = 100)
 #'   # relatedness matrix
 #'   res <- gl.grm(t1, plotheatmap = FALSE)
 #'   # relatedness network
@@ -141,10 +142,14 @@ gl.grm.network <- function(G,
                            relatedness_factor = 0.125,
                            title = "Network based on a genomic relationship matrix",
                            palette_discrete = gl.select.colors(x, library = "brewer", palette = "PuOr", ncolors = nPop(x), verbose = 0),
-                           save2tmp = FALSE,
+                           plot.dir = NULL,
+                           plot.file = NULL,
                            verbose = NULL) {
   # SET VERBOSITY
   verbose <- gl.check.verbosity(verbose)
+
+  # SET WORKING DIRECTORY
+  plot.dir <- gl.check.wd(plot.dir, verbose = 0)
 
   # FLAG SCRIPT START
   funname <- match.call()[[1]]
@@ -341,28 +346,16 @@ gl.grm.network <- function(G,
   # PRINTING OUTPUTS
   print(p1)
 
-  # SAVE INTERMEDIATES TO TEMPDIR
-  if (save2tmp) {
-    # creating temp file names
-    temp_plot <- tempfile(pattern = "Plot_")
-    match_call <-
-      paste0(names(match.call()),
-        "_",
-        as.character(match.call()),
-        collapse = "_"
-      )
-    # saving to tempdir
-    saveRDS(list(match_call, p1), file = temp_plot)
-    if (verbose >= 2) {
-      cat(report("  Saving the ggplot to session tempfile\n"))
-      cat(
-        report(
-          "  NOTE: Retrieve output files from tempdir using
-                    gl.list.reports() and gl.print.reports()\n"
-        )
-      )
-    }
+  # Optionally save the plot ---------------------
+
+  if (!is.null(plot.file)) {
+    tmp <- utils.plot.save(p1,
+      dir = plot.dir,
+      file = plot.file,
+      verbose = verbose
+    )
   }
+
 
   # FLAG SCRIPT END
 

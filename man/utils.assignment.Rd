@@ -32,7 +32,7 @@ https://dyerlab.github.io/applied_population_genetics/population-assignment.html
 }
 \examples{
 require("dartR.data")
-res <- utils.assignment(platypus.gl,unknown="T27")
+res <- utils.assignment(platypus.gl, unknown = "T27")
 }
 \author{
 Custodian: Luis Mijangos -- Post to

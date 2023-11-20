@@ -2,7 +2,7 @@
 % Please edit documentation in R/gl.assign.mahalanobis.r
 \name{gl.assign.mahalanobis}
 \alias{gl.assign.mahalanobis}
-\title{Assign an individual of unknown provenance to population based on 
+\title{Assign an individual of unknown provenance to population based on
 Mahalanobis Distance}
 \usage{
 gl.assign.mahalanobis(
@@ -23,7 +23,7 @@ confidence ellipses [default 2]}
 \item{plevel}{Probability level for bounding ellipses
 [default 0.999].}
 
-\item{plot.out}{If TRUE, produces a plot showing the position of the 
+\item{plot.out}{If TRUE, produces a plot showing the position of the
 unknown in relation to putative source populations [default TRUE]}
 
 \item{unknown}{Identity label of the focal individual whose provenance is
@@ -38,8 +38,8 @@ A data frame with the results of the assignment analysis.
 }
 \description{
 This script assigns an individual of unknown provenance to one or more target
-populations based on the unknown individual's proximity to population 
-centroids; proximity is estimated using Mahalanobis Distance. 
+populations based on the unknown individual's proximity to population
+centroids; proximity is estimated using Mahalanobis Distance.
 
 The following process is followed:
 \enumerate{
@@ -63,17 +63,17 @@ an indication that the unknown does not belong to a target population
 A next step is to consider the PCoA plot for populations where no private
 alleles have been detected. The position of the unknown in relation to the
 confidence ellipses is plotted by this script as a basis for narrowing down
-the list of putative source populations. This can be evaluated with 
+the list of putative source populations. This can be evaluated with
 gl.assign.pca().
 
-The third step (delivered by this script) is to consider the assignment 
-probabilities based on the squared Generalised Linear Distance 
-(Mahalanobis distance) of the unknown from the centroid for each population, 
-then to consider the probability associated with its quantile using the 
-Chisquare approximation. In effect, this index takes into account position 
-of the unknown in relation to the confidence envelope in all selected 
-dimensions of the ordination. The larger the assignment probability, 
-the greater the confidence in the assignment. 
+The third step (delivered by this script) is to consider the assignment
+probabilities based on the squared Generalised Linear Distance
+(Mahalanobis distance) of the unknown from the centroid for each population,
+then to consider the probability associated with its quantile using the
+Chisquare approximation. In effect, this index takes into account position
+of the unknown in relation to the confidence envelope in all selected
+dimensions of the ordination. The larger the assignment probability,
+the greater the confidence in the assignment.
 
 If dim.limit is set to 2, to correspond with the dimensions used in
 gl.assign.pa(), then the output provides a ranking of the final set
@@ -81,17 +81,17 @@ of putative source populations.
 
 If dim.limit is set to be > 2, then this script provides a basis for
 further narrowing the set of putative populations.If the unknown individual
-is an extreme outlier, say at less than 0.001 probability of population 
-membership (0.999 confidence envelope), then the associated population 
+is an extreme outlier, say at less than 0.001 probability of population
+membership (0.999 confidence envelope), then the associated population
 can be eliminated from further consideration.
 
 Warning: gl.assign.mahal() treats each specified dimension equally, without
-regard to the percentage variation explained after ordination. If the 
+regard to the percentage variation explained after ordination. If the
 unknown is an outlier in a lower dimension with an explanatory variance of,
 say, 0.1%, the putative population will be eliminated. Use only substantive
 dimensions from the ordination.
 
-Each of these above approaches provides evidence, none are 100% definitive. 
+Each of these above approaches provides evidence, none are 100% definitive.
 They need to be interpreted cautiously.
 
 In deciding the assignment, the script considers an individual to be an
@@ -99,11 +99,13 @@ outlier with respect to a particular population at alpha = 0.001 as default
 }
 \examples{
 \dontrun{
-#Test run with a focal individual from the Macleay River (EmmacMaclGeor) 
-test <- gl.assign.pa(testset.gl, unknown='UC_01044', nmin=10, threshold=1,
-verbose=3) 
-test_2  <- gl.assign.pca(test, unknown='UC_01044', plevel=0.95, verbose=3)
-df <- gl.assign.mahalanobis(test_2, unknown='UC_01044', verbose=3)
+# Test run with a focal individual from the Macleay River (EmmacMaclGeor)
+test <- gl.assign.pa(testset.gl,
+  unknown = "UC_01044", nmin = 10, threshold = 1,
+  verbose = 3
+)
+test_2 <- gl.assign.pca(test, unknown = "UC_01044", plevel = 0.95, verbose = 3)
+df <- gl.assign.mahalanobis(test_2, unknown = "UC_01044", verbose = 3)
 }
 }
 \author{

@@ -18,7 +18,8 @@ gl.grm.network(
   title = "Network based on a genomic relationship matrix",
   palette_discrete = gl.select.colors(x, library = "brewer", palette = "PuOr", ncolors =
     nPop(x), verbose = 0),
-  save2tmp = FALSE,
+  plot.dir = NULL,
+  plot.file = NULL,
   verbose = NULL
 )
 }
@@ -52,8 +53,10 @@ gl.grm.network(
 with as many colors as there are populations in the dataset
 [default NULL].}
 
-\item{save2tmp}{If TRUE, saves any ggplots and listings to the session
-temporary directory (tempdir) [default FALSE].}
+\item{plot.dir}{Directory to save the plot RDS files [default as specified
+by the global working directory or tempdir()]}
+
+\item{plot.file}{Name for the RDS binary file to save (base name only, exclude extension) [default NULL]}
 
 \item{verbose}{Verbosity: 0, silent or fatal errors; 1, begin and end; 2,
 progress log ; 3, progress and results summary; 5, full report
@@ -147,7 +150,7 @@ if (requireNamespace("igraph", quietly = TRUE) & requireNamespace("rrBLUP",
   t1 <- possums.gl
   # filtering on call rate
   t1 <- gl.filter.callrate(t1)
-  t1 <- gl.subsample.loci(t1, n = 100)
+  t1 <- gl.subsample.loc(t1, n = 100)
   # relatedness matrix
   res <- gl.grm(t1, plotheatmap = FALSE)
   # relatedness network

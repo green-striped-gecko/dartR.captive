@@ -23,13 +23,13 @@
 #' [default 'best'].
 #' @param rm.monomorphs If TRUE, remove monomorphic loci after filtering
 #' individuals [default FALSE].
-#' @param plot.out Specify if plot is to be produced [default TRUE].
 #' @param plot_theme Theme for the plot. See Details for options
 #' [default theme_dartR()].
 #' @param plot_colors List of two color names for the borders and fill of the
 #'  plots [default gl.colors(2)].
-#' @param save2tmp If TRUE, saves any ggplots and listings to the session
-#' temporary directory (tempdir) [default FALSE].
+#' @param plot.dir Directory to save the plot RDS files [default as specified
+#' by the global working directory or tempdir()]
+#' @param plot.file Name for the RDS binary file to save (base name only, exclude extension) [default NULL]
 #' @param verbose Verbosity: 0, silent or fatal errors; 1, begin and end; 2,
 #'  progress log ; 3, progress and results summary; 5, full report
 #'  [default 2, unless specified using gl.set.verbosity].
@@ -69,13 +69,6 @@
 #' Note that if your dataset does not contain RepAvg or rdepth among the locus
 #' metrics, the filters for reproducibility and read depth are no used.
 
-#' \strong{ Function's output }
-
-#'  Plots and table are saved to the temporal directory (tempdir) and can be
-#'  accessed with the function \code{\link{gl.print.reports}} and listed with
-#'  the function \code{\link{gl.list.reports}}. Note that they can be accessed
-#'  only in the current R session because tempdir is cleared each time that the
-#'   R session is closed.
 
 #'  Examples of other themes that can be used can be consulted in \itemize{
 #'  \item \url{https://ggplot2.tidyverse.org/reference/ggtheme.html} and \item
@@ -92,9 +85,8 @@
 #' @examples
 #' out <- gl.filter.parent.offspring(testset.gl[1:10, 1:50])
 
-#' @seealso \code{\link{gl.list.reports}}, \code{\link{gl.report.rdepth}} ,
-#'  \code{\link{gl.print.reports}},\code{\link{gl.report.reproducibility}},
-#'  \code{\link{gl.report.parent.offspring}}
+#' @seealso  \code{\link{gl.report.rdepth}} , \code{\link{gl.report.reproducibility}},
+#' \code{\link{gl.report.parent.offspring}}
 
 #' @family filter functions
 
@@ -111,13 +103,17 @@ gl.filter.parent.offspring <- function(x,
                                        range = 1.5,
                                        method = "best",
                                        rm.monomorphs = FALSE,
-                                       plot.out = TRUE,
                                        plot_theme = theme_dartR(),
                                        plot_colors = gl.colors(2),
-                                       save2tmp = FALSE,
+                                       plot.file = NULL,
+                                       plot.dir = NULL,
                                        verbose = NULL) {
   # SET VERBOSITY
   verbose <- gl.check.verbosity(verbose)
+
+
+  # SET WORKING DIRECTORY
+  plot.dir <- gl.check.wd(plot.dir, verbose = 0)
 
   # FLAG SCRIPT START
   funname <- match.call()[[1]]
@@ -374,41 +370,19 @@ gl.filter.parent.offspring <- function(x,
 
   df <- outliers
   # PRINTING OUTPUTS
-  if (plot.out) {
+  if (!is.null(plot.file)) {
     # using package patchwork
     p3 <- (p1 / p2) + plot_layout(heights = c(1, 4))
     print(p3)
-  }
 
-  # SAVE INTERMEDIATES TO TEMPDIR
 
-  # creating temp file names
-  if (save2tmp) {
-    if (plot.out) {
-      temp_plot <- tempfile(pattern = "Plot_")
-      match_call <-
-        paste0(names(match.call()),
-          "_",
-          as.character(match.call()),
-          collapse = "_"
-        )
-      # saving to tempdir
-      saveRDS(list(match_call, p3), file = temp_plot)
-      if (verbose >= 2) {
-        cat(report("  Saving the ggplot to session tempfile\n"))
-      }
-    }
-    temp_table <- tempfile(pattern = "Table_")
-    saveRDS(list(match_call, df), file = temp_table)
-    if (verbose >= 2) {
-      cat(report("  Saving tabulation to session tempfile\n"))
-      cat(
-        report(
-          "  NOTE: Retrieve output files from tempdir using
-                    gl.list.reports() and gl.print.reports()\n"
-        )
-      )
-    }
+    # Optionally save the plot ---------------------
+
+    tmp <- utils.plot.save(p3,
+      dir = plot.dir,
+      file = plot.file,
+      verbose = verbose
+    )
   }
 
   # ADD ACTION TO HISTORY
