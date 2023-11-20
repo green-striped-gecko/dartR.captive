@@ -3,6 +3,17 @@
 #' @description
 #' Run program EMIBD9
 #' @param x Name of the genlight object containing the SNP data [required].
+#' @param outfile A string, giving the path and name of the output file
+#' [default "EMIBD9_Res.ibd9"].
+#' @param outpath Path where to save the output file. Use outpath=getwd() or
+#' outpath='.' when calling this function to direct output files to your working 
+#' or current directory [default tempdir(), mandated by CRAN].
+#' @param emibd9.path Path to the folder emidb files.
+#'  Please note there are 3 different executables depending on your OS:
+#'  EM_IBD_P.exe (=Windows) [and the two dlls impi.dll, libiomp5md.dll], 
+#'  EM_IBD_P (=Mac, Linux). You only need to point
+#'  to the folder (the function will recognise which OS you are running)
+#'  [default getwd()].
 #' @param Inbreed A Boolean, taking values 0 or 1 to indicate inbreeding is not
 #'  and is allowed in estimating IBD coefficients [default 1].
 #' @param GtypeFile A string, giving the path and name of the genotype file
@@ -12,6 +23,12 @@
 #' @param OutFileName A string, giving the path and name of the output file
 #' [default "EMIBD9_Res.ibd9"].
 #' @param ISeed An integer used to seed the random number generator [default 52].
+#' @param plot.dir Directory to save the plot RDS files [default as specified 
+#' by the global working directory or tempdir()]
+#' @param plot.file Name for the RDS binary file to save (base name only, exclude extension) [default NULL]
+#' @param verbose Verbosity: 0, silent or fatal errors; 1, begin and end; 2,
+#' progress log; 3, progress and results summary; 5, full report
+#'  [default NULL, unless specified using gl.set.verbosity]
 #' @details
 #' Download the program from here:
 #'
@@ -41,23 +58,52 @@
 #' @export
 
 gl.run.EMIBD9 <- function(x,
+                          outfile = "EMIBD9_Res.ibd9",
+                          outpath = tempdir(),
                           Inbreed = TRUE,
+                          outfile=
                           GtypeFile = "EMIBD9_Gen.dat",
                           OutFileName_par = "MyData.par",
-                          OutFileName = "EMIBD9_Res.ibd9",
-                          ISeed = 52) {
+                          ISeed = 52,
+                          plot.out = TRUE,
+                          plot.dir=NULL,
+                          plot.file = NULL,
+                          verbose = NULL) {
+  
+  
+  # SET VERBOSITY
+  verbose <- gl.check.verbosity(verbose)
+  
+  # SET WORKING DIRECTORY
+  plot.dir <- gl.check.wd(plot.dir, verbose = 0)
+  
+  # FLAG SCRIPT START
+  funname <- match.call()[[1]]
+  utils.flag.start(
+    func = funname,
+    build = "Jody",
+    verbose = verbose
+  )
+  
+  # CHECK DATATYPE
+  datatype <- utils.check.datatype(x, verbose = verbose)
+  
+  
   # individual IDs must have a maximal length of 20 characters. The IDs must NOT
   # contain blank space and other illegal characters (such as /), and must be
   # unique among all sampled individuals (i.e. NO duplications). Any string longer
   # than 20 characters for individual ID will be truncated to have 20 characters.
 
+  
+  
+  x2 <- x  #copy to work only on the copied data set
   hold_names <- indNames(x)
-  indNames(x) <- 1:nInd(x)
-  restore_names <- data.frame(id = hold_names, id2 = indNames(x))
+  indNames(x2) <- 1:nInd(x2)
+  
 
-
-  NumIndiv <- nInd(x)
-  NumLoci <- nLoc(x)
+  
+  NumIndiv <- nInd(x2)
+  NumLoci <- nLoc(x2)
   DataForm <- 2
   if (Inbreed) Inbreed <- 1 else Inbreed <- 0
   # Inbreed <- Inbreed
@@ -85,12 +131,12 @@ gl.run.EMIBD9 <- function(x,
     quote = FALSE,
     row.names = FALSE,
     col.names = FALSE,
-    file = OutFileName_par
+    file = file.path(outpath, OutFileName_par)
   )
 
-  IndivID <- paste(indNames(x))
+  IndivID <- paste(indNames(x2))
 
-  gl_mat <- as.matrix(x)
+  gl_mat <- as.matrix(x2)
   gl_mat[is.na(gl_mat)] <- 3
 
   tmp <- cbind(apply(gl_mat, 1, function(y) {
@@ -100,12 +146,12 @@ gl.run.EMIBD9 <- function(x,
   tmp <- rbind(paste(indNames(x), collapse = " "), tmp)
 
   write.table(tmp,
-    file = GtypeFile,
+    file = file.path(outpath,GtypeFile),
     quote = FALSE,
     row.names = FALSE,
     col.names = FALSE
   )
-
+  
   # Find executable makeblastdb if unix
   if (grepl("unix", .Platform$OS.type, ignore.case = TRUE)) {
     system("./EM_IBD_P INP:MyData.par")
@@ -143,5 +189,14 @@ gl.run.EMIBD9 <- function(x,
 
   out$res <- res[order_mat, order_mat]
   out$table <- 1:3
+  
+  if(!is.null(plot.file)){
+    tmp <- utils.plot.save(p3,
+                           dir=plot.dir,
+                           file=plot.file,
+                           verbose=verbose)
+  }
+  
+  
   return(res)
 }
