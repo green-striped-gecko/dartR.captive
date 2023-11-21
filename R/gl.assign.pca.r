@@ -64,7 +64,7 @@
 #' @author Custodian: Arthur Georges -- Post to
 #' \url{https://groups.google.com/d/forum/dartr}
 #' @examples
-#' \dontrun{
+#' \donttest{
 #' # Test run with a focal individual from the Macleay River (EmmacMaclGeor)
 #' test <- gl.assign.pa(testset.gl,
 #'   unknown = "UC_00146", nmin = 10, threshold = 1,

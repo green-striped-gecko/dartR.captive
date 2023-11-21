@@ -9,14 +9,14 @@
 #' outpath='.' when calling this function to direct output files to your working 
 #' or current directory [default tempdir(), mandated by CRAN].
 #' @param emibd9.path Path to the folder emidb files.
-#'  Please note there are 3 different executables depending on your OS:
-#'  EM_IBD_P.exe (=Windows) [and the two dlls impi.dll, libiomp5md.dll], 
-#'  EM_IBD_P (=Mac, Linux). You only need to point
-#'  to the folder (the function will recognise which OS you are running)
-#'  [default getwd()].
+#'  Please note there are 2 different executables depending on your OS:
+#'  EM_IBD_P.exe (=Windows) EM_IBD_P (=Mac, Linux). 
+#'  You only need to pointto the folder (the function will recognise which OS you
+#'  are running) [default getwd()].
 #' @param Inbreed A Boolean, taking values 0 or 1 to indicate inbreeding is not
 #'  and is allowed in estimating IBD coefficients [default 1].
-#' @param ISeed An integer used to seed the random number generator [default 52].
+#' @param ISeed An integer used to seed the random number generator [default 42].
+#' @param plot.out A boolean that indicates whether to plot the results [default TRUE].
 #' @param plot.dir Directory to save the plot RDS files [default as specified 
 #' by the global working directory or tempdir()]
 #' @param plot.file Name for the RDS binary file to save (base name only, exclude extension) [default NULL]
@@ -28,10 +28,11 @@
 #'
 #' https://www.zsl.org/about-zsl/resources/software/emibd9
 #'
-#' For Windows, install the program and then move the following files to your
-#'  working directory: "EM_IBD_P.exe", "impi.dll" and "libiomp5md.dll".
-#'
-#' For Mac move the file "EM_IBD_P" to the working directory.
+#' For Windows, Mac and Linux install the program then point to the folder where you find:
+#' EM_IBD_P.exe (=Windows) and EM_IBD_P (=Mac, Linux). If running really slow you may 
+#' want to create the files using the function and then run in parallel using the
+#' documentation provided by the authors [you need to have mpiexec installed].
+#' 
 #'
 #' @return A matrix with pairwise relatedness
 #' @author Custodian: Luis Mijangos -- Post to
@@ -107,12 +108,12 @@ gl.run.EMIBD9 <- function(x,
     )
     if (verbose > 0) cat(report("Found necessary files to run EMIBD9."))
   } else {
-    cat(
+    message(
       error(
         "  Cannot find",
         prog,
         "in the specified folder given by emibd9.path:",
-        neest.path,
+        emibd9.path,
         "\n"
       )
     )
@@ -193,6 +194,7 @@ gl.run.EMIBD9 <- function(x,
   # run EMIBD9
   # change into tempdir (run it there)
   old.path <- getwd()
+  on.exit(setwd(old.path))
   setwd(rundir)
   system(cmd)
   
