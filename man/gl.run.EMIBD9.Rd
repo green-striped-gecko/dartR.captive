@@ -67,6 +67,7 @@ documentation provided by the authors [you need to have mpiexec installed].
 }
 \examples{
 \dontrun{
+#To run this function needs EMIBD9 installed in your computer
 t1 <- gl.filter.allna(platypus.gl)
 res_rel <- gl.run.EMIBD9(t1)
 }

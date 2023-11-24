@@ -39,6 +39,7 @@
 #' \url{https://groups.google.com/d/forum/dartr}
 #' @examples
 #' \dontrun{
+#' #To run this function needs EMIBD9 installed in your computer
 #' t1 <- gl.filter.allna(platypus.gl)
 #' res_rel <- gl.run.EMIBD9(t1)
 #' }

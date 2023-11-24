@@ -4,7 +4,7 @@
 \alias{utils.assignment_2}
 \title{Population assignment probabilities}
 \usage{
-utils.assignment_2(x, unknown, verbose = 2)
+utils.assignment_2(x, unknown, verbose = NULL)
 }
 \arguments{
 \item{x}{Name of the genlight object containing the SNP data [required].}

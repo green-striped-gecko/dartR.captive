@@ -28,7 +28,7 @@
 utils.assignment_2 <- function(x,
                                unknown,
                                # inbreeding_par = 0,
-                               verbose = 2) {
+                               verbose = NULL) {
   # SET VERBOSITY
   verbose <- gl.check.verbosity(verbose)
 
