@@ -123,7 +123,7 @@ gl.assign.mahalanobis <- function(x,
   }
 
   if (plevel > 1 || plevel < 0) {
-    cat(warn(
+    if (verbose>0) cat(warn(
       "  Warning: Value of plevel must be between 0 and 1, set to 0.999\n"
     ))
     plevel <- 0.999

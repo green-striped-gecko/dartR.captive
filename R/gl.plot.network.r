@@ -122,7 +122,7 @@ gl.plot.network <- function(D,
 
   if (!(method == "fr" ||
     method == "kk" || method == "drl")) {
-    cat(warn(
+    if(verbose>0) cat(warn(
       "Warning: Layout method must be one of fr, or kk, or drl, set to fr\n"
     ))
     method <- "fr"

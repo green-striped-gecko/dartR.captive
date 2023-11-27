@@ -117,7 +117,7 @@ gl.report.parent.offspring <- function(x,
   pop(x) <- x$ind.names
   # Filter stringently on reproducibility to minimize miscalls
   if (is.null(x@other$loc.metrics$RepAvg)) {
-    cat(
+    if(verbose>0) cat(
       warn(
         "  Dataset does not include RepAvg among the locus metrics,
                 therefore the reproducibility filter was not used\n"
@@ -132,7 +132,7 @@ gl.report.parent.offspring <- function(x,
   }
   # Filter stringently on read depth, to further minimize miscalls
   if (is.null(x@other$loc.metrics$rdepth)) {
-    cat(
+    if(verbose>0) cat(
       warn(
         "  Dataset does not include rdepth among the locus metrics,
                 therefore the read depth filter was not used\n"
@@ -250,7 +250,7 @@ gl.report.parent.offspring <- function(x,
 
   # Output the outlier loci
   if (length(lower.extremes) == 0) {
-    cat(important("  No outliers detected\n"))
+    if(verbose>0) cat(important("  No outliers detected\n"))
   }
   if (length(lower.extremes) > 0) {
     outliers <- outliers[order(outliers$Outlier), ]

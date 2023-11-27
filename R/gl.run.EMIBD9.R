@@ -244,7 +244,7 @@ gl.run.EMIBD9 <- function(x,
   {
   cat(
     report(
-      "Returning a list containing the input gl object, a square matrix  of pairwise relatedness, and the raw EMIBD9 results table as follows:\n",
+      "Returning a list containing the input gl object, a square matrix  of pairwise kinship, and the raw EMIBD9 results table as follows:\n",
       "          $rel -- a square matrix of relatedness \n",
       "          $raw -- raw EMIBD9 results table \n")
   )

@@ -79,7 +79,7 @@ gl.assign.pa <- function(x,
     )
   }
   if (nmin <= 0 & verbose >= 1) {
-    cat(
+    if(verbose>0) cat(
       warn(
         "  Warning: the minimum size of the target population must be
                 greater than zero, set to 10\n"
@@ -88,7 +88,7 @@ gl.assign.pa <- function(x,
     nmin <- 10
   }
   if (threshold < 0 & verbose >= 1) {
-    cat(
+    if(verbose>0) cat(
       warn(
         "  Warning: the threshold for private alleles must be
                 non-negative, set to 0\n"

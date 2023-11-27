@@ -146,6 +146,9 @@ gl.grm <- function(x,
       cols <- palette_convergent
     }
     # plotting heatmap
+    
+    oldpar <- par(no.readonly = TRUE)
+    on_exit(par(oldpar))
     par(mar = c(1, 1, 1, 1))
     p3 <- gplots::heatmap.2(
       G,

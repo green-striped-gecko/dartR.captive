@@ -192,7 +192,7 @@ gl.grm.network <- function(G,
   if (!(method == "fr" ||
     method == "kk" ||
     method == "gh" || method == "mds")) {
-    cat(warn(
+    if(verbose>0) cat(warn(
       "Warning: Layout method must be one of fr, or kk, gh or mds, set to fr\n"
     ))
     method <- "fr"
