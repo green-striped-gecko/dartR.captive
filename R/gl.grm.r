@@ -148,7 +148,7 @@ gl.grm <- function(x,
     # plotting heatmap
     
     oldpar <- par(no.readonly = TRUE)
-    on_exit(par(oldpar))
+    on.exit(par(oldpar))
     par(mar = c(1, 1, 1, 1))
     p3 <- gplots::heatmap.2(
       G,
