@@ -2,7 +2,7 @@
 % Please edit documentation in R/gl.assign.pa.r
 \name{gl.assign.pa}
 \alias{gl.assign.pa}
-\title{Eliminates populations as possible source populations for an 
+\title{Eliminates populations as possible source populations for an
 individual of unknown provenance, using private alleles}
 \usage{
 gl.assign.pa(
@@ -58,8 +58,8 @@ adequate, say >=10).
 }
 \examples{
 # Test run with a focal individual from the Macleay River (EmmacMaclGeor)
-  test <- gl.assign.pa(testset.gl, unknown='UC_00146', nmin=10, threshold=1,
-  verbose=3)
+test <- gl.assign.pa(testset.gl,
+  unknown = "UC_00146", nmin = 10, threshold = 1)
 
 }
 \seealso{

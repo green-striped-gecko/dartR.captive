@@ -7,12 +7,12 @@
 gl.grm(
   x,
   plotheatmap = TRUE,
-  palette_discrete = gl.select.colors(x, library = "baseR", palette = "topo.colors",
-    ncolors = nPop(x), verbose = 0),
-  palette_convergent = gl.select.colors(x, library = "brewer", palette = "PuOr", ncolors
-    = nPop(x), verbose = 0),
+  palette_discrete = NULL,
+  palette_convergent = NULL,
   legendx = 0,
   legendy = 0.5,
+  plot.file = NULL,
+  plot.dir = NULL,
   verbose = NULL,
   ...
 )
@@ -22,16 +22,18 @@ gl.grm(
 
 \item{plotheatmap}{A switch if a heatmap should be shown [default TRUE].}
 
-\item{palette_discrete}{A discrete palette for the color of populations or a
-list with as many colors as there are populations in the dataset
- [default via gl.set.colors].}
+\item{palette_discrete}{the color of populations [gl.select.colors].}
 
 \item{palette_convergent}{A convergent palette for the IBD values
-[default via gl.set.colors].}
+[default convergent_palette].}
 
 \item{legendx}{x coordinates for the legend[default 0].}
 
 \item{legendy}{y coordinates for the legend[default 1].}
+
+\item{plot.file}{Name for the RDS binary file to save (base name only, exclude extension) [default NULL]}
+
+\item{plot.dir}{Directory in which to save files [default = working directory]}
 
 \item{verbose}{Verbosity: 0, silent or fatal errors; 1, begin and end; 2,
 progress log ; 3, progress and results summary; 5, full report
@@ -67,7 +69,7 @@ locus are IBD from the base population). As this probability lies between 0
  represent different populations.
 }
 \examples{
-gl.grm(platypus.gl[1:10,1:100])
+gl.grm(platypus.gl[1:10, 1:100])
 
 }
 \references{

@@ -32,8 +32,8 @@ https://dyerlab.github.io/applied_population_genetics/population-assignment.html
 }
 \examples{
 require("dartR.data")
-if ((requireNamespace("rrBLUP", quietly = TRUE)) &(requireNamespace("gplots", quietly = TRUE)) ) {
-res <- gl.assign.grm(platypus.gl,unknown="T27")
+if ((requireNamespace("rrBLUP", quietly = TRUE)) & (requireNamespace("gplots", quietly = TRUE))) {
+  res <- gl.assign.grm(platypus.gl, unknown = "T27")
 }
 }
 \author{

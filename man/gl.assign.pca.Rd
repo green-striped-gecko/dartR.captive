@@ -15,7 +15,7 @@ unknown [required].}
 \item{plevel}{Probability level for bounding ellipses in the PCoA plot
 [default 0.999].}
 
-\item{plot.out}{If TRUE, plot the 2D PCA showing the position 
+\item{plot.out}{If TRUE, plot the 2D PCA showing the position
 of the unknown [default TRUE]}
 
 \item{verbose}{Verbosity: 0, silent or fatal errors; 1, begin and end; 2,
@@ -50,36 +50,38 @@ A next step is to consider the PCoA plot for populations where no private
 alleles have been detected and the position of the unknown in relation to the
 confidence ellipses as is plotted by this script. Note, this plot is
 considering only the top two dimensions of the ordination, and so an unknown
-lying outside the confidence ellipse can be unambiguously interpreted as it 
-lying outside the confidence envelope. However, if the unknown lies inside 
-the confidence ellipse in two dimensions, then it may still lie outside the 
-confidence envelope in deeper dimensions. This second step is good for 
-eliminating populations from consideration, but does not provide confidence 
+lying outside the confidence ellipse can be unambiguously interpreted as it
+lying outside the confidence envelope. However, if the unknown lies inside
+the confidence ellipse in two dimensions, then it may still lie outside the
+confidence envelope in deeper dimensions. This second step is good for
+eliminating populations from consideration, but does not provide confidence
 in assignment.
 
 The third step is to consider the assignment probabilities, using the script
-gl.assign.mahalanobis(). This approach calculates the squared Generalised 
-Linear Distance (Mahalanobis distance) of the unknown from the centroid 
-for each population, and calculates the probability associated with its 
-quantile under the zero truncated normal distribution. This index takes 
-into account position of the unknown in relation to the confidence envelope 
-in all selected dimensions of the ordination. 
+gl.assign.mahalanobis(). This approach calculates the squared Generalised
+Linear Distance (Mahalanobis distance) of the unknown from the centroid
+for each population, and calculates the probability associated with its
+quantile under the zero truncated normal distribution. This index takes
+into account position of the unknown in relation to the confidence envelope
+in all selected dimensions of the ordination.
 
 Each of these approaches provides evidence, none are 100% definitive. They
  need to be interpreted cautiously. They are best applied sequentially.
- 
+
 In deciding the assignment, the script considers an individual to be an
 outlier with respect to a particular population at alpha = 0.001 as default.
 }
 \examples{
-\dontrun{
-#Test run with a focal individual from the Macleay River (EmmacMaclGeor) 
-test <- gl.assign.pa(testset.gl, unknown='UC_00146', nmin=10, threshold=1,
-verbose=3) 
-test_2 <- gl.assign.pca(test, unknown='UC_00146', plevel=0.95, verbose=3)
+\donttest{
+# Test run with a focal individual from the Macleay River (EmmacMaclGeor)
+test <- gl.assign.pa(testset.gl,
+  unknown = "UC_00146", nmin = 10, threshold = 1,
+  verbose = 3
+)
+test_2 <- gl.assign.pca(test, unknown = "UC_00146", plevel = 0.95, verbose = 3)
 }
 }
 \author{
-Custodian: Arthur Georges -- Post to 
+Custodian: Arthur Georges -- Post to
 \url{https://groups.google.com/d/forum/dartr}
 }

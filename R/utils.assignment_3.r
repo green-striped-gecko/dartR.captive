@@ -22,7 +22,7 @@
 #' \url{https://groups.google.com/d/forum/dartr}
 #' @examples
 #' require("dartR.data")
-#' res <- utils.assignment_2(platypus.gl,unknown="T27")
+#' res <- utils.assignment_2(platypus.gl, unknown = "T27")
 #' @export
 
 utils.assignment_3 <- function(x,
@@ -31,66 +31,67 @@ utils.assignment_3 <- function(x,
                                verbose = 2) {
   # SET VERBOSITY
   verbose <- gl.check.verbosity(verbose)
-  
+
   # FLAG SCRIPT START
   funname <- match.call()[[1]]
-  utils.flag.start(func = funname,
-                   build = "Jody",
-                   verbosity = verbose)
-  
+  utils.flag.start(
+    func = funname,
+    build = "Jody",
+    verbose = verbose
+  )
+
   # CHECK DATATYPE
   datatype <- utils.check.datatype(x, verbose = verbose)
-  
+
   if (unknown %in% indNames(x) == FALSE) {
     stop(error(
       paste("  Individual", unknown, "is not in the genlight object\n")
     ))
   }
-  
+
   # DO THE JOB
-  
+
   # filtering loci with all missing data by population
   # x <- gl.filter.allna(x, by.pop = TRUE, verbose = 0)
   unknown_pop <- gl.keep.ind(x, ind.list = unknown, verbose = 0)
   unknown_pop <- data.frame(gl2alleles(unknown_pop))
-  
+
   x <- gl.drop.ind(x, ind.list = unknown, verbose = 0)
-  
+
   pop_names <- popNames(x)
-  
+
   pop_list <- seppop(x)
   gl_alleles <- do.call(rbind, strsplit(x$loc.all, "/"))
-  
+
   frequencies <- lapply(pop_list, function(y) {
     freq_allele <- gl.alf(y)
     freqs_gl <-
       data.frame(
         Allele1 = gl_alleles[, 1],
         Allele2 = gl_alleles[, 2],
-        count1 = freq_allele[, 1] * (nInd(y)*2),
-        count2 = freq_allele[, 2] * (nInd(y)*2)
+        count1 = freq_allele[, 1] * (nInd(y) * 2),
+        count2 = freq_allele[, 2] * (nInd(y) * 2)
       )
     return(freqs_gl)
   })
-  
+
   ret <- data.frame(Population = pop_names, Likelihood = 0)
-  
+
   for (popx in 1:nPop(x)) {
-    
     # alpha_ = k in Baudouin and Lebrun (2000)
     alpha_ <- 2
-    # the total number of different allelic states at this locus over all 
+    # the total number of different allelic states at this locus over all
     # reference populations
     k <- 2
     # the total number of genes to be assigned
-    m <- nLoc(x) 
+    m <- nLoc(x)
     # the total number of genes in the reference population sample
-    n <- nLoc(x) 
-    
-    term1 <- lgamma(m+1)
-    term2 <- lgamma(n+alpha_)
-    
-    
+    n <- nLoc(x)
+
+    term1 <- lgamma(m + 1)
+    term2 <- lgamma(n + alpha_)
+
+
     if (verbose >= 2) {
       cat(
         report(
@@ -102,74 +103,73 @@ utils.assignment_3 <- function(x,
         )
       )
     }
-    
+
     popfreq <- frequencies[[popx]]
-    
+
     loc <-
       as.data.frame(do.call(rbind, strsplit(unname(
         unlist(unknown_pop)
       ), ":")))
     colnames(loc) <- c("a1", "a2")
-    
+
     df_assign <- cbind(loc, popfreq)
-    
+
     df_assign$a1_count <- NA
-    df_assign[which(df_assign$a1 == df_assign$a2 & df_assign$a1 == df_assign$Allele1),"a1_count"] <- 2
-    df_assign[which(df_assign$a1 == df_assign$a2 & df_assign$a1 == df_assign$Allele2),"a1_count"] <- 0
-    df_assign[which(df_assign$a1 != df_assign$a2),"a1_count"] <- 1
-    
+    df_assign[which(df_assign$a1 == df_assign$a2 & df_assign$a1 == df_assign$Allele1), "a1_count"] <- 2
+    df_assign[which(df_assign$a1 == df_assign$a2 & df_assign$a1 == df_assign$Allele2), "a1_count"] <- 0
+    df_assign[which(df_assign$a1 != df_assign$a2), "a1_count"] <- 1
+
     df_assign$a2_count <- NA
-    df_assign[which(df_assign$a1 == df_assign$a2 & df_assign$a1 == df_assign$Allele2),"a2_count"] <- 2
-    df_assign[which(df_assign$a1 == df_assign$a2 & df_assign$a1 == df_assign$Allele1),"a2_count"] <- 0
-    df_assign[which(df_assign$a1 != df_assign$a2),"a2_count"] <- 1
-    
-    term3_1 <- lgamma(( df_assign$a1_count +  df_assign$count1  + (alpha_/k) ))
-    term3_2 <- lgamma(( df_assign$a2_count +  df_assign$count2  + (alpha_/k) ))
-    
-    term3 <- sum(term3_1,term3_2,na.rm = TRUE)
-    
+    df_assign[which(df_assign$a1 == df_assign$a2 & df_assign$a1 == df_assign$Allele2), "a2_count"] <- 2
+    df_assign[which(df_assign$a1 == df_assign$a2 & df_assign$a1 == df_assign$Allele1), "a2_count"] <- 0
+    df_assign[which(df_assign$a1 != df_assign$a2), "a2_count"] <- 1
+
+    term3_1 <- lgamma((df_assign$a1_count + df_assign$count1 + (alpha_ / k)))
+    term3_2 <- lgamma((df_assign$a2_count + df_assign$count2 + (alpha_ / k)))
+
+    term3 <- sum(term3_1, term3_2, na.rm = TRUE)
+
     term4_1 <- lgamma(df_assign$a1_count + 1)
     term4_2 <- lgamma(df_assign$a2_count + 1)
-    
-    term4 <- sum(term4_1,term4_2,na.rm = TRUE)
-    
-    term5_1 <- lgamma(df_assign$a1_count + (alpha_/k) )
-    term5_2 <- lgamma(df_assign$a2_count + (alpha_/k) )
-    
-    term5 <- sum(term5_1,term5_2,na.rm = TRUE)
-    
-    term6 <- lgamma(m+n+alpha_)
-    
-    term7_1 <- df_assign$a1_count /  (nInd(pop_list[[popx]])*2)
-    term7_2 <- df_assign$a2_count /  (nInd(pop_list[[popx]])*2)
-    
-    term7 <- sum(term7_1,term7_2,na.rm = TRUE)
-    
-    
+
+    term4 <- sum(term4_1, term4_2, na.rm = TRUE)
+
+    term5_1 <- lgamma(df_assign$a1_count + (alpha_ / k))
+    term5_2 <- lgamma(df_assign$a2_count + (alpha_ / k))
+
+    term5 <- sum(term5_1, term5_2, na.rm = TRUE)
+
+    term6 <- lgamma(m + n + alpha_)
+
+    term7_1 <- df_assign$a1_count / (nInd(pop_list[[popx]]) * 2)
+    term7_2 <- df_assign$a2_count / (nInd(pop_list[[popx]]) * 2)
+
+    term7 <- sum(term7_1, term7_2, na.rm = TRUE)
+
+
     log_L <- term1 - term4 + term7
-    
+
     # assign Likelihood
     ret[popx, "Likelihood"] <- log_L
   }
-  
-  ret <- ret[order(ret$Likelihood,decreasing = TRUE),]
+
+  ret <- ret[order(ret$Likelihood, decreasing = TRUE), ]
   ret$score <- ret$Likelihood / sum(ret$Likelihood)
   ret$score <- round(ret$score, 5)
   ret$Likelihood <- round(ret$Likelihood, 5)
-  
+
   # FLAG SCRIPT END
-  
+
   if (verbose >= 1) {
     cat(report("Completed:", funname, "\n"))
   }
-  
+
   # RETURN
-  
+
   return(invisible(ret))
-  
 }
 
-gl2alleles <- function (gl) {
+gl2alleles <- function(gl) {
   x <- as.matrix(gl[, ])
   homs1 <-
     paste(substr(gl@loc.all, 1, 1), "/", substr(gl@loc.all, 1, 1), sep = "")
@@ -181,13 +181,14 @@ gl2alleles <- function (gl) {
     for (ii in 1:ncol(x)) {
       inp <- x[i, ii]
       if (!is.na(inp)) {
-        if (inp == 0)
+        if (inp == 0) {
           xx[i, ii] <- homs1[ii]
-        else if (inp == 1)
+        } else if (inp == 1) {
           xx[i, ii] <- hets[ii]
-        else if (inp == 2)
+        } else if (inp == 2) {
           xx[i, ii] <- homs2[ii]
-      } else{
+        }
+      } else {
         xx[i, ii] <- NA
       }
     }

@@ -9,13 +9,13 @@
 #'
 #' @param x Name of the genlight object containing the SNP data [required].
 #' @param plotheatmap A switch if a heatmap should be shown [default TRUE].
-#' @param palette_discrete A discrete palette for the color of populations or a
-#' list with as many colors as there are populations in the dataset
-#'  [default via gl.set.colors].
+#' @param palette_discrete the color of populations [gl.select.colors].
 #' @param palette_convergent A convergent palette for the IBD values
-#'  [default via gl.set.colors].
+#'  [default convergent_palette].
 #' @param legendx x coordinates for the legend[default 0].
 #' @param legendy y coordinates for the legend[default 1].
+#' @param plot.file Name for the RDS binary file to save (base name only, exclude extension) [default NULL]
+#' @param plot.dir Directory in which to save files [default = working directory]
 #' @param verbose Verbosity: 0, silent or fatal errors; 1, begin and end; 2,
 #'  progress log ; 3, progress and results summary; 5, full report
 #'  [default 2 or as specified using gl.set.verbosity].
@@ -48,7 +48,7 @@
 #' realized relationship matrix. G3: Genes, Genomics, Genetics 2, 1405.
 #' }
 #' @examples
-#' gl.grm(platypus.gl[1:10,1:100])
+#' gl.grm(platypus.gl[1:10, 1:100])
 #'
 #' @seealso \code{\link{gl.grm.network}}
 #' @family inbreeding functions
@@ -56,116 +56,137 @@
 
 gl.grm <- function(x,
                    plotheatmap = TRUE,
-                   palette_discrete = gl.select.colors(x, library="baseR", palette="topo.colors", ncolors = nPop(x), verbose = 0),
-                   palette_convergent = gl.select.colors(x, library="brewer", palette="PuOr", ncolors = nPop(x), verbose = 0),
+                   palette_discrete = NULL,
+                   palette_convergent = NULL,
                    legendx = 0,
                    legendy = 0.5,
+                   plot.file = NULL,
+                   plot.dir = NULL,
                    verbose = NULL,
                    ...) {
-    # SET VERBOSITY
-    verbose <- gl.check.verbosity(verbose)
-    
-    # FLAG SCRIPT START
-    funname <- match.call()[[1]]
-    utils.flag.start(func = funname,
-                     build = "Jody",
-                     verbosity = verbose)
-    
-    # CHECK DATATYPE
-    datatype <- utils.check.datatype(x, verbose = verbose)
-    
-    # FUNCTION SPECIFIC ERROR CHECKING
-    
-    # check if package is installed
-    pkg <- "rrBLUP"
-    if (!(requireNamespace(pkg, quietly = TRUE))) {
-      cat(error(
-        "Package",
-        pkg,
-        " needed for this function to work. Please install it.\n"
-      ))
-      return(-1)
-    }
-    
-    pkg <- "gplots"
-    if (!(requireNamespace(pkg, quietly = TRUE))) {
-      cat(error(
-        "Package",
-        pkg,
-        " needed for this function to work. Please install it.\n"
-      ))
-      return(-1)
-    }
-    
-    # Set a population if none is specified (such as if the genlight object has been generated manually)
-    if (is.null(pop(x)) |
-        is.na(length(pop(x))) | length(pop(x)) <= 0) {
-        if (verbose >= 2) {
-            cat(
-                important(
-                    "  Population assignments not detected, individuals assigned to a single population labelled 'pop1'\n"
-                )
-            )
-        }
-        pop(x) <- array("pop1", dim = nInd(x))
-        pop(x) <- as.factor(pop(x))
-    }
-    
-    # DO THE JOB
-    
-    # assigning colors to populations
-        colors_pops <- palette_discrete
+  # SET VERBOSITY
+  verbose <- gl.check.verbosity(verbose)
 
-    names(colors_pops) <- as.character(levels(x$pop))
-    
-    # calculating the realized additive relationship matrix
-    
-    G <- rrBLUP::A.mat(as.matrix(x) - 1, ...)
-    
-    df_colors_temp_1 <-
-        as.data.frame(cbind(indNames(x), as.character(pop(x)), 1:nInd(x)))
-    colnames(df_colors_temp_1) <- c("ind", "pop", "order")
-    df_colors_temp_2 <-
-        as.data.frame(cbind(names(colors_pops), colors_pops))
-    colnames(df_colors_temp_2) <- c("pop", "color")
-    df_colors <-
-        merge(df_colors_temp_1, df_colors_temp_2, by = "pop")
-    df_colors$order <- as.numeric(df_colors$order)
-    df_colors <- df_colors[order(df_colors$order), ]
-    df_colors_2 <- df_colors[, c("pop", "color")]
-    df_colors_2 <- unique(df_colors_2)
-    
-    if (plotheatmap == T) {
-        # plotting heatmap
-        par(mar = c(1, 1, 1, 1))
-        gplots::heatmap.2(
-            G,
-            col = gl.select.colors(ncolors = 255, verbose=0),
-            dendrogram = "column",
-            ColSideColors = df_colors$color,
-            RowSideColors = df_colors$color,
-            trace = "none",
-            density.info = "none",
-            scale = "none",
-            main = "Probability of identity by descent"
+  # FLAG SCRIPT START
+  funname <- match.call()[[1]]
+  utils.flag.start(
+    func = funname,
+    build = "Jody",
+    verbose = verbose
+  )
+
+  # CHECK DATATYPE
+  datatype <- utils.check.datatype(x, verbose = verbose)
+
+  # FUNCTION SPECIFIC ERROR CHECKING
+
+  # check if package is installed
+  pkg <- "rrBLUP"
+  if (!(requireNamespace(pkg, quietly = TRUE))) {
+    cat(error(
+      "Package",
+      pkg,
+      " needed for this function to work. Please install it.\n"
+    ))
+    return(-1)
+  }
+
+  pkg <- "gplots"
+  if (!(requireNamespace(pkg, quietly = TRUE))) {
+    cat(error(
+      "Package",
+      pkg,
+      " needed for this function to work. Please install it.\n"
+    ))
+    return(-1)
+  }
+
+  # Set a population if none is specified (such as if the genlight object has been generated manually)
+  if (is.null(pop(x)) |
+    is.na(length(pop(x))) | length(pop(x)) <= 0) {
+    if (verbose >= 2) {
+      cat(
+        important(
+          "  Population assignments not detected, individuals assigned to a single population labelled 'pop1'\n"
         )
-        legend(
-            legendx,
-            legendy,
-            legend = df_colors_2$pop,
-            fill = df_colors_2$color,
-            cex = 0.75,
-            title = "Populations"
-        )
+      )
     }
-    
-    # FLAG SCRIPT END
-    
-    if (verbose >= 1) {
-        cat(report("Completed:", funname, "\n"))
+    pop(x) <- array("pop1", dim = nInd(x))
+    pop(x) <- as.factor(pop(x))
+  }
+
+  # DO THE JOB
+
+  # assigning colors to populations
+
+  colors_pops <- gl.select.colors(x, verbose = 0)
+  names(colors_pops) <- as.character(levels(x$pop))
+
+  # calculating the realized additive relationship matrix
+
+  G <- rrBLUP::A.mat(as.matrix(x) - 1, ...)
+
+  df_colors_temp_1 <-
+    as.data.frame(cbind(indNames(x), as.character(pop(x)), 1:nInd(x)))
+  colnames(df_colors_temp_1) <- c("ind", "pop", "order")
+  df_colors_temp_2 <-
+    as.data.frame(cbind(names(colors_pops), colors_pops))
+  colnames(df_colors_temp_2) <- c("pop", "color")
+  df_colors <-
+    merge(df_colors_temp_1, df_colors_temp_2, by = "pop")
+  df_colors$order <- as.numeric(df_colors$order)
+  df_colors <- df_colors[order(df_colors$order), ]
+  df_colors_2 <- df_colors[, c("pop", "color")]
+  df_colors_2 <- unique(df_colors_2)
+
+  if (plotheatmap == T) {
+    if (is.null(palette_convergent)) {
+      cols <- gl.select.colors(library = "baseR", palette = "cm.colors", ncolors = 255, verbose = 0)
+    } else {
+      cols <- palette_convergent
     }
+    # plotting heatmap
     
-    # RETURN
-    invisible(G)
-    
+    oldpar <- par(no.readonly = TRUE)
+    on.exit(par(oldpar))
+    par(mar = c(1, 1, 1, 1))
+    p3 <- gplots::heatmap.2(
+      G,
+      col = cols,
+      dendrogram = "column",
+      ColSideColors = df_colors$color,
+      RowSideColors = df_colors$color,
+      trace = "none",
+      density.info = "none",
+      scale = "none",
+      main = "Probability of identity by descent"
+    )
+    legend(
+      legendx,
+      legendy,
+      legend = df_colors_2$pop,
+      fill = df_colors_2$color,
+      cex = 0.75,
+      title = "Populations"
+    )
+  }
+
+  # Optionally save the plot ---------------------
+
+  if (!is.null(plot.file)) {
+    tmp <- utils.plot.save(p3,
+      dir = plot.dir,
+      file = plot.file,
+      verbose = verbose
+    )
+  }
+
+  # FLAG SCRIPT END
+
+  if (verbose >= 1) {
+    cat(report("Completed:", funname, "\n"))
+  }
+
+  # RETURN
+  invisible(G)
 }

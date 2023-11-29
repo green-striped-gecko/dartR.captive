@@ -4,7 +4,7 @@
 \alias{utils.assignment}
 \title{Population assignment probabilities}
 \usage{
-utils.assignment(x, unknown, verbose = 2)
+utils.assignment(x, unknown, verbose = NULL)
 }
 \arguments{
 \item{x}{Name of the genlight object containing the SNP data [required].}
@@ -32,7 +32,7 @@ https://dyerlab.github.io/applied_population_genetics/population-assignment.html
 }
 \examples{
 require("dartR.data")
-res <- utils.assignment(platypus.gl,unknown="T27")
+res <- utils.assignment(platypus.gl, unknown = "T27")
 }
 \author{
 Custodian: Luis Mijangos -- Post to
