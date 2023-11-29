@@ -11,7 +11,7 @@
 #' @param emibd9.path Path to the folder emidb files.
 #'  Please note there are 2 different executables depending on your OS:
 #'  EM_IBD_P.exe (=Windows) EM_IBD_P (=Mac, Linux). 
-#'  You only need to pointto the folder (the function will recognise which OS you
+#'  You only need to point to the folder (the function will recognise which OS you
 #'  are running) [default getwd()].
 #' @param Inbreed A Boolean, taking values 0 or 1 to indicate inbreeding is not
 #'  and is allowed in estimating IBD coefficients [default 1].
