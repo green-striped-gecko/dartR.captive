@@ -295,7 +295,7 @@ gl.run.EMIBD9 <- function(x,
 
   # PRINTING OUTPUTS
   p1 <- gl.plot.heatmap(res) 
-    if (plot.out) print(p1)
+    if (plot.out) invisible(p1)
 
   # Optionally save the plot ---------------------
   if(!is.null(plot.file)){
