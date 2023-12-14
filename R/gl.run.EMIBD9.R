@@ -11,7 +11,7 @@
 #' @param emibd9.path Path to the folder emidb files.
 #'  Please note there are 2 different executables depending on your OS:
 #'  EM_IBD_P.exe (=Windows) EM_IBD_P (=Mac, Linux). 
-#'  You only need to pointto the folder (the function will recognise which OS you
+#'  You only need to point to the folder (the function will recognise which OS you
 #'  are running) [default getwd()].
 #' @param Inbreed A Boolean, taking values 0 or 1 to indicate inbreeding is not
 #'  and is allowed in estimating IBD coefficients [default 1].
@@ -24,6 +24,49 @@
 #' progress log; 3, progress and results summary; 5, full report
 #'  [default NULL, unless specified using gl.set.verbosity]
 #' @details
+#' 'The results of EMIBD9 include the identical in state (IIS) values for each mode 
+#'(S1 - 9) and nine condensed identical by descent (IBD) modes (∆1 - ∆9) as well as #'the relatedness coefficient (r). Alleles are IIS if they are the same. Similarly,
+#' IBD describes a matching allele between two individuals that has been inherited from a common ancestor or common gene. In a pairwise comparison, ∆1 to ∆9 are the
+#'  probabilities associated with each IBD mode. In inbreeding populations, only  ∆1
+#'   to  ∆6 can can occur. In contrast, ∆7 to ∆9 can only occur in large, panmictic
+#'    outbred populations. 
+#' 
+#'EMIBD9 uses an expectation maximization (EM) algorithm based on the maximum
+#' likelihood expectations (MLE) of ∆ to estimate both allele frequencies (p) and ∆
+#'  jointly from genotype data. By iteratively calculating p and ∆, relatedness 
+#'  can be modified to reduce biases due to small sample sizes. Wang J. (2022) 
+#'  suggest the resulting r coefficient is therefore more robust compared to 
+#'  previous methods.
+#'
+#'The kinship coefficient is the probability that two alleles at a random locus
+#'  drawn from two individuals are IBD.
+#'
+#'Below is a table modified from Speed & Balding (2015) showing kinship values,
+#'and their confidence intervals (CI), for different relationships that could 
+#'be used to guide the choosing of the relatedness threshold in the function.
+#'
+#'|Relationship                               |Kinship  |     95% CI       |
+#'
+#'|Identical twins/clones/same individual     | 0.5     |        -         |
+#'
+#'|Sibling/Parent-Offspring                   | 0.25    |    (0.204, 0.296)|
+#'
+#'|Half-sibling                               | 0.125   |    (0.092, 0.158)|
+#'
+#'|First cousin                               | 0.062   |    (0.038, 0.089)|
+#'
+#'|Half-cousin                                | 0.031   |    (0.012, 0.055)|
+#'
+#'|Second cousin                              | 0.016   |    (0.004, 0.031)|
+#'
+#'|Half-second cousin                         | 0.008   |    (0.001, 0.020)|
+#' 
+#'|Third cousin                               | 0.004   |    (0.000, 0.012)|
+#'
+#'|Unrelated                                  | 0       |        -         | 
+#'
+#'For greater detail on the methods employed by EMIBD9, we encourage you to read Wang, J. (2022). 
+#'
 #' Download the program from here:
 #'
 #' https://www.zsl.org/about-zsl/resources/software/emibd9
@@ -252,7 +295,7 @@ gl.run.EMIBD9 <- function(x,
 
   # PRINTING OUTPUTS
   p1 <- gl.plot.heatmap(res) 
-    if (plot.out) print(p1)
+    if (plot.out) invisible(p1)
 
   # Optionally save the plot ---------------------
   if(!is.null(plot.file)){
