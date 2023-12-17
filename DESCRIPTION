@@ -1,8 +1,8 @@
 Package: dartR.captive
 Type: Package
 Title: Analysing 'SNP' Data to Support Captive Breeding
-Version: 0.75
-Date: 2023-11-27
+Version: 0.76
+Date: 2023-12-14
 Authors@R: c(
             person("Bernd", "Gruber", email="bernd.gruber@canberra.edu.au", role=c("aut","cre")), 
             person("Arthur", "Georges", email="georges@aerg.edu.au", role="aut"),
@@ -12,7 +12,8 @@ Authors@R: c(
             person("Oliver", "Berry", email="oliver.berry@csiro.au", role="ctb" ),
             person("Lindsay V.", "Clark", email="lvclark@illinois.edu", role="ctb"),
             person("Floriaan", "Devloo-Delva",email="Floriaan.Devloo-Delva@csiro.au", role="ctb"),
-            person("Eric","Archer", email="eric.archer@noaa.gov", role="ctb")
+            person("Eric","Archer", email="eric.archer@noaa.gov", role="ctb"),
+            person("Sam", "Amini", email="samuelamini20@gmail.com", role="ctb")
             )
 Description: Functions are provided that facilitate the analysis of SNP 
     (single nucleotide polymorphism) data to answer questions regarding 
