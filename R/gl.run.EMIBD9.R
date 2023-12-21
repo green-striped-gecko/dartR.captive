@@ -131,17 +131,17 @@ gl.run.EMIBD9 <- function(x,
   
   if (Sys.info()["sysname"] == "Windows") {
     prog <- c("EM_IBD_P.exe", "impi.dll", "libiomp5md.dll")
-    cmd <- "EM_IBD_P.exe INP:MyData.par"
+    cmd <- "mpiexec -n M EM_IBD_P INP:MyData.par"
   }
   
   if (Sys.info()["sysname"] == "Linux") {
     prog <- "EM_IBD_P"
-    cmd <- "./EM_IBD_P INP:MyData.par"
+    cmd <- "mpirun -n M EM_IBD_P_mpi INP:MyData.par"
   }
   
   if (Sys.info()["sysname"] == "Darwin") {
     prog <- "EM_IBD_P"
-    cmd <- "./EM_IBD_P INP:MyData.par"
+    cmd <- "mpirun -n M EM_IBD_P_impi INP:MyData.par"
   }
   
   # check if file program can be found
@@ -179,8 +179,6 @@ gl.run.EMIBD9 <- function(x,
   x2 <- x  #copy to work only on the copied data set
   hold_names <- indNames(x)
   indNames(x2) <- 1:nInd(x2)
-  
-
   
   NumIndiv <- nInd(x2)
   NumLoci <- nLoc(x2)
@@ -233,8 +231,6 @@ gl.run.EMIBD9 <- function(x,
   )
   
 
-
-  
   # run EMIBD9
   # change into tempdir (run it there)
   old.path <- getwd()
@@ -243,9 +239,6 @@ gl.run.EMIBD9 <- function(x,
   system(cmd)
   
   ### get output  
-  
- 
-  
   
   x_lines <- readLines("EMIBD9_Res.ibd9")
   strt <- which(grepl("^IBD", x_lines)) + 2

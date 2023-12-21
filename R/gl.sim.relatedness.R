@@ -245,3 +245,27 @@ gl.sim.relatedness <- function(x,
         print(CI)
 }
 
+##Things to add: 
+# - parrallelise the function 
+# - add more to the outputs i.e. return the object as a list
+# - make the code tidier? - mmm nah 
+
+#Simulations to run: 
+# - 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
