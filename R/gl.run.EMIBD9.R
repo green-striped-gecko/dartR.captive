@@ -133,11 +133,12 @@ gl.run.EMIBD9 <- function(x,
   os <- Sys.info()["sysname"]
   
   if (Sys.info()["sysname"] == "Windows") {
-    prog <- c("EM_IBD_P.exe", "impi.dll", "libiomp5md.dll", "mpiexec.exe")
+    prog <- c("EM_IBD_P.exe", "impi.dll", "libiomp5md.dll", "mpiexec.exe", "netchartdir.dll")
     nclusters = nclusters
     cmd <- paste("mpiexec -n ", nclusters , " EM_IBD_P INP:MyData.par", sep = "")
   }
   
+  #note: I am working on the windows function first, then we can deal with Mac and Linux...
   if (Sys.info()["sysname"] == "Linux") {
     prog <- "EM_IBD_P"
     cmd <- "mpirun -n M EM_IBD_P_mpi INP:MyData.par"
