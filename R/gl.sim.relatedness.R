@@ -112,6 +112,7 @@ gl.sim.relatedness <- function(x,
     
     relo <- (res$rel[parents[1], nInd(ppoff)] + res$rel[parents[2], nInd(ppoff)])/2
     return(relo)
+    return(res)
     }
     } else if (rel == "half.sib") {
       half.sib <- function(x) {
@@ -133,6 +134,7 @@ gl.sim.relatedness <- function(x,
         
         relo <- (res$rel["Po_1","Po_2"])
         return(relo)
+        return(res)
       }
       } else if (rel == "first.cousin") {
         first.cousin <- function(x) {
@@ -161,6 +163,7 @@ gl.sim.relatedness <- function(x,
           
           relo <- (res$rel["cousin1","cousin2"])
           return(relo)
+          return (res)
         }
       }
   
@@ -243,8 +246,27 @@ gl.sim.relatedness <- function(x,
                          verbose=verbose)
   }
         
-        print(sum)
+        print(sum + CI)
         print(CI)
+        if (verbose>0)
+        {
+          cat(
+            report(
+              "Returning a list containing the simulated pairwise kinship, and the raw EMIBD9 results table as follows:\n",
+              "          $rel -- a square matrix of relatedness \n",
+              "          $sum -- summary statistics for simulated relatedness \n",
+              "          $CI -- Confidence intervals for relatedness estimates \n",
+              "          $raw -- raw EMIBD9 results table \n")
+          )
+        }
+        
+        results <-
+          list(
+            rel = rr,
+            summary = sum, 
+            CI = CI,
+            raw = tmp_data_raw_3
+          )
 }
 
 ##Things to add: 
