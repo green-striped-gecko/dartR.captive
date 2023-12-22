@@ -185,6 +185,7 @@ gl.sim.relatedness <- function(x,
         
         #Calculate the summary stats 
         sum <- data.frame(unclass(summary(rr$Relatedness)))
+        mean_rel <- mean(rr$Relatedness)
         
 #Add 95% CI's for simulated relatedness 
         
