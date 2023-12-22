@@ -184,14 +184,16 @@ gl.sim.relatedness <- function(x,
         colnames(rr) <- c("Relatedness")
         
         #Calculate the summary stats 
-        sum <- data.frame(sum = unclass(summary(rr$Relatedness)))
+        sum <- data.frame(unclass(summary(rr$Relatedness)))
         
 #Add 95% CI's for simulated relatedness 
         
         l.model <- lm(Relatedness ~ 1, rr)
         CI <- confint(l.model, level = (0.95))
         l.ci <- CI[,1]
+        rownames(l.ci) <- c("Lower CI")
         u.ci <- CI[,2]
+        rownames(u.ci) <- c("Upper CI")
         
         sum <- rbind(sum, l.ci, u.ci); sum
         
