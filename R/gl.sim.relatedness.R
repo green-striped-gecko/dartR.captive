@@ -245,12 +245,6 @@ gl.sim.relatedness <- function(x,
                          file=plot.file,
                          verbose=verbose)
   }
-        
-        print(sum + CI)
-        print(CI)
-        if (verbose>0)
-        {
-          cat(
             report(
               "Returning a list containing the simulated pairwise kinship, and the raw EMIBD9 results table as follows:\n",
               "          $rel -- a square matrix of relatedness \n",
@@ -267,6 +261,7 @@ gl.sim.relatedness <- function(x,
             CI = CI,
             raw = res
           )
+        return(results)
 }
 
 ##Things to add: 
