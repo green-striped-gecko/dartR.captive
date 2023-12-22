@@ -192,6 +192,8 @@ gl.sim.relatedness <- function(x,
         l.ci <- CI[,1]
         u.ci <- CI[,2]
         
+        sum <- rbind(sum, CI)
+        
 #Print plot 
         
         if (rel == "full.sib") {
@@ -242,15 +244,13 @@ gl.sim.relatedness <- function(x,
         report(
               "Returning a list containing the simulated pairwise kinship, and the raw EMIBD9 results table as follows:\n",
               "          $rel -- A table of relatedness values for simulated pair \n",
-              "          $sum -- Summary statistics for simulated relatedness \n",
-              "          $CI -- Confidence intervals for relatedness estimates \n",
+              "          $sum -- Summary statistics and CI's for simulated relatedness \n",
               "          $raw -- Raw EMIBD9 results for all individuals, in each replicate \n")
         
         results <-
           list(
             rel = rr,
-            summary = sum, 
-            CI = CI,
+            summary = sum,
             raw = res
           )
         return(results)
