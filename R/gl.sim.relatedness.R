@@ -183,16 +183,16 @@ gl.sim.relatedness <- function(x,
 
         rr <- data.frame(rr)
         colnames(rr) <- c("Relatedness")
-        summary(rr)
+        summary(rr$Relatedness)
         
         
 #Add 95% CI's for simulated relatedness (does this match the propiosed fs,hs,fc?)
         l.model <- lm(Relatedness ~ 1, rr)
-        CI <- confint(l.model, level = (conf))
+        CI <- confint(l.model, level = (0.95))
         l.ci <- CI[,1]
         u.ci <- CI[,2]
         
-        sum <- rbind(sum, CI)
+        sum <- rbind(sum, l.ci, u.ci); sum
         
 #Print plot 
         
