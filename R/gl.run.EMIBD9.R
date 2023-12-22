@@ -133,7 +133,7 @@ gl.run.EMIBD9 <- function(x,
   os <- Sys.info()["sysname"]
   
   if (Sys.info()["sysname"] == "Windows") {
-    prog <- c("EM_IBD_P.exe", "impi.dll", "libiomp5md.dll")
+    prog <- c("EM_IBD_P.exe", "impi.dll", "libiomp5md.dll", "mpiexec.exe")
     nclusters = 3
     cmd <- paste("mpiexec -n ", nclusters , " EM_IBD_P INP:MyData.par", sep = "")
   }
