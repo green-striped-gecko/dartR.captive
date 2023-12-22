@@ -251,8 +251,6 @@ gl.sim.relatedness <- function(x,
               "          $sum -- summary statistics for simulated relatedness \n",
               "          $CI -- Confidence intervals for relatedness estimates \n",
               "          $raw -- raw EMIBD9 results table \n")
-          )
-        }
         
         results <-
           list(
