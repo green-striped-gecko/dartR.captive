@@ -265,7 +265,7 @@ gl.sim.relatedness <- function(x,
             rel = rr,
             summary = sum, 
             CI = CI,
-            raw = tmp_data_raw_3
+            raw = res
           )
 }
 
