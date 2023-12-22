@@ -183,9 +183,7 @@ gl.sim.relatedness <- function(x,
 
         rr <- data.frame(rr)
         colnames(rr) <- c("Relatedness")
-        
-       sum <- sapply(x[c("Relatedness")], function(rr)
-          c(min=min(rr$Relatedness), quantile(rr$Relatedness, c(.25, .75)), max=max(rr$Relatedness), count=length(rr$Relatedness), mean = mean(rr$Relatedness), sd=sd(rr$Relatedness)))
+        summary(rr$Relatedness)
         
         
 #Add 95% CI's for simulated relatedness (does this match the propiosed fs,hs,fc?)
