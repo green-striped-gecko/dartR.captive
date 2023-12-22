@@ -192,7 +192,7 @@ gl.sim.relatedness <- function(x,
         l.ci <- CI[,1]
         u.ci <- CI[,2]
         
-        sum <- rbind(sum, l.ci, u.ci)
+        sum <- rbind(sum, CI)
         
 #Print plot 
         
