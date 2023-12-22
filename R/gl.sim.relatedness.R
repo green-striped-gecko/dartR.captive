@@ -195,6 +195,7 @@ gl.sim.relatedness <- function(x,
         u.ci <- CI[,2]
         
         sum <- rbind(sum, l.ci, u.ci)
+        row.names(sum)[7:8] <- c("Lower CI", "Upper CI")
         
 #Print plot 
         
