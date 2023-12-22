@@ -180,19 +180,20 @@ gl.sim.relatedness <- function(x,
                           first.cousin(x))
         }
         
-
         rr <- data.frame(rr)
         colnames(rr) <- c("Relatedness")
-        summary(rr$Relatedness)
         
+        #Calculate the summary stats 
+        sum <- data.frame(sum = unclass(summary(rr$Relatedness)))
         
-#Add 95% CI's for simulated relatedness (does this match the propiosed fs,hs,fc?)
+#Add 95% CI's for simulated relatedness 
+        
         l.model <- lm(Relatedness ~ 1, rr)
         CI <- confint(l.model, level = (0.95))
         l.ci <- CI[,1]
         u.ci <- CI[,2]
         
-        sum <- rbind(sum, l.ci, u.ci); sum
+        sum <- rbind(sum, CI); sum
         
 #Print plot 
         
