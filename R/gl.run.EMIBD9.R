@@ -13,8 +13,10 @@
 #'  EM_IBD_P.exe (=Windows) EM_IBD_P (=Mac, Linux). 
 #'  You only need to point to the folder (the function will recognise which OS you
 #'  are running) [default getwd()].
-#' @param Inbreed A Boolean, taking values 0 or 1 to indicate inbreeding is not
-#'  and is allowed in estimating IBD coefficients [default 1].
+#' @param Inbreed A Boolean, taking values 0 or 1 to indicate inbreeding is
+#' not and is allowed in estimating IBD coefficients [default 1].
+#' @param nclusters The number of cores or processor threads used during 
+#' calculations [default 1].
 #' @param ISeed An integer used to seed the random number generator [default 42].
 #' @param plot.out A boolean that indicates whether to plot the results [default TRUE].
 #' @param plot.dir Directory to save the plot RDS files [default as specified 
@@ -101,6 +103,7 @@ gl.run.EMIBD9 <- function(x,
                           outpath = tempdir(),
                           emibd9.path = getwd(),
                           Inbreed = TRUE,
+                          nclusters = 1,
                           ISeed = 42,
                           plot.out = TRUE,
                           plot.dir=NULL,
