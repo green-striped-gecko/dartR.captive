@@ -191,14 +191,6 @@ gl.sim.relatedness <- function(x,
         CI <- confint(l.model, level = (conf))
         l.ci <- CI[,1]
         u.ci <- CI[,2]
-
-#Set the verbosity
-        if (verbose>0) {
-          cat(
-            report(
-              "Returning summary statistics for simulated relatedness values:\n")
-          )
-          }
         
 #Print plot 
         
@@ -245,12 +237,14 @@ gl.sim.relatedness <- function(x,
                          file=plot.file,
                          verbose=verbose)
   }
-            report(
+            
+        
+        report(
               "Returning a list containing the simulated pairwise kinship, and the raw EMIBD9 results table as follows:\n",
-              "          $rel -- a square matrix of relatedness \n",
-              "          $sum -- summary statistics for simulated relatedness \n",
+              "          $rel -- A table of relatedness values for simulated pair \n",
+              "          $sum -- Summary statistics for simulated relatedness \n",
               "          $CI -- Confidence intervals for relatedness estimates \n",
-              "          $raw -- raw EMIBD9 results table \n")
+              "          $raw -- Raw EMIBD9 results for all individuals, in each replicate \n")
         
         results <-
           list(
