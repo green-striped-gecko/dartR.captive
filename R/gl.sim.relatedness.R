@@ -26,6 +26,7 @@
 #' @param nboots The number of simulation replicates you wish to perform [default 10].
 #' @param emibd9.path The location of all necessary files to run EMIBD9 (read more at gl.run.EMIBD9)
 #' @param conf The specified threshold for confidence interval calculation from simulated relatedness values [default 0.95]
+#' @param nclusters The number of cores used to perform calculations [default 1].
 #' @param plot.out A boolean that indicates whether to plot the results [default TRUE].
 #' @param plot.dir Directory to save the plot RDS files [default as specified by the global working directory or tempdir()]
 #' @param plot.file Name for the RDS binary file to save (base name only, exclude extension) [default NULL]
@@ -58,6 +59,7 @@ gl.sim.relatedness <- function(x,
                                nboots = 10,
                                emibd9.path = getwd(),
                                conf = 0.95,
+                               nclusters = 1,
                                ISeed = 42, 
                                plot.out = TRUE,
                                plot.dir=NULL,
