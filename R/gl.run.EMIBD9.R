@@ -141,7 +141,7 @@ gl.run.EMIBD9 <- function(x,
   #note: I am working on the windows function first, then we can deal with Mac and Linux...
   if (Sys.info()["sysname"] == "Linux") {
     prog <- "EM_IBD_P"
-    cmd <- "mpirun -n M EM_IBD_P_mpi INP:MyData.par"
+    cmd <- "mpirun -register M EM_IBD_P_mpi INP:MyData.par"
   }
   
   if (Sys.info()["sysname"] == "Darwin") {
