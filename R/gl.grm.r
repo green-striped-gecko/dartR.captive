@@ -143,7 +143,7 @@ gl.grm <- function(x,
     if (is.null(palette_convergent)) {
       cols <- gl.select.colors(library = "baseR", palette = "cm.colors", ncolors = 255, verbose = 0)
     } else {
-      cols <- palette_convergent
+      cols <- palette_convergent(255)
     }
     # plotting heatmap
     
