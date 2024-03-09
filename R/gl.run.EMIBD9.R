@@ -268,17 +268,14 @@ gl.run.EMIBD9 <- function(x,
   for (i in 1:nrow(df)) {
     res[df[i, 1], df[i, 2]] <- df[i, 3]
 
-rel.list <- tmp_data_raw_3[, 21]
+rel.list <- data.frame(as.numeric(tmp_data_raw_3[, 21]))
   }
 
  
-
-
   colnames(res) <- indNames(x)
   rownames(res) <- indNames(x)
-
-
- 
+  
+  colnames(rel.list) <- c("Relatedness")
   
   #return to old path
   setwd(old.path)
@@ -297,6 +294,13 @@ rel.list <- tmp_data_raw_3[, 21]
   # PRINTING OUTPUTS
   p1 <- gl.plot.heatmap(res) 
     if (plot.out) invisible(p1)
+  
+  
+  p2 <- ggplot(rel.list, aes(x = Relatedness)) +
+    geom_histogram(binwidth = 0.01) +
+    ggtitle("Histogram of relatedness") +
+    theme_classic()
+  if (plot.out) invisible(p2)
 
   # Optionally save the plot ---------------------
   if(!is.null(plot.file)){
@@ -304,6 +308,13 @@ rel.list <- tmp_data_raw_3[, 21]
                            dir=plot.dir,
                            file=plot.file,
                            verbose=verbose)
+    
+    if(!is.null(plot.file)){
+      tmp <- utils.plot.save(p2,
+                             dir=plot.dir,
+                             file=plot.file,
+                             verbose=verbose)  
+    
   }
   
   #Make a list
