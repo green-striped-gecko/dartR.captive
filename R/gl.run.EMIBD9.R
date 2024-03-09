@@ -267,10 +267,12 @@ gl.run.EMIBD9 <- function(x,
   
   for (i in 1:nrow(df)) {
     res[df[i, 1], df[i, 2]] <- df[i, 3]
+
+rel.list <- tmp_data_raw_3[, 21]
   }
 
  
- 
+
 
   colnames(res) <- indNames(x)
   rownames(res) <- indNames(x)
