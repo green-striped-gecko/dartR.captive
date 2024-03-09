@@ -309,12 +309,6 @@ rel.list <- data.frame(as.numeric(tmp_data_raw_3[, 21]))
                            file=plot.file,
                            verbose=verbose)
     
-    if(!is.null(plot.file)){
-      tmp <- utils.plot.save(p2,
-                             dir=plot.dir,
-                             file=plot.file,
-                             verbose=verbose)  
-    
   }
   
   #Make a list
