@@ -292,17 +292,20 @@ rel.list <- data.frame(as.numeric(tmp_data_raw_3[, 21]))
   }
 
   # PRINTING OUTPUTS
-  p1 <- heatmap(res) 
+  
+  par(mfrow = c(2,1))
+  
+  p1 <- heatmap(res, 
+                Rowv = NA, 
+                Colv = NA, 
+                ) 
   
   p2 <- ggplot(rel.list, aes(x = Relatedness)) +
     geom_histogram(binwidth = 0.01) +
     ggtitle("Histogram of relatedness") +
     theme_classic()
-  
-  plots <- c(p1, p2)
  
-  par(mfrow = c(2,1))
-  if (plot.out) invisible(plots)
+  if (plot.out) invisible(p1, p2)
 
   # Optionally save the plot ---------------------
   if(!is.null(plot.file)){
