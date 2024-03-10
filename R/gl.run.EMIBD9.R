@@ -300,9 +300,7 @@ rel.list <- data.frame(as.numeric(tmp_data_raw_3[, 21]))
     ggtitle("Histogram of relatedness") +
     theme_classic()
   
-  p3 <- (p1/p2)
- 
-  if (plot.out) print(p3)
+  if (plot.out)  print(list(plot(p1), plot(p2))
 
   # Optionally save the plot ---------------------
   if(!is.null(plot.file)){
