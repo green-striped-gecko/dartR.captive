@@ -295,8 +295,7 @@ rel.list <- data.frame(as.numeric(tmp_data_raw_3[, 21]))
   
   p1 <- heatmap(res, 
                 Rowv = NA, 
-                Colv = NA, 
-                ) 
+                Colv = NA) 
   
   p2 <- ggplot(rel.list, aes(x = Relatedness)) +
     geom_histogram(binwidth = 0.01) +
