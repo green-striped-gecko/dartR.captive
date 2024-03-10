@@ -292,8 +292,8 @@ rel.list <- data.frame(as.numeric(tmp_data_raw_3[, 21]))
   }
 
   # PRINTING OUTPUTS
-  p1 <- gl.plot.heatmap(res) 
-    if (plot.out) invisible(p1)
+  #p1 <- gl.plot.heatmap(res) 
+    #if (plot.out) invisible(p1)
   
   
   p2 <- ggplot(rel.list, aes(x = Relatedness)) +
