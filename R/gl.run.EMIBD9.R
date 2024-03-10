@@ -294,13 +294,15 @@ rel.list <- data.frame(as.numeric(tmp_data_raw_3[, 21]))
   # PRINTING OUTPUTS
   
  p1 <- heatmap(res, Rowv = NA, Colv = NA) 
-  
-  p2 <- ggplot(rel.list, aes(x = Relatedness)) +
+ 
+ p2 <- ggplot(rel.list, aes(x = Relatedness)) +
     geom_histogram(binwidth = 0.01) +
     ggtitle("Histogram of relatedness") +
     theme_classic()
+ 
+ p3 <- list(p1, p2)
   
-  if (plot.out)  print(list(plot(p1), plot(p2))
+  if (plot.out)  print(
 
   # Optionally save the plot ---------------------
   if(!is.null(plot.file)){
@@ -308,7 +310,6 @@ rel.list <- data.frame(as.numeric(tmp_data_raw_3[, 21]))
                            dir=plot.dir,
                            file=plot.file,
                            verbose=verbose)
-    
   }
   
   #Make a list
