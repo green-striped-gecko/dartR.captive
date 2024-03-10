@@ -304,8 +304,10 @@ rel.list <- data.frame(as.numeric(tmp_data_raw_3[, 21]))
     geom_histogram(binwidth = 0.01) +
     ggtitle("Histogram of relatedness") +
     theme_classic()
+  
+  p3 <- (p1/p2)
  
-  if (plot.out) invisible(p1, p2)
+  if (plot.out) invisible(p3)
 
   # Optionally save the plot ---------------------
   if(!is.null(plot.file)){
