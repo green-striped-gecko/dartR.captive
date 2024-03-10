@@ -292,6 +292,7 @@ rel.list <- data.frame(as.numeric(tmp_data_raw_3[, 21]))
   }
 
   # PRINTING OUTPUTS
+  par(mfrow = c(1, 1))
   
   p1 <- heatmap(res, 
                 Rowv = NA, 
