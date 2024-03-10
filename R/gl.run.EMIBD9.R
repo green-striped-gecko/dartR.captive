@@ -302,7 +302,7 @@ rel.list <- data.frame(as.numeric(tmp_data_raw_3[, 21]))
  
  p3 <- list(p1, p2)
   
-  if (plot.out)  print(
+  if (plot.out)  print(p3)
 
   # Optionally save the plot ---------------------
   if(!is.null(plot.file)){
