@@ -302,11 +302,11 @@ rel.list <- data.frame(as.numeric(tmp_data_raw_3[, 21]))
   
   #p3 <- (p1/p2)
  
-  if (plot.out) invisible(p2)
+  if (plot.out) print(p2)
 
   # Optionally save the plot ---------------------
   if(!is.null(plot.file)){
-    tmp <- utils.plot.save(p1,
+    tmp <- utils.plot.save(p2,
                            dir=plot.dir,
                            file=plot.file,
                            verbose=verbose)
