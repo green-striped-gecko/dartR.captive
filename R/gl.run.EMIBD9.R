@@ -301,8 +301,6 @@ inbreeding <- data.frame(as.numeric(tmp_data_raw_3[, 21]))
     ggtitle("Histogram of relatedness") +
     theme_classic()
  
- 
- 
  p3 <- list(p1, p2)
  
  if (plot.out)  print(p3)
