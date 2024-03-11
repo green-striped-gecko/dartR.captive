@@ -307,7 +307,7 @@ inbreeding <- data.frame(as.numeric(tmp_data_raw_3[, 21]))
  p2 <- ggplot(rel.list, aes(x = Relatedness)) +
     geom_histogram(binwidth = 0.01) +
     ggtitle("Histogram of relatedness") +
-   geom_vline(xintercept = rel.mean, colour="green", linetype = "longdash", linewidth = 2) + 
+   geom_vline(xintercept = rel.mean, colour="green", linetype = "longdash", linewidth = 1.25) + 
     theme_classic()
  
  p3 <- list(p1, p2)
