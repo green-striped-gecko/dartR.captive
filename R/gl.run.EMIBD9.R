@@ -298,9 +298,8 @@ inbreeding <- data.frame(as.numeric(tmp_data_raw_3[, 21]))
                  dendrogram = c("none"),
                  key = T, 
                  main = "Heatmap of Relatedness", 
-                 col = viridis(60), 
-                 trace = c("none"), 
-                 scale = "column")
+                 col = viridis(100), 
+                 trace = c("none"))
  
                  
  p2 <- ggplot(rel.list, aes(x = Relatedness)) +
