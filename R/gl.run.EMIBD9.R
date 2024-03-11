@@ -294,7 +294,15 @@ inbreeding <- data.frame(as.numeric(tmp_data_raw_3[, 21]))
 
   # PRINTING OUTPUTS
   
- p1 <- heatmap.2(res, Rowv = F, Colv = F, key = T, main = "Heatmap of Relatedness")
+colours <- gl.select.colors(library='brewer',palette='Spectral')
+  
+ p1 <- heatmap.2(res, 
+                 Rowv = F, 
+                 Colv = F, 
+                 key = T, 
+                 main = "Heatmap of Relatedness", 
+                 density.info=c("density"), 
+                 col = colours)
  
  p2 <- ggplot(rel.list, aes(x = Relatedness)) +
     geom_histogram(binwidth = 0.01) +
