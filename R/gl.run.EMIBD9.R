@@ -299,7 +299,8 @@ inbreeding <- data.frame(as.numeric(tmp_data_raw_3[, 21]))
                  key = T, 
                  main = "Heatmap of Relatedness", 
                  col = viridis(60), 
-                 trace = c("none"))
+                 trace = c("none"), 
+                 scale = "column")
  
                  
  p2 <- ggplot(rel.list, aes(x = Relatedness)) +
