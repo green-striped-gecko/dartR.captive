@@ -297,10 +297,9 @@ inbreeding <- data.frame(as.numeric(tmp_data_raw_3[, 21]))
   cols <- scale_fill_viridis_c(option="magma")
   
  p1 <- heatmap.2(res, 
-                 dendrogram = c("none")
+                 dendrogram = c("none"),
                  key = T, 
-                 main = "Heatmap of Relatedness", 
-                 density.info=c("density"))
+                 main = "Heatmap of Relatedness")
                  
  p2 <- ggplot(rel.list, aes(x = Relatedness)) +
     geom_histogram(binwidth = 0.01) +
