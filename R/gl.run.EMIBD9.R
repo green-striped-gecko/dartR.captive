@@ -294,7 +294,8 @@ inbreeding <- data.frame(as.numeric(tmp_data_raw_3[, 21]))
 
   # PRINTING OUTPUTS
   
- p1 <- heatmap(res, Rowv = NA, Colv = NA, main = "Heatmap of Relatedness") 
+ p1 <- heatmap(res, Rowv = NA, Colv = NA)
+ p1 + title(main = "Heatmap of Relatedness") 
  
  p2 <- ggplot(rel.list, aes(x = Relatedness)) +
     geom_histogram(binwidth = 0.01) +
