@@ -294,7 +294,7 @@ inbreeding <- data.frame(as.numeric(tmp_data_raw_3[, 21]))
 
   # PRINTING OUTPUTS
   
-colours <- gl.select.colors(palette='Virids')
+colours <- gl.select.colors(library = "viridis", palette='viridis')
   
  p1 <- heatmap.2(res, 
                  Rowv = F, 
