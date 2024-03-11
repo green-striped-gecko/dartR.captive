@@ -278,7 +278,7 @@ inbreeding <- data.frame(as.numeric(tmp_data_raw_3[, 21]))
   
   colnames(rel.list) <- c("Relatedness")
   
-  rel.mean <- mean(rel.list)
+  rel.mean <- mean(rel.list$Relatedness)
   
   #return to old path
   setwd(old.path)
