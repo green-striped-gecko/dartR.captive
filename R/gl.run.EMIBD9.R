@@ -299,7 +299,8 @@ inbreeding <- data.frame(as.numeric(tmp_data_raw_3[, 21]))
  p1 <- heatmap.2(res, 
                  dendrogram = c("none"),
                  key = T, 
-                 main = "Heatmap of Relatedness")
+                 main = "Heatmap of Relatedness", 
+                 col = cols)
                  
  p2 <- ggplot(rel.list, aes(x = Relatedness)) +
     geom_histogram(binwidth = 0.01) +
