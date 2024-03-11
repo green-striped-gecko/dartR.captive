@@ -294,14 +294,15 @@ inbreeding <- data.frame(as.numeric(tmp_data_raw_3[, 21]))
 
   # PRINTING OUTPUTS
   
+  cols <- scale_fill_viridis_c(option="magma")
+  
  p1 <- heatmap.2(res, 
                  Rowv = F, 
                  Colv = F, 
                  key = T, 
                  main = "Heatmap of Relatedness", 
-                 density.info=c("density"), 
-                 col = scale_color_viridis(discrete = F))
- 
+                 density.info=c("density")
+                 
  p2 <- ggplot(rel.list, aes(x = Relatedness)) +
     geom_histogram(binwidth = 0.01) +
     ggtitle("Histogram of relatedness") +
