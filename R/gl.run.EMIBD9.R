@@ -301,7 +301,7 @@ inbreeding <- data.frame(as.numeric(tmp_data_raw_3[, 21]))
                  Colv = F, 
                  key = T, 
                  main = "Heatmap of Relatedness", 
-                 density.info=c("density")
+                 density.info=c("density"))
                  
  p2 <- ggplot(rel.list, aes(x = Relatedness)) +
     geom_histogram(binwidth = 0.01) +
