@@ -294,8 +294,6 @@ inbreeding <- data.frame(as.numeric(tmp_data_raw_3[, 21]))
 
   # PRINTING OUTPUT
   
-
-  
  p1 <- heatmap.2(res, 
                  dendrogram = c("none"),
                  key = T, 
