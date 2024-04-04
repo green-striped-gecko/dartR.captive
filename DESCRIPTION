@@ -1,8 +1,8 @@
 Package: dartR.captive
 Type: Package
 Title: Analysing 'SNP' Data to Support Captive Breeding
-Version: 0.88
-Date: 2024-03-07
+Version: 0.90
+Date: 2024-04-04
 Authors@R: c(
             person("Bernd", "Gruber", email="bernd.gruber@canberra.edu.au", role=c("aut","cre")), 
             person("Arthur", "Georges", email="georges@aerg.edu.au", role="aut"),
@@ -22,7 +22,7 @@ Description: Functions are provided that facilitate the analysis of SNP
     Gruber et al. (2018) <doi:10.1111/1755-0998.12745>.
     Mijangos et al. (2022) <doi:10.1111/2041-210X.13918>.
 Encoding: UTF-8
-Depends: R (>= 3.5), adegenet (>= 2.0.0),  dartR.base, dartR.data
+Depends: R (>= 3.5), adegenet (>= 2.0.0),  dartR.base, dartR.data, dartR.sim
 Imports: methods, utils,  crayon, ggplot2, patchwork, stringr
 Suggests: 
     SIBER,

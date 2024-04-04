@@ -10,7 +10,7 @@ gl.sim.relatedness(
   nboots = 10,
   emibd9.path = getwd(),
   conf = 0.95,
-  ISeed = 42,
+  iseed = 42,
   plot.out = TRUE,
   plot.dir = NULL,
   plot.file = NULL,
@@ -29,6 +29,8 @@ gl.sim.relatedness(
 
 \item{conf}{The specified threshold for confidence interval calculation from simulated relatedness values [default 0.95]}
 
+\item{iseed}{An integer used to seed the random number generator [default 42].}
+
 \item{plot.out}{A boolean that indicates whether to plot the results [default TRUE].}
 
 \item{plot.dir}{Directory to save the plot RDS files [default as specified by the global working directory or tempdir()]}
@@ -38,8 +40,6 @@ gl.sim.relatedness(
 \item{verbose}{Verbosity: 0, silent or fatal errors; 1, begin and end; 2,
 progress log; 3, progress and results summary; 5, full report
  [default NULL, unless specified using gl.set.verbosity]}
-
-\item{iseed}{An integer used to seed the random number generator [default 42].}
 }
 \value{
 Summary statistics of chosen relatedness relationship and a histogram of relatedness values showing the mean.
