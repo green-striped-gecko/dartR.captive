@@ -51,6 +51,8 @@
 #'  Rev Genet 16, 33–44 (2015). 
 #' }
 #' @importFrom stringr str_split
+#' @importFrom dartR.sim gl.sim.offspring
+#' @importFrom stats confint lm na.omit
 #' @export
 
 gl.sim.relatedness <- function(x,
@@ -58,7 +60,7 @@ gl.sim.relatedness <- function(x,
                                nboots = 10,
                                emibd9.path = getwd(),
                                conf = 0.95,
-                               ISeed = 42, 
+                               iseed = 42, 
                                plot.out = TRUE,
                                plot.dir=NULL,
                                plot.file = NULL,
@@ -101,7 +103,7 @@ gl.sim.relatedness <- function(x,
     mother <- x[parents[1],]
     father <- x[parents[2],]
     
-    off <- gl.sim.offspring(father, mother, noffpermother = 2, sexratio = 0.5)
+    off <- dartR.sim::gl.sim.offspring(father, mother, noffpermother = 2, sexratio = 0.5)
     ppoff <- rbind(x,off[1,])
     
     res <- gl.run.EMIBD9(ppoff, 
@@ -119,8 +121,8 @@ gl.sim.relatedness <- function(x,
         
         father <- x[parents[3],]
         
-        off1 <- gl.sim.offspring(father, mother1, noffpermother = 2, sexratio = 1)
-        off2 <- gl.sim.offspring(father, mother2, noffpermother = 2, sexratio = 1)
+        off1 <- dartR.sim::gl.sim.offspring(father, mother1, noffpermother = 2, sexratio = 1)
+        off2 <- dartR.sim::gl.sim.offspring(father, mother2, noffpermother = 2, sexratio = 1)
 
         ppoff <- rbind(x,off1[1,],off2[2,])
         
@@ -138,17 +140,17 @@ gl.sim.relatedness <- function(x,
           mother <- x[parents1[1],]
           father <- x[parents1[2],]
           
-          off1 <- gl.sim.offspring(father, mother, noffpermother = 2, sexratio = 0.5)
+          off1 <- dartR.sim::gl.sim.offspring(father, mother, noffpermother = 2, sexratio = 0.5)
         
           parents2 <- sample(1:nInd(x),2, replace = F)
           mother2 <- x[parents2[1],]
           father2 <- x[parents2[2],]
           
-          cousin1 <- gl.sim.offspring(off1[1,], mother2, noffpermother = 2, sexratio = 0.5)
+          cousin1 <- dartR.sim::gl.sim.offspring(off1[1,], mother2, noffpermother = 2, sexratio = 0.5)
           cousin1 <- cousin1[1,]
           indNames(cousin1) <- ("cousin1")
           
-          cousin2 <- gl.sim.offspring(father2, off1[2,], noffpermother = 2, sexratio = 0.5)
+          cousin2 <- dartR.sim::gl.sim.offspring(father2, off1[2,], noffpermother = 2, sexratio = 0.5)
           cousin2 <- cousin2[1,]
           indNames(cousin2) <- ("cousin2")
           
@@ -175,14 +177,15 @@ gl.sim.relatedness <- function(x,
                           first.cousin(x))
         }
         
-
+        relatedness <- NA
         rr <- data.frame(rr)
-        colnames(rr) <- c("Relatedness")
+        colnames(rr) <- c("relatedness")
+        
         sum <- summary(rr)
-        mean_rel <- mean(rr$Relatedness)
+        mean_rel <- mean(rr$relatedness)
         
 #Add 95% CI's for simulated relatedness (does this match the propiosed fs,hs,fc?)
-        l.model <- lm(Relatedness ~ 1, rr)
+        l.model <- lm(relatedness ~ 1, rr)
         CI <- confint(l.model, level = (conf))
         l.ci <- CI[,1]
         u.ci <- CI[,2]
@@ -198,7 +201,7 @@ gl.sim.relatedness <- function(x,
 #Print plot 
         
         if (rel == "full.sib") {
-          p1 <- ggplot(data = rr, aes(x = Relatedness)) +
+          p1 <- ggplot(data = rr, aes(x = relatedness)) +
             geom_histogram(binwidth = 0.005, colour = "black") +
             ggtitle("Histogram of simulated full sibling relatedness values and CI's") +
             theme(plot.title = element_text(hjust = 0.5)) +
@@ -206,21 +209,21 @@ gl.sim.relatedness <- function(x,
             geom_vline(aes(xintercept = mean_rel), color = "red", linewidth = 1) + #mean
             geom_vline(aes(xintercept = l.ci), color = "green", linewidth = 1, linetype = 2) + #lower CI
             geom_vline(aes(xintercept = u.ci), color = "green", linewidth = 1, linetype = 2) #upper CI
-          labs(y = "Count", x = "Relatedness") 
+          labs(y = "Count", x = "relatedness") 
           if (plot.out) print (p1)
         } else if (rel == "half.sib") {
-          p1 <- ggplot(data = rr, aes(x = Relatedness)) +
+          p1 <- ggplot(data = rr, aes(x = relatedness)) +
             geom_histogram(binwidth = 0.005, colour = "black") +
             ggtitle("Histogram of simulated half sibling relatedness values and CI's") +
             theme(plot.title = element_text(hjust = 0.5)) +
-            labs(y = "Count", x = "Relatedness") + 
+            labs(y = "Count", x = "relatedness") + 
             theme_dartR() +
             geom_vline(aes(xintercept = mean_rel), color = "red", linewidth = 1) +
             geom_vline(aes(xintercept = l.ci), color = "green", linewidth = 1, linetype = 2) + #lower CI
             geom_vline(aes(xintercept = u.ci), color = "green", linewidth = 1, linetype = 2) #upper CI
           if (plot.out) print (p1)
         } else if (rel == "first.cousin") {
-          p1 <- ggplot(data = rr, aes(x = Relatedness)) +
+          p1 <- ggplot(data = rr, aes(x = relatedness)) +
             geom_histogram(binwidth = 0.005, colour = "black") +
             ggtitle("Histogram of simulated first cousin relatedness values and CI's") +
             theme(plot.title = element_text(hjust = 0.5)) +
@@ -228,7 +231,7 @@ gl.sim.relatedness <- function(x,
             geom_vline(aes(xintercept = mean_rel), color = "red", linewidth = 1) + 
             geom_vline(aes(xintercept = l.ci), color = "green", linewidth = 1, linetype = 2) + #lower CI
             geom_vline(aes(xintercept = u.ci), color = "green", linewidth = 1, linetype = 2) #upper CI
-          labs(y = "Count", x = "Relatedness") 
+          labs(y = "Count", x = "relatedness") 
           if (plot.out) print (p1)
         }
 
