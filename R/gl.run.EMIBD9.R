@@ -261,10 +261,10 @@ gl.run.EMIBD9 <- function(x,
   setkeyv(table_output, c("Indiv1", "Indiv2"))
   table_output <- table_output[J(unq_pairs), c(1, 2, 14:23), with=FALSE]
   
+  #Relatedness
   df <- data.frame(ind1=tmp_data_raw_3$Indiv1, ind2=tmp_data_raw_3$Indiv2,rel= tmp_data_raw_3$`r(1,2)`)
   df<- apply(df, 2, as.numeric)
   
-  #Relatedness
   res <- matrix(NA, nrow = nInd(x), ncol = nInd(x))
   
   for (i in 1:nrow(df)) {
