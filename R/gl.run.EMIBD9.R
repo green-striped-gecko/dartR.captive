@@ -94,7 +94,7 @@
 #'  Evolution, 13(11), 2443-2462.
 #' }
 #' @importFrom stringr str_split
-#' @import data.table
+#' @rawNamespace import(data.table)
 #' @export
 
 gl.run.EMIBD9 <- function(x,
@@ -251,12 +251,13 @@ gl.run.EMIBD9 <- function(x,
   colnames(tmp_data_raw_3) <- tmp_headings[2:22]
   
   # Kick out self & redundant comparisons
+  unq_pairs <- data.table(t(combn(nInd(x), 2)))
+  setnames(unq_pairs, new = c("Indiv1", "Indiv2"))
+  
   table_output <- data.table(apply(tmp_data_raw_3, 2, as.numeric))
   table_output <- cbind(Ind1=rep(indNames(x), each=nInd(x)), 
                         Ind2=rep(indNames(x), nInd(x)),
                         table_output)
-  
-  unq_pairs <- t(combn(nInd(x), 2))
   setkeyv(table_output, c("Indiv1", "Indiv2"))
   table_output <- table_output[J(unq_pairs), c(1, 2, 14:23), with=FALSE]
   
@@ -317,9 +318,11 @@ gl.run.EMIBD9 <- function(x,
   results <-
     list(
       rel = res,
-      raw = tmp_data_raw_3,
-      if(inbreedStart>0) inbreeding = inbTable, inbreeding = NULL
-    )
+      raw = tmp_data_raw_3)
+  
+      if(inbreedStart>0) {
+        results[["inbreeding"]] <- inbTable
+      }
   
   return(results)
 }
