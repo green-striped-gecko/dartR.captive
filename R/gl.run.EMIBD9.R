@@ -103,6 +103,8 @@
 #'  frequencies from a small sample of individuals. Methods in Ecology and
 #'  Evolution, 13(11), 2443-2462.
 #' }
+#' 
+#' @importFrom utils combn
 #' @importFrom stringr str_split
 #' @rawNamespace import(data.table)
 #' @export
@@ -176,6 +178,8 @@ gl.run.EMIBD9 <- function(x,
     stop()
   }
   
+  # Resolve no visible global function definition 
+  J <- NULL
   
   rundir <- tempdir()
   
