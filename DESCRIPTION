@@ -23,7 +23,7 @@ Description: Functions are provided that facilitate the analysis of SNP
     Mijangos et al. (2022) <doi:10.1111/2041-210X.13918>.
 Encoding: UTF-8
 Depends: R (>= 3.5), adegenet (>= 2.0.0),  dartR.base, dartR.data, dartR.sim
-Imports: methods, utils,  crayon, ggplot2, patchwork, stringr
+Imports: methods, utils,  crayon, data.table, ggplot2, patchwork, stringr
 Suggests: 
     SIBER,
     gplots,
