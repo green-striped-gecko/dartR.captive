@@ -15,6 +15,7 @@
 #'  are running) [default getwd()].
 #' @param Inbreed A Boolean, taking values 0 or 1 to indicate inbreeding is not
 #'  and is allowed in estimating IBD coefficients [default 1].
+#' @param OutAlleleFre Whether to write , 1, or not, 0, the allele frequency file [default 0].
 #' @param ISeed An integer used to seed the random number generator [default 42].
 #' @param plot.out A boolean that indicates whether to plot the results [default TRUE].
 #' @param plot.dir Directory to save the plot RDS files [default as specified 
@@ -25,11 +26,13 @@
 #'  [default NULL, unless specified using gl.set.verbosity]
 #' @details
 #' 'The results of EMIBD9 include the identical in state (IIS) values for each mode 
-#'(S1 - 9) and nine condensed identical by descent (IBD) modes (∆1 - ∆9) as well as #'the relatedness coefficient (r). Alleles are IIS if they are the same. Similarly,
-#' IBD describes a matching allele between two individuals that has been inherited from a common ancestor or common gene. In a pairwise comparison, ∆1 to ∆9 are the
-#'  probabilities associated with each IBD mode. In inbreeding populations, only  ∆1
-#'   to  ∆6 can can occur. In contrast, ∆7 to ∆9 can only occur in large, panmictic
-#'    outbred populations. 
+#'(S1 - 9) and nine condensed identical by descent (IBD) modes (∆1 - ∆9) as well as 
+#'#'the relatedness coefficient (r). Alleles are IIS if they are the same. Similarly,
+#' IBD describes a matching allele between two individuals that has been inherited 
+#' from a common ancestor or common gene. In a pairwise comparison, ∆1 to ∆9 are the
+#'  probabilities associated with each IBD mode. ∆1 to ∆6 take vakue > 0 in presence
+#'  of inbreeding and hence are only computed when this option is selected. 
+#'  
 #' 
 #'EMIBD9 uses an expectation maximization (EM) algorithm based on the maximum
 #' likelihood expectations (MLE) of ∆ to estimate both allele frequencies (p) and ∆
@@ -77,7 +80,14 @@
 #' documentation provided by the authors [you need to have mpiexec installed].
 #' 
 #'
-#' @return A matrix with pairwise relatedness
+#' @return A list with three or four elements depending on whether inbreeding was
+#' selected. The first element (rel) is a matrix with pairwise relatedness. 
+#' The second (raw) is the raw output table from the program. The third (processed) 
+#' is the 'processed' output from the table (self-comparisons - an individuals with 
+#' itself - and redundant pairs - e.g. the second individuals with the first, when the first 
+#' vs the second is already present in the results - are removed). The last (inbreeding)
+#'  is a table of indiviudal inbreeding values (if requested). 
+# 
 #' @author Custodian: Luis Mijangos -- Post to
 #' \url{https://groups.google.com/d/forum/dartr}
 #' @examples
@@ -102,6 +112,7 @@ gl.run.EMIBD9 <- function(x,
                           outpath = tempdir(),
                           emibd9.path = getwd(),
                           Inbreed = TRUE,
+                          OutAlleleFre=0,
                           ISeed = 42,
                           plot.out = TRUE,
                           plot.dir=NULL,
@@ -187,7 +198,7 @@ gl.run.EMIBD9 <- function(x,
   # ISeed <- ISeed
   RndDelta0 <- 1
   EM_Method <- 1
-  OutAlleleFre <- 0
+  #OutAlleleFre <- 0
 
   param <- paste(NumIndiv,
     NumLoci,
@@ -283,7 +294,7 @@ gl.run.EMIBD9 <- function(x,
        report("Exporting individual diversity and inbreeding values"))
    }
    
-   inbTable <- fread(file = outfile, nrows = nInd(x) + 1, skip = inbreedStart)
+   inbTable <- fread(file = outfile, nrows = nInd(x), skip = inbreedStart)
  }
   
   #return to old path
@@ -318,7 +329,8 @@ gl.run.EMIBD9 <- function(x,
   results <-
     list(
       rel = res,
-      raw = tmp_data_raw_3)
+      raw = tmp_data_raw_3,
+      processed = table_output)
   
       if(inbreedStart>0) {
         results[["inbreeding"]] <- inbTable
