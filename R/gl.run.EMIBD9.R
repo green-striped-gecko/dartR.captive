@@ -25,7 +25,8 @@
 #'  [default NULL, unless specified using gl.set.verbosity]
 #' @details
 #' 'The results of EMIBD9 include the identical in state (IIS) values for each mode 
-#'(S1 - 9) and nine condensed identical by descent (IBD) modes (∆1 - ∆9) as well as #'the relatedness coefficient (r). Alleles are IIS if they are the same. Similarly,
+#'(S1 - 9) and nine condensed identical by descent (IBD) modes (∆1 - ∆9) as well as 
+#'the relatedness coefficient (r). Alleles are IIS if they are the same. Similarly,
 #' IBD describes a matching allele between two individuals that has been inherited from a common ancestor or common gene. In a pairwise comparison, ∆1 to ∆9 are the
 #'  probabilities associated with each IBD mode. In inbreeding populations, only  ∆1
 #'   to  ∆6 can can occur. In contrast, ∆7 to ∆9 can only occur in large, panmictic
@@ -94,6 +95,7 @@
 #'  Evolution, 13(11), 2443-2462.
 #' }
 #' @importFrom stringr str_split
+#' @rawNamespace import(data.table)
 #' @export
 
 gl.run.EMIBD9 <- function(x,
@@ -124,7 +126,7 @@ gl.run.EMIBD9 <- function(x,
   
   # CHECK DATATYPE
   datatype <- utils.check.datatype(x, verbose = verbose)
- 
+  
   #check if embid9 is available
   
   os <- Sys.info()["sysname"]
@@ -167,20 +169,14 @@ gl.run.EMIBD9 <- function(x,
   
   rundir <- tempdir()
   
-   
-  
   # individual IDs must have a maximal length of 20 characters. The IDs must NOT
   # contain blank space and other illegal characters (such as /), and must be
   # unique among all sampled individuals (i.e. NO duplications). Any string longer
   # than 20 characters for individual ID will be truncated to have 20 characters.
-
-  
   
   x2 <- x  #copy to work only on the copied data set
   hold_names <- indNames(x)
   indNames(x2) <- 1:nInd(x2)
-  
-
   
   NumIndiv <- nInd(x2)
   NumLoci <- nLoc(x2)
@@ -193,47 +189,44 @@ gl.run.EMIBD9 <- function(x,
   RndDelta0 <- 1
   EM_Method <- 1
   OutAlleleFre <- 0
-
+  
   param <- paste(NumIndiv,
-    NumLoci,
-    DataForm,
-    Inbreed,
-    GtypeFile,
-    OutFileName,
-    ISeed,
-    RndDelta0,
-    EM_Method,
-    OutAlleleFre,
-    sep = "\n"
+                 NumLoci,
+                 DataForm,
+                 Inbreed,
+                 GtypeFile,
+                 OutFileName,
+                 ISeed,
+                 RndDelta0,
+                 EM_Method,
+                 OutAlleleFre,
+                 sep = "\n"
   )
-
+  
   write.table(param,
-    quote = FALSE,
-    row.names = FALSE,
-    col.names = FALSE,
-    file = file.path(rundir, "MyData.par")
+              quote = FALSE,
+              row.names = FALSE,
+              col.names = FALSE,
+              file = file.path(rundir, "MyData.par")
   )
-
+  
   IndivID <- paste(indNames(x2))
-
+  
   gl_mat <- as.matrix(x2)
   gl_mat[is.na(gl_mat)] <- 3
-
+  
   tmp <- cbind(apply(gl_mat, 1, function(y) {
     Reduce(paste0, y)
   }))
-
-  tmp <- rbind(paste(indNames(x2), collapse = " "), tmp)
-
-  write.table(tmp,
-    file = file.path(rundir, "EMIBD9_Gen.dat"),
-    quote = FALSE,
-    row.names = FALSE,
-    col.names = FALSE
-  )
   
-
-
+  tmp <- rbind(paste(indNames(x2), collapse = " "), tmp)
+  
+  write.table(tmp,
+              file = file.path(rundir, "EMIBD9_Gen.dat"),
+              quote = FALSE,
+              row.names = FALSE,
+              col.names = FALSE
+  )
   
   # run EMIBD9
   # change into tempdir (run it there)
@@ -243,17 +236,14 @@ gl.run.EMIBD9 <- function(x,
   system(cmd)
   
   ### get output  
-  
- 
-  
-  
-  x_lines <- readLines("EMIBD9_Res.ibd9")
+  x_lines <- readLines(outfile)
   strt <- which(grepl("^IBD", x_lines)) + 2
   stp <- which(grepl("Indiv genotypes", x_lines)) - 4
   linez_headings <- x_lines[strt]
   linez_data <- x_lines[(strt + 1):stp]
   tmp_headings <- unlist(stringr::str_split(linez_headings, " "))
   tmp_data <- stringr::str_split(linez_data, " ")
+  
   #Raw data 
   tmp_data_raw_1 <- lapply(tmp_data, "[", c(2:22))
   tmp_data_raw_2 <- do.call("rbind", tmp_data_raw_1)
@@ -261,23 +251,40 @@ gl.run.EMIBD9 <- function(x,
   tmp_data_raw_3$V3 <- lapply(tmp_data_raw_3$V3, as.numeric)
   colnames(tmp_data_raw_3) <- tmp_headings[2:22]
   
+  # Kick out self & redundant comparisons
+  table_output <- data.table(apply(tmp_data_raw_3, 2, as.numeric))
+  table_output <- cbind(Ind1=rep(indNames(x), each=nInd(x)), 
+                        Ind2=rep(indNames(x), nInd(x)),
+                        table_output)
+  
+  unq_pairs <- t(combn(nInd(x), 2))
+  setkeyv(table_output, c("Indiv1", "Indiv2"))
+  table_output <- table_output[J(unq_pairs), c(1, 2, 14:23), with=FALSE]
+  
   df <- data.frame(ind1=tmp_data_raw_3$Indiv1, ind2=tmp_data_raw_3$Indiv2,rel= tmp_data_raw_3$`r(1,2)`)
   df<- apply(df, 2, as.numeric)
+  
   #Relatedness
   res <- matrix(NA, nrow = nInd(x), ncol = nInd(x))
   
   for (i in 1:nrow(df)) {
     res[df[i, 1], df[i, 2]] <- df[i, 3]
   }
-
- 
- 
-
+  
   colnames(res) <- indNames(x)
   rownames(res) <- indNames(x)
-
-
- 
+  
+  # Inbreeding 
+  inbreedStart <- which(grepl("^Indiv genotypes at polymorphic loci", x_lines)) + 1
+  if(length(inbreedStart)>0) {
+    if (verbose>0)
+    {
+      cat(
+        report("Exporting individual diversity and inbreeding values"))
+    }
+    
+    inbTable <- fread(file = outfile, nrows = nInd(x) + 1, skip = inbreedStart)
+  }
   
   #return to old path
   setwd(old.path)
@@ -285,18 +292,20 @@ gl.run.EMIBD9 <- function(x,
   #compile the two dataframes into on list for output
   if (verbose>0)
   {
-  cat(
-    report(
-      "Returning a list containing the input gl object, a square matrix  of pairwise kinship, and the raw EMIBD9 results table as follows:\n",
-      "          $rel -- a square matrix of relatedness \n",
-      "          $raw -- raw EMIBD9 results table \n")
-  )
+    cat(
+      report(
+        "Returning a list containing the input gl object, a square matrix  of pairwise kinship, and the raw EMIBD9 results table as follows:\n",
+        "          $rel -- a square matrix of relatedness \n",
+        "          $raw -- raw EMIBD9 results table \n",
+        "          $processed -- EMIBD9 results without self and redundant comparison \n",
+        "          $inbreeding -- Individual diversity and inbreeding (if requested) \n")
+    )
   }
-
+  
   # PRINTING OUTPUTS
   p1 <- gl.plot.heatmap(res) 
-    if (plot.out) invisible(p1)
-
+  if (plot.out) invisible(p1)
+  
   # Optionally save the plot ---------------------
   if(!is.null(plot.file)){
     tmp <- utils.plot.save(p1,
@@ -305,11 +314,12 @@ gl.run.EMIBD9 <- function(x,
                            verbose=verbose)
   }
   
-  #Make a list
+  # Make a list
   results <-
     list(
       rel = res,
-      raw = tmp_data_raw_3
+      raw = tmp_data_raw_3,
+      if(inbreedStart>0) inbreeding = inbTable, inbreeding = NULL
     )
   
   return(results)
