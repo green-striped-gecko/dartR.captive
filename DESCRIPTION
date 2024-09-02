@@ -34,7 +34,7 @@ Suggests:
     scales,
     spelling
 License: GPL (>= 3)
-RoxygenNote: 7.2.3
+RoxygenNote: 7.3.2
 NeedsCompilation: no
 Packaged: 2021-04-28 23:28:46 UTC; 
 Author: Bernd Gruber [aut, cre],

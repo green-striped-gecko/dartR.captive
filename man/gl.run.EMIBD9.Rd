@@ -57,7 +57,8 @@ Run program EMIBD9
 }
 \details{
 'The results of EMIBD9 include the identical in state (IIS) values for each mode 
-(S1 - 9) and nine condensed identical by descent (IBD) modes (∆1 - ∆9) as well as #'the relatedness coefficient (r). Alleles are IIS if they are the same. Similarly,
+(S1 - 9) and nine condensed identical by descent (IBD) modes (∆1 - ∆9) as well as 
+the relatedness coefficient (r). Alleles are IIS if they are the same. Similarly,
 IBD describes a matching allele between two individuals that has been inherited from a common ancestor or common gene. In a pairwise comparison, ∆1 to ∆9 are the
  probabilities associated with each IBD mode. In inbreeding populations, only  ∆1
   to  ∆6 can can occur. In contrast, ∆7 to ∆9 can only occur in large, panmictic
