@@ -14,6 +14,8 @@
 #' [default 1].
 #' @param range Specifies the range to extend beyond the interquartile range for
 #' delimiting outliers [default 1.5 interquartile ranges].
+#' @param plot.filters Whether to show the plots of filters within the function 
+#' [default FALSE].
 #' @param plot_theme Theme for the plot. See Details for options
 #'  [default theme_dartR()].
 #' @param plot_colors List of two color names for the borders and fill of the
@@ -80,6 +82,7 @@ gl.report.parent.offspring <- function(x,
                                        min.rdepth = 12,
                                        min.reproducibility = 1,
                                        range = 1.5,
+                                       plot.filters = FALSE,
                                        plot_theme = theme_dartR(),
                                        plot_colors = gl.colors(2),
                                        plot.dir = NULL,
@@ -127,7 +130,8 @@ gl.report.parent.offspring <- function(x,
     x <-
       gl.filter.reproducibility(x,
         threshold = min.reproducibility,
-        verbose = 0
+        verbose = 0,
+        plot.display = plot.filters
       )
   }
   # Filter stringently on read depth, to further minimize miscalls
@@ -139,7 +143,8 @@ gl.report.parent.offspring <- function(x,
       )
     )
   } else {
-    x <- gl.filter.rdepth(x, lower = min.rdepth, verbose = 0)
+    x <- gl.filter.rdepth(x, lower = min.rdepth, verbose = 0,
+                          plot.display = plot.filters)
   }
 
   # Preliminaries before for loops
@@ -226,7 +231,7 @@ gl.report.parent.offspring <- function(x,
         ), 4)
     }
     # ordering by number of outliers
-    outliers <- outliers[order(outliers, decreasing = T), ]
+    outliers <- outliers[order(outliers$Outlier, decreasing = T), ]
     # removing duplicated values
     outliers <- outliers[!duplicated(outliers), ]
     # removing NAs
@@ -261,23 +266,18 @@ gl.report.parent.offspring <- function(x,
 
   df <- outliers
   # PRINTING OUTPUTS
-  if (!is.null(plot.file)) {
     # using package patchwork
     p3 <- (p1 / p2) + plot_layout(heights = c(1, 4))
     print(p3)
 
     # Optionally save the plot ---------------------
-
-    tmp <- utils.plot.save(p3,
-      dir = plot.dir,
-      file = plot.file,
-      verbose = verbose
-    )
+    if (!is.null(plot.file)) {
+  tmp <- utils.plot.save(p3,
+    dir = plot.dir,
+    file = plot.file,
+    verbose = verbose
+  )
   }
-
-
-
-
 
   # FLAG SCRIPT END
 
@@ -286,5 +286,5 @@ gl.report.parent.offspring <- function(x,
   }
 
   # RETURN
-  invisible(x)
+  return(df)
 }
