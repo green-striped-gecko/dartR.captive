@@ -16,6 +16,8 @@
 #' @param node.label.size Size of the node labels [default 3].
 #' @param node.label.color Color of the text of the node labels
 #' [default 'black'].
+#' @param node.shape Optionally provide a vector of nPop shapes
+#'  (run gl.select.shapes() for shape options) [default NULL].
 #' @param link.color  Colors for links [default gl.select.colors].
 #' @param link.size Size of the links [default 2].
 #' @param relatedness_factor Factor of relatedness [default 0.125].
@@ -148,6 +150,7 @@ gl.grm.network <- function(G,
                            node.label = TRUE,
                            node.label.size = 2,
                            node.label.color = "black",
+                           node.shape = NULL,
                            link.color = NULL,
                            link.size = 2,
                            relatedness_factor = 0.125,
@@ -324,13 +327,6 @@ gl.grm.network <- function(G,
       size = link.size
     ) +
     scale_colour_gradientn(name = "Relatedness", colours = link.color) +
-    geom_point(
-      data = plotcord, aes(x = X1, y = X2, fill = pop),
-      pch = 21,
-      size = node.size,
-      alpha = plotcord$kinship
-    ) +
-    scale_fill_manual(name = "Populations", values = colors_pops) +
     coord_fixed(ratio = 1) +
     theme_void() +
     ggtitle(paste(title, "\n[", layout.name, "]")) +
@@ -338,6 +334,27 @@ gl.grm.network <- function(G,
       legend.position = "bottom",
       plot.title = element_text(hjust = 0.5, face = "bold", size = 14)
     )
+  
+  if (is.null(node.shape)) {
+    p1 <- p1 +
+      geom_point(
+        data = plotcord, aes(x = X1, y = X2, fill = pop),
+        pch = 21,
+        size = node.size,
+        alpha = plotcord$kinship
+      ) +
+      scale_fill_manual(name = "Populations", values = colors_pops)
+    } else {
+    p1 <- p1 +
+      geom_point(
+        data = plotcord, aes(x = X1, y = X2, fill = pop,   shape = pop),
+        # pch = 21,
+        size = node.size,
+        alpha = plotcord$kinship
+      ) +
+      # scale_fill_manual(name = "Populations", values = colors_pops) +
+      scale_shape_manual(values = node.shape)
+  }
 
   if (node.label == T) {
     p1 <-
