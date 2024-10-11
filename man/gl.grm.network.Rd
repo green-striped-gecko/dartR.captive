@@ -12,6 +12,7 @@ gl.grm.network(
   node.label = TRUE,
   node.label.size = 2,
   node.label.color = "black",
+  node.shape = NULL,
   link.color = NULL,
   link.size = 2,
   relatedness_factor = 0.125,
@@ -39,6 +40,9 @@ gl.grm.network(
 
 \item{node.label.color}{Color of the text of the node labels
 [default 'black'].}
+
+\item{node.shape}{Optionally provide a vector of nPop shapes
+(run gl.select.shapes() for shape options) [default NULL].}
 
 \item{link.color}{Colors for links [default gl.select.colors].}
 

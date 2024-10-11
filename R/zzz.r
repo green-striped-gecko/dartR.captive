@@ -23,7 +23,6 @@ report <- crayon::green
 important <- crayon::blue
 code <- crayon::cyan
 
-
 # WELCOME MESSAGE
 .onAttach <- function(...) {
   pn <- getPackageName()
