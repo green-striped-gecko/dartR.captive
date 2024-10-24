@@ -155,7 +155,11 @@ gl.grm.network <- function(G,
                            link.size = 2,
                            relatedness_factor = 0.125,
                            title = "Network based on a genomic relationship matrix",
-                           palette_discrete = gl.select.colors(x, library = "brewer", palette = "PuOr", ncolors = nPop(x), verbose = 0),
+                           palette_discrete = gl.select.colors(x, 
+                                                               library = "brewer", 
+                                                               palette = "PuOr", 
+                                                               ncolors = nPop(x), 
+                                                               verbose = 0),
                            plot.dir = NULL,
                            plot.file = NULL,
                            verbose = NULL) {
@@ -324,9 +328,9 @@ gl.grm.network <- function(G,
     geom_segment(
       data = edges,
       aes(x = X1, y = Y1, xend = X2, yend = Y2, color = size),
-      size = link.size
-    ) +
-    scale_colour_gradientn(name = "Relatedness", colours = link.color) +
+      size = link.size) +
+    scale_colour_gradientn(name = "Relatedness", 
+                           colours = link.color) +
     coord_fixed(ratio = 1) +
     theme_void() +
     ggtitle(paste(title, "\n[", layout.name, "]")) +
@@ -338,22 +342,29 @@ gl.grm.network <- function(G,
   if (is.null(node.shape)) {
     p1 <- p1 +
       geom_point(
-        data = plotcord, aes(x = X1, y = X2, fill = pop),
+        data = plotcord, aes(x = X1, 
+                             y = X2, 
+                             fill = pop),
         pch = 21,
         size = node.size,
         alpha = plotcord$kinship
       ) +
-      scale_fill_manual(name = "Populations", values = colors_pops)
+      scale_fill_manual(name = "Populations", 
+                        values = colors_pops)
     } else {
     p1 <- p1 +
       geom_point(
-        data = plotcord, aes(x = X1, y = X2, fill = pop,   shape = pop),
-        # pch = 21,
+        data = plotcord, aes(x = X1,
+                             y = X2, 
+                             fill = pop, 
+                             shape = pop),
         size = node.size,
         alpha = plotcord$kinship
       ) +
-      # scale_fill_manual(name = "Populations", values = colors_pops) +
-      scale_shape_manual(values = node.shape)
+        scale_fill_manual(name = "Populations", 
+                          values = colors_pops)  +
+       scale_shape_manual(name = "Populations",
+                          values = node.shape)
   }
 
   if (node.label == T) {
