@@ -6,44 +6,49 @@
 #' @param outfile A string, giving the path and name of the output file
 #' [default "EMIBD9_Res.ibd9"].
 #' @param outpath Path where to save the output file. Use outpath=getwd() or
-#' outpath='.' when calling this function to direct output files to your working 
+#' outpath='.' when calling this function to direct output files to your working
 #' or current directory [default tempdir(), mandated by CRAN].
 #' @param emibd9.path Path to the folder emidb files.
 #'  Please note there are 2 different executables depending on your OS:
-#'  EM_IBD_P.exe (=Windows) EM_IBD_P (=Mac, Linux). 
-#'  You only need to point to the folder (the function will recognise which OS you
-#'  are running) [default getwd()].
+#'  EM_IBD_P.exe (=Windows) EM_IBD_P (=Mac, Linux).
+#'  You only need to point to the folder (the function will recognise which OS 
+#'  you are running) [default getwd()].
 #' @param Inbreed A Boolean, taking values 0 or 1 to indicate inbreeding is not
 #'  and is allowed in estimating IBD coefficients [default 1].
-#' @param ISeed An integer used to seed the random number generator [default 42].
-#' @param plot.out A boolean that indicates whether to plot the results [default TRUE].
-#' @param plot.dir Directory to save the plot RDS files [default as specified 
+#' @param parallel description  [default FALSE].
+#' @param ISeed An integer used to seed the random number generator 
+#' [default 42].
+#' @param plot.out A boolean that indicates whether to plot the results 
+#' [default TRUE].
+#' @param plot.dir Directory to save the plot RDS files [default as specified
 #' by the global working directory or tempdir()]
-#' @param plot.file Name for the RDS binary file to save (base name only, exclude extension) [default NULL]
+#' @param plot.file Name for the RDS binary file to save (base name only, 
+#' exclude extension) [default NULL]
 #' @param verbose Verbosity: 0, silent or fatal errors; 1, begin and end; 2,
 #' progress log; 3, progress and results summary; 5, full report
 #'  [default NULL, unless specified using gl.set.verbosity]
 #' @details
-#' 'The results of EMIBD9 include the identical in state (IIS) values for each mode 
-#'(S1 - 9) and nine condensed identical by descent (IBD) modes (∆1 - ∆9) as well as 
-#'the relatedness coefficient (r). Alleles are IIS if they are the same. Similarly,
-#' IBD describes a matching allele between two individuals that has been inherited from a common ancestor or common gene. In a pairwise comparison, ∆1 to ∆9 are the
-#'  probabilities associated with each IBD mode. In inbreeding populations, only  ∆1
-#'   to  ∆6 can can occur. In contrast, ∆7 to ∆9 can only occur in large, panmictic
-#'    outbred populations. 
-#' 
+#' 'The results of EMIBD9 include the identical in state (IIS) values for each
+#'  mode (S1 - 9) and nine condensed identical by descent (IBD) modes (∆1 - ∆9) 
+#'  as well as the relatedness coefficient (r). Alleles are IIS if they are the
+#'   same. Similarly, IBD describes a matching allele between two individuals 
+#'   that has been inherited from a common ancestor or common gene. In a 
+#'   pairwise comparison, ∆1 to ∆9 are the probabilities associated with each 
+#'   IBD mode. In inbreeding populations, only  ∆1 to  ∆6 can can occur. In
+#'    contrast, ∆7 to ∆9 can only occur in large, panmictic outbred populations.
+#'
 #'EMIBD9 uses an expectation maximization (EM) algorithm based on the maximum
-#' likelihood expectations (MLE) of ∆ to estimate both allele frequencies (p) and ∆
-#'  jointly from genotype data. By iteratively calculating p and ∆, relatedness 
-#'  can be modified to reduce biases due to small sample sizes. Wang J. (2022) 
-#'  suggest the resulting r coefficient is therefore more robust compared to 
-#'  previous methods.
+#' likelihood expectations (MLE) of ∆ to estimate both allele frequencies (p) 
+#' and ∆ jointly from genotype data. By iteratively calculating p and ∆, 
+#' relatedness can be modified to reduce biases due to small sample sizes. 
+#' Wang J. (2022) suggest the resulting r coefficient is therefore more robust 
+#' compared to previous methods.
 #'
 #'The kinship coefficient is the probability that two alleles at a random locus
 #'  drawn from two individuals are IBD.
 #'
 #'Below is a table modified from Speed & Balding (2015) showing kinship values,
-#'and their confidence intervals (CI), for different relationships that could 
+#'and their confidence intervals (CI), for different relationships that could
 #'be used to guide the choosing of the relatedness threshold in the function.
 #'
 #'|Relationship                               |Kinship  |     95% CI       |
@@ -61,22 +66,23 @@
 #'|Second cousin                              | 0.016   |    (0.004, 0.031)|
 #'
 #'|Half-second cousin                         | 0.008   |    (0.001, 0.020)|
-#' 
+#'
 #'|Third cousin                               | 0.004   |    (0.000, 0.012)|
 #'
-#'|Unrelated                                  | 0       |        -         | 
+#'|Unrelated                                  | 0       |        -         |
 #'
-#'For greater detail on the methods employed by EMIBD9, we encourage you to read Wang, J. (2022). 
+#'For greater detail on the methods employed by EMIBD9, we encourage you to 
+#'read Wang, J. (2022).
 #'
 #' Download the program from here:
 #'
 #' https://www.zsl.org/about-zsl/resources/software/emibd9
 #'
-#' For Windows, Mac and Linux install the program then point to the folder where you find:
-#' EM_IBD_P.exe (=Windows) and EM_IBD_P (=Mac, Linux). If running really slow you may 
-#' want to create the files using the function and then run in parallel using the
-#' documentation provided by the authors [you need to have mpiexec installed].
-#' 
+#' For Windows, Mac and Linux install the program then point to the folder
+#'  where you find: EM_IBD_P.exe (=Windows) and EM_IBD_P (=Mac, Linux). If 
+#'  running really slow you may want to create the files using the function 
+#'  and then run in parallel using the documentation provided by the authors
+#'   [you need to have mpiexec installed].
 #'
 #' @return A matrix with pairwise relatedness
 #' @author Custodian: Luis Mijangos -- Post to
@@ -103,13 +109,12 @@ gl.run.EMIBD9 <- function(x,
                           outpath = tempdir(),
                           emibd9.path = getwd(),
                           Inbreed = TRUE,
+                          parallel = FALSE,
                           ISeed = 42,
                           plot.out = TRUE,
-                          plot.dir=NULL,
+                          plot.dir = NULL,
                           plot.file = NULL,
                           verbose = NULL) {
-  
-  
   # SET VERBOSITY
   verbose <- gl.check.verbosity(verbose)
   
@@ -118,17 +123,14 @@ gl.run.EMIBD9 <- function(x,
   
   # FLAG SCRIPT START
   funname <- match.call()[[1]]
-  utils.flag.start(
-    func = funname,
-    build = "Jody",
-    verbose = verbose
-  )
+  utils.flag.start(func = funname,
+                   build = "Jody",
+                   verbose = verbose)
   
   # CHECK DATATYPE
   datatype <- utils.check.datatype(x, verbose = verbose)
   
   #check if embid9 is available
-  
   os <- Sys.info()["sysname"]
   
   if (Sys.info()["sysname"] == "Windows") {
@@ -137,8 +139,13 @@ gl.run.EMIBD9 <- function(x,
   }
   
   if (Sys.info()["sysname"] == "Linux") {
-    prog <- "EM_IBD_P"
-    cmd <- "./EM_IBD_P INP:MyData.par"
+    if(parallel){
+    prog <- "EM_IBD_P_mpi"
+    cmd <- "mpirun -np 4 ./EM_IBD_P_mpi INP:MyData.par"
+    }else{
+      prog <- "EM_IBD_P"
+      cmd <- "./EM_IBD_P INP:MyData.par"
+    }
   }
   
   if (Sys.info()["sysname"] == "Darwin") {
@@ -150,9 +157,11 @@ gl.run.EMIBD9 <- function(x,
   if (all(file.exists(file.path(emibd9.path, prog)))) {
     file.copy(file.path(emibd9.path, prog),
               to = tempdir(),
-              overwrite = TRUE
-    )
-    if (verbose > 0) cat(report("Found necessary files to run EMIBD9."))
+              overwrite = TRUE)
+    if (verbose > 0) {
+      cat(report("  Found necessary files to run EMIBD9.\n"))
+    }
+    
   } else {
     message(
       error(
@@ -165,7 +174,6 @@ gl.run.EMIBD9 <- function(x,
     )
     stop()
   }
-  
   
   rundir <- tempdir()
   
@@ -181,7 +189,12 @@ gl.run.EMIBD9 <- function(x,
   NumIndiv <- nInd(x2)
   NumLoci <- nLoc(x2)
   DataForm <- 2
-  if (Inbreed) Inbreed <- 1 else Inbreed <- 0
+  if (Inbreed) {
+    Inbreed <- 1
+  } else{
+    Inbreed <- 0
+  }
+  
   # Inbreed <- Inbreed
   GtypeFile <- "EMIBD9_Gen.dat"
   OutFileName <-  outfile
@@ -190,24 +203,26 @@ gl.run.EMIBD9 <- function(x,
   EM_Method <- 1
   OutAlleleFre <- 0
   
-  param <- paste(NumIndiv,
-                 NumLoci,
-                 DataForm,
-                 Inbreed,
-                 GtypeFile,
-                 OutFileName,
-                 ISeed,
-                 RndDelta0,
-                 EM_Method,
-                 OutAlleleFre,
-                 sep = "\n"
+  param <- paste(
+    NumIndiv,
+    NumLoci,
+    DataForm,
+    Inbreed,
+    GtypeFile,
+    OutFileName,
+    ISeed,
+    RndDelta0,
+    EM_Method,
+    OutAlleleFre,
+    sep = "\n"
   )
   
-  write.table(param,
-              quote = FALSE,
-              row.names = FALSE,
-              col.names = FALSE,
-              file = file.path(rundir, "MyData.par")
+  write.table(
+    param,
+    quote = FALSE,
+    row.names = FALSE,
+    col.names = FALSE,
+    file = file.path(rundir, "MyData.par")
   )
   
   IndivID <- paste(indNames(x2))
@@ -221,11 +236,12 @@ gl.run.EMIBD9 <- function(x,
   
   tmp <- rbind(paste(indNames(x2), collapse = " "), tmp)
   
-  write.table(tmp,
-              file = file.path(rundir, "EMIBD9_Gen.dat"),
-              quote = FALSE,
-              row.names = FALSE,
-              col.names = FALSE
+  write.table(
+    tmp,
+    file = file.path(rundir, "EMIBD9_Gen.dat"),
+    quote = FALSE,
+    row.names = FALSE,
+    col.names = FALSE
   )
   
   # run EMIBD9
@@ -235,7 +251,7 @@ gl.run.EMIBD9 <- function(x,
   setwd(rundir)
   system(cmd)
   
-  ### get output  
+  # get output
   x_lines <- readLines(outfile)
   strt <- which(grepl("^IBD", x_lines)) + 2
   stp <- which(grepl("Indiv genotypes", x_lines)) - 4
@@ -244,7 +260,7 @@ gl.run.EMIBD9 <- function(x,
   tmp_headings <- unlist(stringr::str_split(linez_headings, " "))
   tmp_data <- stringr::str_split(linez_data, " ")
   
-  #Raw data 
+  # Raw data
   tmp_data_raw_1 <- lapply(tmp_data, "[", c(2:22))
   tmp_data_raw_2 <- do.call("rbind", tmp_data_raw_1)
   tmp_data_raw_3 <- as.data.frame(tmp_data_raw_2)
@@ -253,16 +269,24 @@ gl.run.EMIBD9 <- function(x,
   
   # Kick out self & redundant comparisons
   table_output <- data.table(apply(tmp_data_raw_3, 2, as.numeric))
-  table_output <- cbind(Ind1=rep(indNames(x), each=nInd(x)), 
-                        Ind2=rep(indNames(x), nInd(x)),
-                        table_output)
+  table_output <- cbind(
+    Ind1 = rep(indNames(x), each = nInd(x)),
+    Ind2 = rep(indNames(x), nInd(x)),
+    table_output
+  )
   
   unq_pairs <- t(combn(nInd(x), 2))
   setkeyv(table_output, c("Indiv1", "Indiv2"))
-  table_output <- table_output[J(unq_pairs), c(1, 2, 14:23), with=FALSE]
+  table_output <-
+    table_output[J(unq_pairs), c(1, 2, 14:23), with = FALSE]
   
-  df <- data.frame(ind1=tmp_data_raw_3$Indiv1, ind2=tmp_data_raw_3$Indiv2,rel= tmp_data_raw_3$`r(1,2)`)
-  df<- apply(df, 2, as.numeric)
+  df <-
+    data.frame(
+      ind1 = tmp_data_raw_3$Indiv1,
+      ind2 = tmp_data_raw_3$Indiv2,
+      rel = tmp_data_raw_3$`r(1,2)`
+    )
+  df <- apply(df, 2, as.numeric)
   
   #Relatedness
   res <- matrix(NA, nrow = nInd(x), ncol = nInd(x))
@@ -274,53 +298,68 @@ gl.run.EMIBD9 <- function(x,
   colnames(res) <- indNames(x)
   rownames(res) <- indNames(x)
   
-  # Inbreeding 
-  inbreedStart <- which(grepl("^Indiv genotypes at polymorphic loci", x_lines)) + 1
-  if(length(inbreedStart)>0) {
-    if (verbose>0)
-    {
-      cat(
-        report("Exporting individual diversity and inbreeding values"))
+  # Inbreeding
+  inbreedStart <-
+    which(grepl("^Indiv genotypes at polymorphic loci", x_lines)) + 1
+  if (length(inbreedStart) > 0) {
+    if (verbose > 0){
+      cat(report("  Exporting individual diversity and inbreeding values \n"))
     }
     
-    inbTable <- fread(file = outfile, nrows = nInd(x) + 1, skip = inbreedStart)
+    inbTable <-
+      fread(file = outfile,
+            nrows = nInd(x) + 1,
+            skip = inbreedStart)
   }
   
   #return to old path
   setwd(old.path)
   
   #compile the two dataframes into on list for output
-  if (verbose>0)
-  {
+  if (verbose > 0){
     cat(
       report(
-        "Returning a list containing the input gl object, a square matrix  of pairwise kinship, and the raw EMIBD9 results table as follows:\n",
+        "  Returning a list containing the input gl object, a square matrix  of pairwise kinship, and the raw EMIBD9 results table as follows:\n",
         "          $rel -- a square matrix of relatedness \n",
         "          $raw -- raw EMIBD9 results table \n",
         "          $processed -- EMIBD9 results without self and redundant comparison \n",
-        "          $inbreeding -- Individual diversity and inbreeding (if requested) \n")
+        "          $inbreeding -- Individual diversity and inbreeding (if requested) \n"
+      )
     )
   }
   
   # PRINTING OUTPUTS
-  p1 <- gl.plot.heatmap(res) 
-  if (plot.out) invisible(p1)
+  p1 <- gl.plot.heatmap(res,
+                        verbose = 0)
+  if (plot.out) {
+    invisible(p1)
+  }
   
   # Optionally save the plot ---------------------
-  if(!is.null(plot.file)){
+  if (!is.null(plot.file)) {
     tmp <- utils.plot.save(p1,
-                           dir=plot.dir,
-                           file=plot.file,
-                           verbose=verbose)
+                           dir = plot.dir,
+                           file = plot.file,
+                           verbose = 0)
   }
+  
+  # FLAG SCRIPT END
+  
+  if (verbose >= 1) {
+    cat(report("Completed:", funname, "\n"))
+  }
+  
+  # RETURN
   
   # Make a list
   results <-
-    list(
-      rel = res,
-      raw = tmp_data_raw_3,
-      if(inbreedStart>0) inbreeding = inbTable, inbreeding = NULL
-    )
+    list(rel = res,
+         raw = tmp_data_raw_3,
+         if (inbreedStart > 0) {
+           inbreeding = inbTable
+         } else{
+           inbreeding = NULL
+         })
   
   return(results)
 }
