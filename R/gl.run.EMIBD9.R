@@ -143,7 +143,7 @@ gl.run.EMIBD9 <- function(x,
   if (Sys.info()["sysname"] == "Linux") {
     if(parallel){
     prog <- "EM_IBD_P_mpi"
-    cmd <- paste("mpirun -np",ncores," ./EM_IBD_P_mpi INP:MyData.par")
+    cmd <- paste("mpirun -np",ncores,"--use-hwthread-cpus ./EM_IBD_P_mpi INP:MyData.par")
     }else{
       prog <- "EM_IBD_P"
       cmd <- "./EM_IBD_P INP:MyData.par"
@@ -153,7 +153,7 @@ gl.run.EMIBD9 <- function(x,
   if (Sys.info()["sysname"] == "Darwin") {
     if(parallel){
     prog <- "EM_IBD_P_mpi"
-    cmd <- paste("mpirun -np",ncores," --use-hwthread-cpus ./EM_IBD_P_mpi INP:MyData.par")
+    cmd <- paste("mpirun -np",ncores,"--use-hwthread-cpus ./EM_IBD_P_mpi INP:MyData.par")
     }else{
       prog <- "EM_IBD_P"
       cmd <- "./EM_IBD_P INP:MyData.par"
