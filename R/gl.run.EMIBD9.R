@@ -16,6 +16,7 @@
 #' @param Inbreed A Boolean, taking values 0 or 1 to indicate inbreeding is not
 #'  and is allowed in estimating IBD coefficients [default 1].
 #' @param parallel description  [default FALSE].
+#' @param ncores How many cores should be used [default 1].
 #' @param ISeed An integer used to seed the random number generator 
 #' [default 42].
 #' @param plot.out A boolean that indicates whether to plot the results 
@@ -110,6 +111,7 @@ gl.run.EMIBD9 <- function(x,
                           emibd9.path = getwd(),
                           Inbreed = TRUE,
                           parallel = FALSE,
+                          ncores = 1,
                           ISeed = 42,
                           plot.out = TRUE,
                           plot.dir = NULL,
@@ -141,7 +143,7 @@ gl.run.EMIBD9 <- function(x,
   if (Sys.info()["sysname"] == "Linux") {
     if(parallel){
     prog <- "EM_IBD_P_mpi"
-    cmd <- "mpirun -np 4 ./EM_IBD_P_mpi INP:MyData.par"
+    cmd <- paste("mpirun -np",ncores," ./EM_IBD_P_mpi INP:MyData.par")
     }else{
       prog <- "EM_IBD_P"
       cmd <- "./EM_IBD_P INP:MyData.par"
@@ -149,8 +151,13 @@ gl.run.EMIBD9 <- function(x,
   }
   
   if (Sys.info()["sysname"] == "Darwin") {
-    prog <- "EM_IBD_P"
-    cmd <- "./EM_IBD_P INP:MyData.par"
+    if(parallel){
+    prog <- "EM_IBD_P_mpi"
+    cmd <- paste("mpirun -np",ncores," --use-hwthread-cpus ./EM_IBD_P_mpi INP:MyData.par")
+    }else{
+      prog <- "EM_IBD_P"
+      cmd <- "./EM_IBD_P INP:MyData.par"
+    }
   }
   
   # check if file program can be found
