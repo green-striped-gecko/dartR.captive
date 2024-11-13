@@ -280,17 +280,17 @@ gl.report.parent.offspring <- function(x,
 
   # Output the outlier loci
   if (length(lower.extremes) == 0) {
+    df <- NULL
     if(verbose>0) cat(important("  No outliers detected\n"))
-  }
-  if (length(lower.extremes) > 0) {
+  }else{
     outliers_df <- outliers_df[order(outliers_df$Outlier), ]
+    df <- outliers_df
+    df <- df[which(df$Outlier<=cutoff),]
     if (verbose >= 3) {
       print(outliers_df)
     }
   }
 
-  df <- outliers_df
-  df <- df[which(df$Outlier<=cutoff),]
   # PRINTING OUTPUTS
     # using package patchwork
     p3 <- (p1 / p2) + plot_layout(heights = c(1, 4))
