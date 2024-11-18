@@ -9,6 +9,7 @@ gl.report.parent.offspring(
   min.rdepth = 12,
   min.reproducibility = 1,
   range = 1.5,
+  plot.filters = FALSE,
   plot_theme = theme_dartR(),
   plot_colors = gl.colors(2),
   plot.dir = NULL,
@@ -26,6 +27,9 @@ gl.report.parent.offspring(
 
 \item{range}{Specifies the range to extend beyond the interquartile range for
 delimiting outliers [default 1.5 interquartile ranges].}
+
+\item{plot.filters}{Whether to show the plots of filters within the function 
+[default FALSE].}
 
 \item{plot_theme}{Theme for the plot. See Details for options
 [default theme_dartR()].}
