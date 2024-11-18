@@ -124,7 +124,7 @@ gl.run.EMIBD9 <- function(x,
   
   # CHECK DATATYPE
   datatype <- utils.check.datatype(x, verbose = verbose)
- 
+  
   #check if embid9 is available
   
   os <- Sys.info()["sysname"]
@@ -140,7 +140,8 @@ gl.run.EMIBD9 <- function(x,
   }
   
   if (Sys.info()["sysname"] == "Darwin") {
-    prog <- "EM_IBD_P"
+    prog <- c("EM_IBD_P","libquadmath.0.dylib","libmpi_usempif08.40.dylib",
+              "libmpi_usempif08.40.dylib","libquadmath.0.dylib")
     cmd <- "./EM_IBD_P INP:MyData.par"
   }
   
@@ -167,20 +168,20 @@ gl.run.EMIBD9 <- function(x,
   
   rundir <- tempdir()
   
-   
+  
   
   # individual IDs must have a maximal length of 20 characters. The IDs must NOT
   # contain blank space and other illegal characters (such as /), and must be
   # unique among all sampled individuals (i.e. NO duplications). Any string longer
   # than 20 characters for individual ID will be truncated to have 20 characters.
-
+  
   
   
   x2 <- x  #copy to work only on the copied data set
   hold_names <- indNames(x)
   indNames(x2) <- 1:nInd(x2)
   
-
+  
   
   NumIndiv <- nInd(x2)
   NumLoci <- nLoc(x2)
@@ -193,47 +194,47 @@ gl.run.EMIBD9 <- function(x,
   RndDelta0 <- 1
   EM_Method <- 1
   OutAlleleFre <- 0
-
+  
   param <- paste(NumIndiv,
-    NumLoci,
-    DataForm,
-    Inbreed,
-    GtypeFile,
-    OutFileName,
-    ISeed,
-    RndDelta0,
-    EM_Method,
-    OutAlleleFre,
-    sep = "\n"
+                 NumLoci,
+                 DataForm,
+                 Inbreed,
+                 GtypeFile,
+                 OutFileName,
+                 ISeed,
+                 RndDelta0,
+                 EM_Method,
+                 OutAlleleFre,
+                 sep = "\n"
   )
-
+  
   write.table(param,
-    quote = FALSE,
-    row.names = FALSE,
-    col.names = FALSE,
-    file = file.path(rundir, "MyData.par")
+              quote = FALSE,
+              row.names = FALSE,
+              col.names = FALSE,
+              file = file.path(rundir, "MyData.par")
   )
-
+  
   IndivID <- paste(indNames(x2))
-
+  
   gl_mat <- as.matrix(x2)
   gl_mat[is.na(gl_mat)] <- 3
-
+  
   tmp <- cbind(apply(gl_mat, 1, function(y) {
     Reduce(paste0, y)
   }))
-
+  
   tmp <- rbind(paste(indNames(x2), collapse = " "), tmp)
-
+  
   write.table(tmp,
-    file = file.path(rundir, "EMIBD9_Gen.dat"),
-    quote = FALSE,
-    row.names = FALSE,
-    col.names = FALSE
+              file = file.path(rundir, "EMIBD9_Gen.dat"),
+              quote = FALSE,
+              row.names = FALSE,
+              col.names = FALSE
   )
   
-
-
+  
+  
   
   # run EMIBD9
   # change into tempdir (run it there)
@@ -244,7 +245,7 @@ gl.run.EMIBD9 <- function(x,
   
   ### get output  
   
- 
+  
   
   
   x_lines <- readLines("EMIBD9_Res.ibd9")
@@ -269,15 +270,15 @@ gl.run.EMIBD9 <- function(x,
   for (i in 1:nrow(df)) {
     res[df[i, 1], df[i, 2]] <- df[i, 3]
   }
-
- 
- 
-
+  
+  
+  
+  
   colnames(res) <- indNames(x)
   rownames(res) <- indNames(x)
-
-
- 
+  
+  
+  
   
   #return to old path
   setwd(old.path)
@@ -285,18 +286,18 @@ gl.run.EMIBD9 <- function(x,
   #compile the two dataframes into on list for output
   if (verbose>0)
   {
-  cat(
-    report(
-      "Returning a list containing the input gl object, a square matrix  of pairwise kinship, and the raw EMIBD9 results table as follows:\n",
-      "          $rel -- a square matrix of relatedness \n",
-      "          $raw -- raw EMIBD9 results table \n")
-  )
+    cat(
+      report(
+        "Returning a list containing the input gl object, a square matrix  of pairwise kinship, and the raw EMIBD9 results table as follows:\n",
+        "          $rel -- a square matrix of relatedness \n",
+        "          $raw -- raw EMIBD9 results table \n")
+    )
   }
-
+  
   # PRINTING OUTPUTS
   p1 <- gl.plot.heatmap(res) 
-    if (plot.out) invisible(p1)
-
+  if (plot.out) invisible(p1)
+  
   # Optionally save the plot ---------------------
   if(!is.null(plot.file)){
     tmp <- utils.plot.save(p1,
