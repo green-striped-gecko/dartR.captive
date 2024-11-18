@@ -140,7 +140,8 @@ gl.run.EMIBD9 <- function(x,
   }
   
   if (Sys.info()["sysname"] == "Darwin") {
-    prog <- "EM_IBD_P"
+    prog <- c("EM_IBD_P","libquadmath.0.dylib","libmpi_usempif08.40.dylib",
+              "libmpi_usempif08.40.dylib","libquadmath.0.dylib")
     cmd <- "./EM_IBD_P INP:MyData.par"
   }
   
