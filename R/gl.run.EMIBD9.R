@@ -131,7 +131,6 @@ gl.run.EMIBD9 <- function(x,
   
   # CHECK DATATYPE
   datatype <- utils.check.datatype(x, verbose = verbose)
-  
   #check if embid9 is available
   os <- Sys.info()["sysname"]
   
@@ -151,6 +150,9 @@ gl.run.EMIBD9 <- function(x,
   }
   
   if (Sys.info()["sysname"] == "Darwin") {
+    prog <- c("EM_IBD_P","libquadmath.0.dylib","libmpi_usempif08.40.dylib",
+              "libmpi_usempif08.40.dylib","libquadmath.0.dylib")
+    cmd <- "./EM_IBD_P INP:MyData.par"
     if(parallel){
     prog <- "EM_IBD_P_mpi"
     cmd <- paste("mpirun -np",ncores,"--use-hwthread-cpus ./EM_IBD_P_mpi INP:MyData.par")
@@ -188,6 +190,7 @@ gl.run.EMIBD9 <- function(x,
   # contain blank space and other illegal characters (such as /), and must be
   # unique among all sampled individuals (i.e. NO duplications). Any string longer
   # than 20 characters for individual ID will be truncated to have 20 characters.
+
   
   x2 <- x  #copy to work only on the copied data set
   hold_names <- indNames(x)
@@ -229,8 +232,8 @@ gl.run.EMIBD9 <- function(x,
     quote = FALSE,
     row.names = FALSE,
     col.names = FALSE,
-    file = file.path(rundir, "MyData.par")
-  )
+    file = file.path(rundir, "MyData.par"))
+
   
   IndivID <- paste(indNames(x2))
   
@@ -243,13 +246,15 @@ gl.run.EMIBD9 <- function(x,
   
   tmp <- rbind(paste(indNames(x2), collapse = " "), tmp)
   
-  write.table(
-    tmp,
-    file = file.path(rundir, "EMIBD9_Gen.dat"),
-    quote = FALSE,
-    row.names = FALSE,
-    col.names = FALSE
+  write.table(tmp,
+              file = file.path(rundir, "EMIBD9_Gen.dat"),
+              quote = FALSE,
+              row.names = FALSE,
+              col.names = FALSE
   )
+  
+  
+  
   
   # run EMIBD9
   # change into tempdir (run it there)
@@ -257,8 +262,8 @@ gl.run.EMIBD9 <- function(x,
   on.exit(setwd(old.path))
   setwd(rundir)
   system(cmd)
-  
-  # get output
+
+    # get output
   x_lines <- readLines(outfile)
   strt <- which(grepl("^IBD", x_lines)) + 2
   stp <- which(grepl("Indiv genotypes", x_lines)) - 4
@@ -318,11 +323,12 @@ gl.run.EMIBD9 <- function(x,
             nrows = nInd(x) + 1,
             skip = inbreedStart)
   }
-  
+
   #return to old path
   setwd(old.path)
   
   #compile the two dataframes into on list for output
+
   if (verbose > 0){
     cat(
       report(
