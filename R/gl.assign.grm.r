@@ -87,5 +87,5 @@ gl.assign.grm <- function(x,
 
   res <- names(rel_list)[1]
 
-  return(res)
+  return(rel_list)
 }
