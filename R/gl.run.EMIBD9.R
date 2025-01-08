@@ -13,9 +13,11 @@
 #'  EM_IBD_P.exe (=Windows) EM_IBD_P (=Mac, Linux).
 #'  You only need to point to the folder (the function will recognise which OS 
 #'  you are running) [default getwd()].
-#' @param Inbreed A Boolean, taking values 0 or 1 to indicate inbreeding is not
-#'  and is allowed in estimating IBD coefficients [default 1].
-#' @param parallel description  [default FALSE].
+#' @param Inbreed A Boolean, taking values TRUE or FALSE to indicate inbreeding 
+#' is not and is allowed in estimating IBD coefficients [default FALSE].
+#' @param palette_convergent A continuous palette function for the relatedness 
+#' values [default NULL].
+#' @param parallel Use parallelisation[default FALSE].
 #' @param ncores How many cores should be used [default 1].
 #' @param ISeed An integer used to seed the random number generator 
 #' [default 42].
@@ -29,7 +31,7 @@
 #' progress log; 3, progress and results summary; 5, full report
 #'  [default NULL, unless specified using gl.set.verbosity]
 #' @details
-#' 'The results of EMIBD9 include the identical in state (IIS) values for each
+#' The results of EMIBD9 include the identical in state (IIS) values for each
 #'  mode (S1 - 9) and nine condensed identical by descent (IBD) modes (∆1 - ∆9) 
 #'  as well as the relatedness coefficient (r). Alleles are IIS if they are the
 #'   same. Similarly, IBD describes a matching allele between two individuals 
@@ -109,7 +111,8 @@ gl.run.EMIBD9 <- function(x,
                           outfile = "EMIBD9_Res.ibd9",
                           outpath = tempdir(),
                           emibd9.path = getwd(),
-                          Inbreed = TRUE,
+                          Inbreed = FALSE,
+                          palette_convergent = NULL,
                           parallel = FALSE,
                           ncores = 1,
                           ISeed = 42,
@@ -342,7 +345,12 @@ gl.run.EMIBD9 <- function(x,
   }
   
   # PRINTING OUTPUTS
+  if (is.null(palette_convergent)) {
+    palette_convergent <- gl.colors("div")
+  } 
+  
   p1 <- gl.plot.heatmap(res,
+                          palette.divergent = palette_convergent,
                         verbose = 0)
   if (plot.out) {
     invisible(p1)

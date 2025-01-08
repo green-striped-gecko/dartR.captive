@@ -9,7 +9,8 @@ gl.run.EMIBD9(
   outfile = "EMIBD9_Res.ibd9",
   outpath = tempdir(),
   emibd9.path = getwd(),
-  Inbreed = TRUE,
+  Inbreed = FALSE,
+  palette_convergent = NULL,
   parallel = FALSE,
   ncores = 1,
   ISeed = 42,
@@ -35,10 +36,13 @@ EM_IBD_P.exe (=Windows) EM_IBD_P (=Mac, Linux).
 You only need to point to the folder (the function will recognise which OS 
 you are running) [default getwd()].}
 
-\item{Inbreed}{A Boolean, taking values 0 or 1 to indicate inbreeding is not
-and is allowed in estimating IBD coefficients [default 1].}
+\item{Inbreed}{A Boolean, taking values TRUE or FALSE to indicate inbreeding 
+is not and is allowed in estimating IBD coefficients [default FALSE].}
 
-\item{parallel}{description  [default FALSE].}
+\item{palette_convergent}{A continuous palette function for the relatedness 
+values [default NULL].}
+
+\item{parallel}{Use parallelisation[default FALSE].}
 
 \item{ncores}{How many cores should be used [default 1].}
 
@@ -65,7 +69,7 @@ A matrix with pairwise relatedness
 Run program EMIBD9
 }
 \details{
-'The results of EMIBD9 include the identical in state (IIS) values for each
+The results of EMIBD9 include the identical in state (IIS) values for each
  mode (S1 - 9) and nine condensed identical by descent (IBD) modes (∆1 - ∆9) 
  as well as the relatedness coefficient (r). Alleles are IIS if they are the
   same. Similarly, IBD describes a matching allele between two individuals 
