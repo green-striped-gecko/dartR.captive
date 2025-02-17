@@ -41,14 +41,14 @@
 #' filtered on read depth.
 
 #' Typically minimum read depth is set to 5x, but you can examine the
-#' distribution of read depths with the function \code{\link{gl.report.rdepth}}
+#' distribution of read depths with the function \code{\link[dartR.base]{gl.report.rdepth}}
 #' and push this up with an acceptable loss of loci. 12x might be a good minimum
 #' for this particular analysis. It is sensible also to push the minimum
 #' reproducibility up to 1, if that does not result in an unacceptable loss of
 #' loci. Reproducibility is stored in the slot \code{@other$loc.metrics$RepAvg}
 #' and is defined as the proportion of technical replicate assay pairs for which
 #' the marker score is consistent. You can examine the distribution of
-#'  reproducibility with the function \code{\link{gl.report.reproducibility}}.
+#'  reproducibility with the function \code{\link[dartR.base]{gl.report.reproducibility}}.
 
 #' Note that the null expectation is not well defined, and the power reduced, if
 #' the population from which the putative parent-offspring pairs are drawn
@@ -71,7 +71,7 @@
 #' \url{https://groups.google.com/d/forum/dartr})
 #' @examples
 #' out <- gl.report.parent.offspring(testset.gl[1:10, 1:100])
-#' @seealso \code{\link{gl.report.rdepth}} ,\code{\link{gl.report.reproducibility}},
+#' @seealso \code{\link[dartR.base]{gl.report.rdepth}} ,\code{\link[dartR.base]{gl.report.reproducibility}},
 #'  \code{\link{gl.filter.parent.offspring}}
 #' @family report functions
 #' @importFrom stats median IQR

@@ -70,17 +70,17 @@ Run program EMIBD9
 }
 \details{
 The results of EMIBD9 include the identical in state (IIS) values for each
- mode (S1 - 9) and nine condensed identical by descent (IBD) modes (∆1 - ∆9) 
+ mode (S1 - 9) and nine condensed identical by descent (IBD) modes (\eqn{\delta}1 - \eqn{\delta}9) 
  as well as the relatedness coefficient (r). Alleles are IIS if they are the
   same. Similarly, IBD describes a matching allele between two individuals 
   that has been inherited from a common ancestor or common gene. In a 
-  pairwise comparison, ∆1 to ∆9 are the probabilities associated with each 
-  IBD mode. In inbreeding populations, only  ∆1 to  ∆6 can can occur. In
-   contrast, ∆7 to ∆9 can only occur in large, panmictic outbred populations.
+  pairwise comparison, \eqn{\delta} 1 to \eqn{\delta} 9 are the probabilities associated with each 
+  IBD mode. In inbreeding populations, only  \eqn{\delta} 1 to  \eqn{\delta} 6 can can occur. In
+   contrast, \eqn{\delta} 7 to \eqn{\delta} 9 can only occur in large, panmictic outbred populations.
 
 EMIBD9 uses an expectation maximization (EM) algorithm based on the maximum
-likelihood expectations (MLE) of ∆ to estimate both allele frequencies (p) 
-and ∆ jointly from genotype data. By iteratively calculating p and ∆, 
+likelihood expectations (MLE) of \eqn{\delta} to estimate both allele frequencies (p) 
+and \eqn{\delta} jointly from genotype data. By iteratively calculating p and \eqn{\delta}, 
 relatedness can be modified to reduce biases due to small sample sizes. 
 Wang J. (2022) suggest the resulting r coefficient is therefore more robust 
 compared to previous methods.

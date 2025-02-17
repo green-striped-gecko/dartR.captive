@@ -1,7 +1,7 @@
 Package: dartR.captive
 Type: Package
 Title: Analysing 'SNP' Data to Support Captive Breeding
-Version: 1.0.0
+Version: 1.0.2
 Date: 2025-02-17
 Authors@R: c(
             person("Bernd", "Gruber", email="bernd.gruber@canberra.edu.au", role=c("aut","cre")), 
@@ -45,7 +45,8 @@ Author: Bernd Gruber [aut, cre],
   Oliver Berry [ctb],
   Lindsay V. Clark [ctb],
   Floriaan Devloo-Delva [ctb],
-  Eric Archer [ctb]
+  Eric Archer [ctb],
+  Sam Amini [ctb]
 URL: https://green-striped-gecko.github.io/dartR/
 BugReports: https://groups.google.com/g/dartr?pli=1
 Language: en-US
