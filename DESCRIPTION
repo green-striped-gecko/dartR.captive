@@ -1,8 +1,8 @@
 Package: dartR.captive
 Type: Package
 Title: Analysing 'SNP' Data to Support Captive Breeding
-Version: 0.95
-Date: 2024-11-18
+Version: 1.0.0
+Date: 2025-02-17
 Authors@R: c(
             person("Bernd", "Gruber", email="bernd.gruber@canberra.edu.au", role=c("aut","cre")), 
             person("Arthur", "Georges", email="georges@aerg.edu.au", role="aut"),
