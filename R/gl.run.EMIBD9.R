@@ -289,7 +289,7 @@ gl.run.EMIBD9 <- function(x,
     Ind2 = rep(indNames(x), nInd(x)),
     table_output
   )
-  
+  J <- NA
   unq_pairs <- t(combn(nInd(x), 2))
   setkeyv(table_output, c("Indiv1", "Indiv2"))
   table_output <-

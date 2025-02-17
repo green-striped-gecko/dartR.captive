@@ -90,7 +90,8 @@
 
 #' @family filter functions
 
-#' @importFrom stats median IQR
+#' @importFrom stats median IQR setNames
+#' @importFrom utils combn
 
 #' @import patchwork
 
