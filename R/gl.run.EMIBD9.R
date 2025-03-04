@@ -15,14 +15,13 @@
 #'  you are running) [default getwd()].
 #' @param Inbreed A Boolean, taking values TRUE or FALSE to indicate inbreeding 
 #' is not and is allowed in estimating IBD coefficients [default FALSE].
+#' @param OutAlleleFre Whether to write , 1, or not, 0, the allele frequency file [default 0].
 #' @param palette_convergent A continuous palette function for the relatedness 
 #' values [default NULL].
 #' @param parallel Use parallelisation[default FALSE].
 #' @param ncores How many cores should be used [default 1].
-#' @param ISeed An integer used to seed the random number generator 
-#' [default 42].
-#' @param plot.out A boolean that indicates whether to plot the results 
-#' [default TRUE].
+#' @param ISeed An integer used to seed the random number generator [default 42].
+#' @param plot.out A boolean that indicates whether to plot the results [default TRUE].
 #' @param plot.dir Directory to save the plot RDS files [default as specified
 #' by the global working directory or tempdir()]
 #' @param plot.file Name for the RDS binary file to save (base name only, 
@@ -31,15 +30,14 @@
 #' progress log; 3, progress and results summary; 5, full report
 #'  [default NULL, unless specified using gl.set.verbosity]
 #' @details
-#' The results of EMIBD9 include the identical in state (IIS) values for each
-#'  mode (S1 - 9) and nine condensed identical by descent (IBD) modes (\eqn{\delta}1 - \eqn{\delta}9) 
-#'  as well as the relatedness coefficient (r). Alleles are IIS if they are the
-#'   same. Similarly, IBD describes a matching allele between two individuals 
-#'   that has been inherited from a common ancestor or common gene. In a 
-#'   pairwise comparison, \eqn{\delta} 1 to \eqn{\delta} 9 are the probabilities associated with each 
-#'   IBD mode. In inbreeding populations, only  \eqn{\delta} 1 to  \eqn{\delta} 6 can can occur. In
-#'    contrast, \eqn{\delta} 7 to \eqn{\delta} 9 can only occur in large, panmictic outbred populations.
-#'
+#' 'The results of EMIBD9 include the identical in state (IIS) values for each mode 
+#'(S1 - 9) and nine condensed identical by descent (IBD) modes (∆1 - ∆9) as well as 
+#'#'the relatedness coefficient (r). Alleles are IIS if they are the same. Similarly,
+#' IBD describes a matching allele between two individuals that has been inherited 
+#' from a common ancestor or common gene. In a pairwise comparison, ∆1 to ∆9 are the
+#'  probabilities associated with each IBD mode. ∆1 to ∆6 take vakue > 0 in presence
+#'  of inbreeding and hence are only computed when this option is selected. 
+#'  
 #'EMIBD9 uses an expectation maximization (EM) algorithm based on the maximum
 #' likelihood expectations (MLE) of \eqn{\delta} to estimate both allele frequencies (p) 
 #' and \eqn{\delta} jointly from genotype data. By iteratively calculating p and \eqn{\delta}, 
@@ -87,7 +85,14 @@
 #'  and then run in parallel using the documentation provided by the authors
 #'   [you need to have mpiexec installed].
 #'
-#' @return A matrix with pairwise relatedness
+#' @return A list with three or four elements depending on whether inbreeding was
+#' selected. The first element (rel) is a matrix with pairwise relatedness. 
+#' The second (raw) is the raw output table from the program. The third (processed) 
+#' is the 'processed' output from the table (self-comparisons - an individuals with 
+#' itself - and redundant pairs - e.g. the second individuals with the first, when the first 
+#' vs the second is already present in the results - are removed). The last (inbreeding)
+#'  is a table of indiviudal inbreeding values (if requested). 
+# 
 #' @author Custodian: Luis Mijangos -- Post to
 #' \url{https://groups.google.com/d/forum/dartr}
 #' @examples
@@ -103,6 +108,8 @@
 #'  frequencies from a small sample of individuals. Methods in Ecology and
 #'  Evolution, 13(11), 2443-2462.
 #' }
+#' 
+#' @importFrom utils combn
 #' @importFrom stringr str_split
 #' @rawNamespace import(data.table)
 #' @export
@@ -111,6 +118,7 @@ gl.run.EMIBD9 <- function(x,
                           outfile = "EMIBD9_Res.ibd9",
                           outpath = tempdir(),
                           emibd9.path = getwd(),
+                          OutAlleleFre=0,
                           Inbreed = FALSE,
                           palette_convergent = NULL,
                           parallel = FALSE,
@@ -187,6 +195,9 @@ gl.run.EMIBD9 <- function(x,
     stop()
   }
   
+  # Resolve no visible global function definition 
+  J <- NULL
+
   rundir <- tempdir()
   
   # individual IDs must have a maximal length of 20 characters. The IDs must NOT
@@ -194,7 +205,6 @@ gl.run.EMIBD9 <- function(x,
   # unique among all sampled individuals (i.e. NO duplications). Any string longer
   # than 20 characters for individual ID will be truncated to have 20 characters.
 
-  
   x2 <- x  #copy to work only on the copied data set
   hold_names <- indNames(x)
   indNames(x2) <- 1:nInd(x2)
@@ -214,10 +224,9 @@ gl.run.EMIBD9 <- function(x,
   # ISeed <- ISeed
   RndDelta0 <- 1
   EM_Method <- 1
-  OutAlleleFre <- 0
-  
-  param <- paste(
-    NumIndiv,
+  #OutAlleleFre <- 0
+
+  param <- paste(NumIndiv,
     NumLoci,
     DataForm,
     Inbreed,
@@ -256,17 +265,15 @@ gl.run.EMIBD9 <- function(x,
               col.names = FALSE
   )
   
-  
-  
-  
   # run EMIBD9
   # change into tempdir (run it there)
   old.path <- getwd()
   on.exit(setwd(old.path))
   setwd(rundir)
   system(cmd)
+  
+  ### get output  
 
-    # get output
   x_lines <- readLines(outfile)
   strt <- which(grepl("^IBD", x_lines)) + 2
   stp <- which(grepl("Indiv genotypes", x_lines)) - 4
@@ -283,35 +290,40 @@ gl.run.EMIBD9 <- function(x,
   colnames(tmp_data_raw_3) <- tmp_headings[2:22]
   
   # Kick out self & redundant comparisons
-  table_output <- data.table(apply(tmp_data_raw_3, 2, as.numeric))
-  table_output <- cbind(
-    Ind1 = rep(indNames(x), each = nInd(x)),
-    Ind2 = rep(indNames(x), nInd(x)),
-    table_output
-  )
-  J <- NA
-  unq_pairs <- t(combn(nInd(x), 2))
-  setkeyv(table_output, c("Indiv1", "Indiv2"))
-  table_output <-
-    table_output[J(unq_pairs), c(1, 2, 14:23), with = FALSE]
+  unq_pairs <- data.table(t(combn(nInd(x), 2)))
+  setnames(unq_pairs, new = c("Indiv1", "Indiv2"))
   
-  df <-
-    data.frame(
-      ind1 = tmp_data_raw_3$Indiv1,
-      ind2 = tmp_data_raw_3$Indiv2,
-      rel = tmp_data_raw_3$`r(1,2)`
-    )
-  df <- apply(df, 2, as.numeric)
+  table_output <- data.table(apply(tmp_data_raw_3, 2, as.numeric))
+  table_output <- cbind(Ind1=rep(indNames(x), each=nInd(x)), 
+                        Ind2=rep(indNames(x), nInd(x)),
+                        table_output)
+  setkeyv(table_output, c("Indiv1", "Indiv2"))
+  table_output <- table_output[J(unq_pairs), c(1, 2, 14:23), with=FALSE]
   
   #Relatedness
+  df <- data.frame(ind1=tmp_data_raw_3$Indiv1, ind2=tmp_data_raw_3$Indiv2,rel= tmp_data_raw_3$`r(1,2)`)
+  df<- apply(df, 2, as.numeric)
+
   res <- matrix(NA, nrow = nInd(x), ncol = nInd(x))
   
   for (i in 1:nrow(df)) {
     res[df[i, 1], df[i, 2]] <- df[i, 3]
   }
-  
+
   colnames(res) <- indNames(x)
   rownames(res) <- indNames(x)
+
+# Inbreeding 
+ inbreedStart <- which(grepl("^Indiv genotypes at polymorphic loci", x_lines)) + 1
+ if(length(inbreedStart)>0) {
+   if (verbose>0)
+   {
+     cat(
+       report("Exporting individual diversity and inbreeding values"))
+   }
+   
+   inbTable <- fread(file = outfile, nrows = nInd(x), skip = inbreedStart)
+ }
   
   # Inbreeding
   inbreedStart <-
@@ -370,17 +382,16 @@ gl.run.EMIBD9 <- function(x,
     cat(report("Completed:", funname, "\n"))
   }
   
-  # RETURN
-  
   # Make a list
   results <-
-    list(rel = res,
-         raw = tmp_data_raw_3,
-         if (inbreedStart > 0) {
-           inbreeding = inbTable
-         } else{
-           inbreeding = NULL
-         })
+    list(
+      rel = res,
+      raw = tmp_data_raw_3,
+      processed = table_output)
+  
+      if(inbreedStart>0) {
+        results[["inbreeding"]] <- inbTable
+      }
   
   return(results)
 }
