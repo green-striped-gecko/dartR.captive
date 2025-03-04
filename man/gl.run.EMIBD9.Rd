@@ -37,10 +37,10 @@ EM_IBD_P.exe (=Windows) EM_IBD_P (=Mac, Linux).
 You only need to point to the folder (the function will recognise which OS 
 you are running) [default getwd()].}
 
+\item{OutAlleleFre}{Whether to write , 1, or not, 0, the allele frequency file [default 0].}
+
 \item{Inbreed}{A Boolean, taking values TRUE or FALSE to indicate inbreeding 
 is not and is allowed in estimating IBD coefficients [default FALSE].}
-
-\item{OutAlleleFre}{Whether to write , 1, or not, 0, the allele frequency file [default 0].}
 
 \item{palette_convergent}{A continuous palette function for the relatedness 
 values [default NULL].}
@@ -49,11 +49,9 @@ values [default NULL].}
 
 \item{ncores}{How many cores should be used [default 1].}
 
-\item{ISeed}{An integer used to seed the random number generator 
-[default 42].}
+\item{ISeed}{An integer used to seed the random number generator [default 42].}
 
-\item{plot.out}{A boolean that indicates whether to plot the results 
-[default TRUE].}
+\item{plot.out}{A boolean that indicates whether to plot the results [default TRUE].}
 
 \item{plot.dir}{Directory to save the plot RDS files [default as specified
 by the global working directory or tempdir()]}
@@ -85,7 +83,7 @@ IBD describes a matching allele between two individuals that has been inherited
 from a common ancestor or common gene. In a pairwise comparison, ∆1 to ∆9 are the
  probabilities associated with each IBD mode. ∆1 to ∆6 take vakue > 0 in presence
  of inbreeding and hence are only computed when this option is selected. 
-
+ 
 EMIBD9 uses an expectation maximization (EM) algorithm based on the maximum
 likelihood expectations (MLE) of \eqn{\delta} to estimate both allele frequencies (p) 
 and \eqn{\delta} jointly from genotype data. By iteratively calculating p and \eqn{\delta}, 
