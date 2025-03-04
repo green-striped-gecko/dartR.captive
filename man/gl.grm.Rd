@@ -11,6 +11,8 @@ gl.grm(
   palette_convergent = NULL,
   legendx = 0,
   legendy = 0.5,
+  label.size = 0.75,
+  legend.title = "Populations",
   plot.file = NULL,
   plot.dir = NULL,
   verbose = NULL,
@@ -30,6 +32,10 @@ gl.grm(
 \item{legendx}{x coordinates for the legend[default 0].}
 
 \item{legendy}{y coordinates for the legend[default 1].}
+
+\item{label.size}{Specify the size of the population labels [default 0.75].}
+
+\item{legend.title}{Legend title [default "Populations"].}
 
 \item{plot.file}{Name for the RDS binary file to save (base name only, exclude extension) [default NULL]}
 

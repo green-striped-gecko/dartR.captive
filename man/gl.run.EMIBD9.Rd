@@ -9,8 +9,11 @@ gl.run.EMIBD9(
   outfile = "EMIBD9_Res.ibd9",
   outpath = tempdir(),
   emibd9.path = getwd(),
-  Inbreed = TRUE,
   OutAlleleFre = 0,
+  Inbreed = FALSE,
+  palette_convergent = NULL,
+  parallel = FALSE,
+  ncores = 1,
   ISeed = 42,
   plot.out = TRUE,
   plot.dir = NULL,
@@ -25,28 +28,38 @@ gl.run.EMIBD9(
 [default "EMIBD9_Res.ibd9"].}
 
 \item{outpath}{Path where to save the output file. Use outpath=getwd() or
-outpath='.' when calling this function to direct output files to your working 
+outpath='.' when calling this function to direct output files to your working
 or current directory [default tempdir(), mandated by CRAN].}
 
 \item{emibd9.path}{Path to the folder emidb files.
 Please note there are 2 different executables depending on your OS:
-EM_IBD_P.exe (=Windows) EM_IBD_P (=Mac, Linux). 
-You only need to point to the folder (the function will recognise which OS you
-are running) [default getwd()].}
+EM_IBD_P.exe (=Windows) EM_IBD_P (=Mac, Linux).
+You only need to point to the folder (the function will recognise which OS 
+you are running) [default getwd()].}
 
-\item{Inbreed}{A Boolean, taking values 0 or 1 to indicate inbreeding is not
-and is allowed in estimating IBD coefficients [default 1].}
+\item{Inbreed}{A Boolean, taking values TRUE or FALSE to indicate inbreeding 
+is not and is allowed in estimating IBD coefficients [default FALSE].}
 
 \item{OutAlleleFre}{Whether to write , 1, or not, 0, the allele frequency file [default 0].}
 
-\item{ISeed}{An integer used to seed the random number generator [default 42].}
+\item{palette_convergent}{A continuous palette function for the relatedness 
+values [default NULL].}
 
-\item{plot.out}{A boolean that indicates whether to plot the results [default TRUE].}
+\item{parallel}{Use parallelisation[default FALSE].}
 
-\item{plot.dir}{Directory to save the plot RDS files [default as specified 
+\item{ncores}{How many cores should be used [default 1].}
+
+\item{ISeed}{An integer used to seed the random number generator 
+[default 42].}
+
+\item{plot.out}{A boolean that indicates whether to plot the results 
+[default TRUE].}
+
+\item{plot.dir}{Directory to save the plot RDS files [default as specified
 by the global working directory or tempdir()]}
 
-\item{plot.file}{Name for the RDS binary file to save (base name only, exclude extension) [default NULL]}
+\item{plot.file}{Name for the RDS binary file to save (base name only, 
+exclude extension) [default NULL]}
 
 \item{verbose}{Verbosity: 0, silent or fatal errors; 1, begin and end; 2,
 progress log; 3, progress and results summary; 5, full report
@@ -72,20 +85,19 @@ IBD describes a matching allele between two individuals that has been inherited
 from a common ancestor or common gene. In a pairwise comparison, ∆1 to ∆9 are the
  probabilities associated with each IBD mode. ∆1 to ∆6 take vakue > 0 in presence
  of inbreeding and hence are only computed when this option is selected. 
- 
 
 EMIBD9 uses an expectation maximization (EM) algorithm based on the maximum
-likelihood expectations (MLE) of ∆ to estimate both allele frequencies (p) and ∆
- jointly from genotype data. By iteratively calculating p and ∆, relatedness 
- can be modified to reduce biases due to small sample sizes. Wang J. (2022) 
- suggest the resulting r coefficient is therefore more robust compared to 
- previous methods.
+likelihood expectations (MLE) of \eqn{\delta} to estimate both allele frequencies (p) 
+and \eqn{\delta} jointly from genotype data. By iteratively calculating p and \eqn{\delta}, 
+relatedness can be modified to reduce biases due to small sample sizes. 
+Wang J. (2022) suggest the resulting r coefficient is therefore more robust 
+compared to previous methods.
 
 The kinship coefficient is the probability that two alleles at a random locus
  drawn from two individuals are IBD.
 
 Below is a table modified from Speed & Balding (2015) showing kinship values,
-and their confidence intervals (CI), for different relationships that could 
+and their confidence intervals (CI), for different relationships that could
 be used to guide the choosing of the relatedness threshold in the function.
 
 |Relationship                               |Kinship  |     95% CI       |
@@ -106,18 +118,20 @@ be used to guide the choosing of the relatedness threshold in the function.
 
 |Third cousin                               | 0.004   |    (0.000, 0.012)|
 
-|Unrelated                                  | 0       |        -         | 
+|Unrelated                                  | 0       |        -         |
 
-For greater detail on the methods employed by EMIBD9, we encourage you to read Wang, J. (2022). 
+For greater detail on the methods employed by EMIBD9, we encourage you to 
+read Wang, J. (2022).
 
 Download the program from here:
 
 https://www.zsl.org/about-zsl/resources/software/emibd9
 
-For Windows, Mac and Linux install the program then point to the folder where you find:
-EM_IBD_P.exe (=Windows) and EM_IBD_P (=Mac, Linux). If running really slow you may 
-want to create the files using the function and then run in parallel using the
-documentation provided by the authors [you need to have mpiexec installed].
+For Windows, Mac and Linux install the program then point to the folder
+ where you find: EM_IBD_P.exe (=Windows) and EM_IBD_P (=Mac, Linux). If 
+ running really slow you may want to create the files using the function 
+ and then run in parallel using the documentation provided by the authors
+  [you need to have mpiexec installed].
 }
 \examples{
 \dontrun{

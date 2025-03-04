@@ -9,6 +9,7 @@ gl.report.parent.offspring(
   min.rdepth = 12,
   min.reproducibility = 1,
   range = 1.5,
+  plot.filters = FALSE,
   plot_theme = theme_dartR(),
   plot_colors = gl.colors(2),
   plot.dir = NULL,
@@ -26,6 +27,9 @@ gl.report.parent.offspring(
 
 \item{range}{Specifies the range to extend beyond the interquartile range for
 delimiting outliers [default 1.5 interquartile ranges].}
+
+\item{plot.filters}{Whether to show the plots of filters within the function 
+[default FALSE].}
 
 \item{plot_theme}{Theme for the plot. See Details for options
 [default theme_dartR()].}
@@ -68,14 +72,14 @@ To reduce the frequency of miss-calls, and so emphasize the difference
 between true parent-offspring pairs and unrelated pairs, the data can be
 filtered on read depth.
 Typically minimum read depth is set to 5x, but you can examine the
-distribution of read depths with the function \code{\link{gl.report.rdepth}}
+distribution of read depths with the function \code{\link[dartR.base]{gl.report.rdepth}}
 and push this up with an acceptable loss of loci. 12x might be a good minimum
 for this particular analysis. It is sensible also to push the minimum
 reproducibility up to 1, if that does not result in an unacceptable loss of
 loci. Reproducibility is stored in the slot \code{@other$loc.metrics$RepAvg}
 and is defined as the proportion of technical replicate assay pairs for which
 the marker score is consistent. You can examine the distribution of
- reproducibility with the function \code{\link{gl.report.reproducibility}}.
+ reproducibility with the function \code{\link[dartR.base]{gl.report.reproducibility}}.
 Note that the null expectation is not well defined, and the power reduced, if
 the population from which the putative parent-offspring pairs are drawn
 contains many sibs. Note also that if an individual has been genotyped twice
@@ -94,7 +98,7 @@ metrics, the filters for reproducibility and read depth are no used.
 out <- gl.report.parent.offspring(testset.gl[1:10, 1:100])
 }
 \seealso{
-\code{\link{gl.report.rdepth}} ,\code{\link{gl.report.reproducibility}},
+\code{\link[dartR.base]{gl.report.rdepth}} ,\code{\link[dartR.base]{gl.report.reproducibility}},
  \code{\link{gl.filter.parent.offspring}}
 }
 \author{
