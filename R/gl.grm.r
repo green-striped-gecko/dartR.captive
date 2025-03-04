@@ -14,6 +14,8 @@
 #'  [default convergent_palette].
 #' @param legendx x coordinates for the legend[default 0].
 #' @param legendy y coordinates for the legend[default 1].
+#' @param label.size Specify the size of the population labels [default 0.75].
+#' @param legend.title Legend title [default "Populations"].
 #' @param plot.file Name for the RDS binary file to save (base name only, exclude extension) [default NULL]
 #' @param plot.dir Directory in which to save files [default = working directory]
 #' @param verbose Verbosity: 0, silent or fatal errors; 1, begin and end; 2,
@@ -60,6 +62,8 @@ gl.grm <- function(x,
                    palette_convergent = NULL,
                    legendx = 0,
                    legendy = 0.5,
+                   label.size = 0.75,
+                   legend.title = "Populations",
                    plot.file = NULL,
                    plot.dir = NULL,
                    verbose = NULL,
@@ -118,8 +122,19 @@ gl.grm <- function(x,
   # DO THE JOB
 
   # assigning colors to populations
-
-  colors_pops <- gl.select.colors(x, verbose = 0)
+  if(!is.null(palette_discrete)){
+  # if pop colors is a palette
+  if (is(palette_discrete, "function")) {
+    colors_pops <- palette_discrete(length(levels(pop(x))))
+  }
+  # if pop colors is a vector
+  if (!is(palette_discrete, "function")) {
+    colors_pops <- palette_discrete
+  }
+  }else{
+    colors_pops <- gl.select.colors(x, verbose = 0)
+  }
+  
   names(colors_pops) <- as.character(levels(x$pop))
 
   # calculating the realized additive relationship matrix
@@ -139,7 +154,7 @@ gl.grm <- function(x,
   df_colors_2 <- df_colors[, c("pop", "color")]
   df_colors_2 <- unique(df_colors_2)
 
-  if (plotheatmap == T) {
+  if (plotheatmap == TRUE) {
     if (is.null(palette_convergent)) {
       cols <- gl.select.colors(library = "baseR", palette = "cm.colors", ncolors = 255, verbose = 0)
     } else {
@@ -166,8 +181,8 @@ gl.grm <- function(x,
       legendy,
       legend = df_colors_2$pop,
       fill = df_colors_2$color,
-      cex = 0.75,
-      title = "Populations"
+      cex = label.size,
+      title = legend.title
     )
   }
 

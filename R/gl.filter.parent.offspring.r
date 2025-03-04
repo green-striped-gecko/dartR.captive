@@ -47,14 +47,14 @@
 #' between true parent-offspring pairs and unrelated pairs, the data can be
 #' filtered on read depth. Typically minimum read depth is set to 5x, but you
 #' can examine the distribution of read depths with the function
-#' \code{\link{gl.report.rdepth}} and push this up with an acceptable loss of
+#' \code{\link[dartR.base]{gl.report.rdepth}} and push this up with an acceptable loss of
 #' loci. 12x might be a good minimum for this particular analysis. It is
 #' sensible also to push the minimum reproducibility up to 1, if that does not
 #' result in an unacceptable loss of loci. Reproducibility is stored in the slot
 #'  \code{@other$loc.metrics$RepAvg} and is defined as the proportion of
 #'  technical replicate assay pairs for which the marker score is consistent.
 #' You can examine the distribution of reproducibility with the function
-#' \code{\link{gl.report.reproducibility}}.
+#' \code{\link[dartR.base]{gl.report.reproducibility}}.
 
 #' Note that the null expectation is not well defined, and the power reduced, if
 #' the population from which the putative parent-offspring pairs are drawn
@@ -85,13 +85,13 @@
 #' @examples
 #' out <- gl.filter.parent.offspring(testset.gl[1:10, 1:50])
 
-#' @seealso  \code{\link{gl.report.rdepth}} , \code{\link{gl.report.reproducibility}},
+#' @seealso  \code{\link[dartR.base]{gl.report.rdepth}} , \code{\link[dartR.base]{gl.report.reproducibility}},
 #' \code{\link{gl.report.parent.offspring}}
 
 #' @family filter functions
 
-#' @importFrom stats median IQR
-
+#' @importFrom stats median IQR setNames
+#' @importFrom utils combn
 #' @import patchwork
 
 #' @export
@@ -151,6 +151,7 @@ gl.filter.parent.offspring <- function(x,
     x <-
       gl.filter.reproducibility(x,
         threshold = min.reproducibility,
+        plot.display = F,
         verbose = 0
       )
   }
@@ -163,32 +164,44 @@ gl.filter.parent.offspring <- function(x,
       )
     )
   } else {
-    x <- gl.filter.rdepth(x, lower = min.rdepth, verbose = 0)
+    x <- gl.filter.rdepth(x,
+                          lower = min.rdepth, 
+                          plot.display = FALSE,
+                          verbose = 0)
   }
-
-  # Preliminaries before for loops
-
-  x2 <- as.matrix(x)
-  split_vectors <- lapply(seq_len(nrow(x2)), function(i) {
-    x2[i, ]
-  })
-  names(split_vectors) <- popNames(x)
-
+  
+  pairwise_table <- function(x,
+                             pw_fun,
+                             dec = 4) {
+    ind_names <- indNames(x)
+    x <- as.matrix(x)
+    ix <- setNames(seq_along(ind_names), ind_names)
+    pp <- outer(ix[-1L], ix[-length(ix)],
+                function(ivec, jvec) {
+                  vapply(seq_along(ivec),
+                         function(k) {
+                           i <- ivec[k]
+                           j <- jvec[k]
+                           if (i > j) {
+                             pw_fun(x = x[i, ], y = x[j, ])
+                           } else{
+                             NA_real_
+                           }
+                         }, numeric(1))
+                })
+    return(pp)
+    
+  }
+  
   fun <- function(x, y) {
     vect <- (x * 10) + y
     homalts <- sum(vect == 2 | vect == 20, na.rm = T)
   }
-
-  count <- sapply(split_vectors, function(vect1) {
-    sapply(split_vectors, function(vect2) {
-      fun(vect1, vect2)
-    })
-  })
-
-  counts <- count[lower.tri(count, diag = FALSE)]
-
+  
+  count <- pairwise_table(x = x, pw_fun = fun)
+  
   # Prepare for plotting
-
+  
   if (verbose >= 2) {
     cat(
       report(
@@ -200,87 +213,93 @@ gl.filter.parent.offspring <- function(x,
   title <-
     paste0("SNP data (DArTSeq)\nCounts of pedigree incompatible loci per
                pair")
-
-  counts_plot <- as.data.frame(counts)
-
+  
+  counts_plot <- as.vector(unlist(unname(count)))
+  counts_plot <- counts_plot[!is.na(counts_plot)]
+  counts_plot <- data.frame(count = counts_plot)
+  
   # Boxplot
   p1 <-
-    ggplot(counts_plot, aes(y = counts)) +
+    ggplot(counts_plot, aes(y = count)) +
     geom_boxplot(color = plot_colors[1], fill = plot_colors[2]) +
     coord_flip() +
     plot_theme +
     xlim(range = c(-1, 1)) +
-    ylim(min(counts), max(counts)) +
+    ylim(min(count), max(count)) +
     ylab(" ") +
     theme(axis.text.y = element_blank(), axis.ticks.y = element_blank()) +
     ggtitle(title)
-
+  
   outliers_temp <- ggplot_build(p1)$data[[1]]$outliers[[1]]
-
+  
   lower.extremes <-
-    outliers_temp[outliers_temp < stats::median(counts)]
+    outliers_temp[outliers_temp < stats::median(count,
+                                                na.rm = T)]
   if (length(lower.extremes) == 0) {
     outliers <- NULL
   } else {
     outliers <- data.frame(Outlier = lower.extremes)
   }
-
+  
+  outliers <- unique(outliers)
+  
   # Ascertain the identity of the pairs
   if (verbose >= 2) {
     cat(report("  Identifying outlying pairs\n"))
   }
-  # if individuals in parent offspring relationship are found
   if (length(lower.extremes) > 0) {
     tmp <- count
-    tmp[lower.tri(tmp)] <- t(tmp)[lower.tri(tmp)]
+    # tmp[lower.tri(tmp)] <- t(tmp)[lower.tri(tmp)]
+    outliers_df <- NULL
     for (i in 1:length(outliers$Outlier)) {
       # Identify
-      tmp2 <- tmp[tmp == outliers$Outlier[i]]
-      outliers$ind1[i] <- popNames(x)[!is.na(tmp2)][1]
-      outliers$ind2[i] <- popNames(x)[!is.na(tmp2)][2]
+      tmp2 <- which(tmp == outliers$Outlier[i],
+                    arr.ind = T)
+      ind1 <- rownames(count)[tmp2[, "row"]]
+      ind2 <- colnames(count)[tmp2[, "col"]]
       # Z-scores
       zscore <-
         (mean(count, na.rm = TRUE) - outliers$Outlier[i]) /
-          sd(count, na.rm = TRUE)
-      outliers$zscore[i] <- round(zscore, 2)
-      outliers$p[i] <-
+        sd(count, na.rm = TRUE)
+      zscore <- zscore * -1
+      outliers_p <-
         round(pnorm(
           mean = mean(count, na.rm = TRUE),
           sd = sd(count, na.rm = TRUE),
-          q = outliers$zscore[i]
-        ), 4)
+          q = zscore
+        ), 8)
+      outliers_df_tmp <- data.frame(
+        Outlier = rep(outliers$Outlier[i], length(ind1)),
+        ind1 = ind1,
+        ind2 = ind2,
+        zscore = zscore,
+        p = outliers_p
+      )
+      outliers_df <- rbind(outliers_df, outliers_df_tmp)
     }
     # ordering by number of outliers
-    outliers <- outliers[order(outliers$Outlier, decreasing = T), ]
-    # removing duplicated values
-    outliers <- outliers[!duplicated(outliers), ]
-    # removing NAs
-    outliers <- outliers[complete.cases(outliers), ]
+    outliers_df <- outliers_df[order(outliers_df$Outlier,
+                                     decreasing = T),]
   }
-
+  
   # Extract the quantile threshold
-  iqr <- stats::IQR(counts, na.rm = TRUE)
-  qth <- quantile(counts, 0.25, na.rm = TRUE)
+  iqr <- stats::IQR(count, na.rm = TRUE)
+  qth <- quantile(count, 0.25, na.rm = TRUE)
   cutoff <- qth - iqr * range
-
+  
   # Histogram
   p2 <-
-    ggplot(counts_plot, aes(x = counts)) +
-    geom_histogram(
-      bins = 50,
-      color = plot_colors[1],
-      fill = plot_colors[2]
-    ) +
-    geom_vline(
-      xintercept = cutoff,
-      color = "red",
-      size = 1
-    ) +
-    coord_cartesian(xlim = c(min(counts), max(counts))) +
+    ggplot(counts_plot, aes(x = count)) +
+    geom_histogram(bins = 50,
+                   color = plot_colors[1],
+                   fill = plot_colors[2]) +
+    geom_vline(xintercept = cutoff,
+               color = "red",
+               size = 1) +
+    coord_cartesian(xlim = c(min(count), max(count))) +
     xlab("No. Pedigree incompatible") +
     ylab("Count") +
     plot_theme
-
 
   # if individuals in parent offspring relationship are found remove
   if (length(lower.extremes) > 0) {
@@ -288,10 +307,11 @@ gl.filter.parent.offspring <- function(x,
       if (verbose > 1) {
         cat(report("  Selecting one individual based on Call rate\n"))
       }
+      outliers_df <- outliers_df[which(outliers_df$Outlier<=cutoff),]
 
-      ind_to_remove_temp <-
-        outliers[
-          !duplicated(outliers[, c("ind1", "ind2")]),
+      ind_to_remove_temp <- 
+      outliers_df[
+          !duplicated(outliers_df[, c("ind1", "ind2")]),
           c("ind1", "ind2")
         ]
       ind_to_remove <- vector()
@@ -327,8 +347,8 @@ gl.filter.parent.offspring <- function(x,
       }
 
       ind_to_remove_temp <-
-        outliers[
-          !duplicated(outliers[, c("ind1", "ind2")]),
+        outliers_df[
+          !duplicated(outliers_df[, c("ind1", "ind2")]),
           c("ind1", "ind2")
         ]
       ind_to_remove <-
@@ -348,7 +368,7 @@ gl.filter.parent.offspring <- function(x,
     if (verbose >= 2) {
       cat("  \nInitial number of individuals:", nInd(x), "\n")
       cat("  Pairs of individuals in a parent offspring relationship:\n\n")
-      print(outliers)
+      print(outliers_df)
       cat("    \nIndividuals removed: ")
       cat(ind_to_remove, sep = "\n")
       cat("\n")
@@ -370,12 +390,10 @@ gl.filter.parent.offspring <- function(x,
 
   df <- outliers
   # PRINTING OUTPUTS
+  # using package patchwork
+  p3 <- (p1 / p2) + plot_layout(heights = c(1, 4))
+  print(p3)
   if (!is.null(plot.file)) {
-    # using package patchwork
-    p3 <- (p1 / p2) + plot_layout(heights = c(1, 4))
-    print(p3)
-
-
     # Optionally save the plot ---------------------
 
     tmp <- utils.plot.save(p3,
