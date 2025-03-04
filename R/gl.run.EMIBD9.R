@@ -316,28 +316,13 @@ gl.run.EMIBD9 <- function(x,
 # Inbreeding 
  inbreedStart <- which(grepl("^Indiv genotypes at polymorphic loci", x_lines)) + 1
  if(length(inbreedStart)>0) {
-   if (verbose>0)
-   {
+   if (verbose>0){
      cat(
-       report("Exporting individual diversity and inbreeding values"))
+       report("Exporting individual diversity and inbreeding values \n"))
    }
    
    inbTable <- fread(file = outfile, nrows = nInd(x), skip = inbreedStart)
  }
-  
-  # Inbreeding
-  inbreedStart <-
-    which(grepl("^Indiv genotypes at polymorphic loci", x_lines)) + 1
-  if (length(inbreedStart) > 0) {
-    if (verbose > 0){
-      cat(report("  Exporting individual diversity and inbreeding values \n"))
-    }
-    
-    inbTable <-
-      fread(file = outfile,
-            nrows = nInd(x) + 1,
-            skip = inbreedStart)
-  }
 
   #return to old path
   setwd(old.path)
