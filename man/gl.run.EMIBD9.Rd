@@ -9,6 +9,7 @@ gl.run.EMIBD9(
   outfile = "EMIBD9_Res.ibd9",
   outpath = tempdir(),
   emibd9.path = getwd(),
+  OutAlleleFre = 0,
   Inbreed = FALSE,
   palette_convergent = NULL,
   parallel = FALSE,
@@ -36,6 +37,8 @@ EM_IBD_P.exe (=Windows) EM_IBD_P (=Mac, Linux).
 You only need to point to the folder (the function will recognise which OS 
 you are running) [default getwd()].}
 
+\item{OutAlleleFre}{Whether to write , 1, or not, 0, the allele frequency file [default 0].}
+
 \item{Inbreed}{A Boolean, taking values TRUE or FALSE to indicate inbreeding 
 is not and is allowed in estimating IBD coefficients [default FALSE].}
 
@@ -46,11 +49,9 @@ values [default NULL].}
 
 \item{ncores}{How many cores should be used [default 1].}
 
-\item{ISeed}{An integer used to seed the random number generator 
-[default 42].}
+\item{ISeed}{An integer used to seed the random number generator [default 42].}
 
-\item{plot.out}{A boolean that indicates whether to plot the results 
-[default TRUE].}
+\item{plot.out}{A boolean that indicates whether to plot the results [default TRUE].}
 
 \item{plot.dir}{Directory to save the plot RDS files [default as specified
 by the global working directory or tempdir()]}
@@ -63,21 +64,26 @@ progress log; 3, progress and results summary; 5, full report
  [default NULL, unless specified using gl.set.verbosity]}
 }
 \value{
-A matrix with pairwise relatedness
+A list with three or four elements depending on whether inbreeding was
+selected. The first element (rel) is a matrix with pairwise relatedness. 
+The second (raw) is the raw output table from the program. The third (processed) 
+is the 'processed' output from the table (self-comparisons - an individuals with 
+itself - and redundant pairs - e.g. the second individuals with the first, when the first 
+vs the second is already present in the results - are removed). The last (inbreeding)
+ is a table of indiviudal inbreeding values (if requested).
 }
 \description{
 Run program EMIBD9
 }
 \details{
-The results of EMIBD9 include the identical in state (IIS) values for each
- mode (S1 - 9) and nine condensed identical by descent (IBD) modes (\eqn{\delta}1 - \eqn{\delta}9) 
- as well as the relatedness coefficient (r). Alleles are IIS if they are the
-  same. Similarly, IBD describes a matching allele between two individuals 
-  that has been inherited from a common ancestor or common gene. In a 
-  pairwise comparison, \eqn{\delta} 1 to \eqn{\delta} 9 are the probabilities associated with each 
-  IBD mode. In inbreeding populations, only  \eqn{\delta} 1 to  \eqn{\delta} 6 can can occur. In
-   contrast, \eqn{\delta} 7 to \eqn{\delta} 9 can only occur in large, panmictic outbred populations.
-
+'The results of EMIBD9 include the identical in state (IIS) values for each mode 
+(S1 - 9) and nine condensed identical by descent (IBD) modes (∆1 - ∆9) as well as 
+#'the relatedness coefficient (r). Alleles are IIS if they are the same. Similarly,
+IBD describes a matching allele between two individuals that has been inherited 
+from a common ancestor or common gene. In a pairwise comparison, ∆1 to ∆9 are the
+ probabilities associated with each IBD mode. ∆1 to ∆6 take vakue > 0 in presence
+ of inbreeding and hence are only computed when this option is selected. 
+ 
 EMIBD9 uses an expectation maximization (EM) algorithm based on the maximum
 likelihood expectations (MLE) of \eqn{\delta} to estimate both allele frequencies (p) 
 and \eqn{\delta} jointly from genotype data. By iteratively calculating p and \eqn{\delta}, 
