@@ -173,7 +173,7 @@ gl2colony <- function(x,
     ))
   }
   
-  x$other$ind.metrics$id <- indNames(t3)
+  x$other$ind.metrics$id <- indNames(x)
   
   # EXTRACT PARENTAL IDS
   ids <- parental.ids(x)
