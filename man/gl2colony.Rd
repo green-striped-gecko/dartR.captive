@@ -6,41 +6,42 @@
 \usage{
 gl2colony(
   x,
-  filename_out = "colony2.dat",
-  project_name = "my_project",
-  output_name = "my_project",
-  probability_father = 0.5,
-  probability_mother = 0.5,
+  outfile = "colony2.dat",
+  outpath = NULL,
+  project.name = "my_project",
+  output.name = "my_project",
+  probability.father = 0.5,
+  probability.mother = 0.5,
   seed = NULL,
-  update_allele_freq = 0,
-  di_mono_ecious = 2,
+  update.allele.freq = 0,
+  di.mono.ecious = 2,
   inbreed = 0,
   haplodiploid = 0,
-  polygamy_male = 0,
-  polygamy_female = 0,
-  clone_inference = 1,
-  scale_shibship = 1,
-  sibship_prior = 0,
-  known_allele_freq = 0,
-  num_runs = 1,
-  length_run = 2,
-  monitor_method = 0,
-  monitor_interval = 10000,
-  windows_gui = 0,
+  polygamy.male = 0,
+  polygamy.female = 0,
+  clone.inference = 1,
+  scale.shibship = 1,
+  sibship.prior = 0,
+  known.allele.freq = 0,
+  num.runs = 1,
+  length.run = 2,
+  monitor.method = 0,
+  monitor.interval = 10000,
+  windows.gui = 0,
   likelihood = 0,
-  precision_fl = 2,
-  marker_id = "mk@",
-  marker_type = "0@",
-  allelic_dropout = "0.000@",
-  other_typ_err = "0.05@",
-  paternity_exclusion_threshold = "0 0",
-  maternity_exclusion_threshold = "0 0",
-  paternal_sibship = 0,
-  maternal_sibship = 0,
-  excluded_paternity = 0,
-  excluded_maternity = 0,
-  excluded_paternal_sibships = 0,
-  excluded_maternity_sibships = 0,
+  precision.fl = 2,
+  marker.id = "mk@",
+  marker.type = "0@",
+  allelic.dropout = "0.000@",
+  other.typ.err = "0.05@",
+  paternity.exclusion.threshold = "0 0",
+  maternity.exclusion.threshold = "0 0",
+  paternal.sibship = 0,
+  maternal.sibship = 0,
+  excluded.paternity = 0,
+  excluded.maternity = 0,
+  excluded.paternal.sibships = 0,
+  excluded.maternity.sibships = 0,
   verbose = NULL
 )
 }
@@ -49,26 +50,30 @@ gl2colony(
 'offspring', 'mother', and 'father' indicating 'yes'/'no' for each sample
 [required].}
 
-\item{filename_out}{Path to the output COLONY2 file [default "colony2.dat"].}
+\item{outfile}{File name of the output file (including extension)
+[default "colony2.dat"].}
 
-\item{project_name}{Project name to include in the file header
+\item{outpath}{Path where to save the output file [default global working 
+directory or if not specified, tempdir()].}
+
+\item{project.name}{Project name to include in the file header
 [default 'my_project'].}
 
-\item{output_name}{Output name to include in the file header
+\item{output.name}{Output name to include in the file header
 [default 'my_project'].}
 
-\item{probability_father}{Probability that the father of an offspring is
+\item{probability.father}{Probability that the father of an offspring is
 included among candidates [default 0.5].}
 
-\item{probability_mother}{Probability that the mother of an offspring is
+\item{probability.mother}{Probability that the mother of an offspring is
 included among candidates [default 0.5].}
 
 \item{seed}{Seed for the random number generator [default NULL].}
 
-\item{update_allele_freq}{0 = do not update allele frequencies; 1 = update
+\item{update.allele.freq}{0 = do not update allele frequencies; 1 = update
 [default 0].}
 
-\item{di_mono_ecious}{2 = dioecious species; 1 = monoecious species
+\item{di.mono.ecious}{2 = dioecious species; 1 = monoecious species
 [default 2].}
 
 \item{inbreed}{0 = no inbreeding; 1 = inbreeding allowed [default 0].}
@@ -76,70 +81,70 @@ included among candidates [default 0.5].}
 \item{haplodiploid}{0 = diploid species; 1 = haplodiploid species
 [default 0].}
 
-\item{polygamy_male}{0 = polygamy; 1 = monogamy for males [default 0].}
+\item{polygamy.male}{0 = polygamy; 1 = monogamy for males [default 0].}
 
-\item{polygamy_female}{0 = polygamy; 1 = monogamy for females [default 0].}
+\item{polygamy.female}{0 = polygamy; 1 = monogamy for females [default 0].}
 
-\item{clone_inference}{0 = no clone inference; 1 = infer clones [default 1].}
+\item{clone.inference}{0 = no clone inference; 1 = infer clones [default 1].}
 
-\item{scale_shibship}{0 = do not scale full sibship; 1 = scale [default 1].}
+\item{scale.shibship}{0 = do not scale full sibship; 1 = scale [default 1].}
 
-\item{sibship_prior}{0–4 specifying sibship prior strength (No, Weak,
+\item{sibship.prior}{0–4 specifying sibship prior strength (No, Weak,
 Medium, Strong, Optimal) [default 0].}
 
-\item{known_allele_freq}{0 = unknown allele frequencies; 1 = known
+\item{known.allele.freq}{0 = unknown allele frequencies; 1 = known
 [default 0].}
 
-\item{num_runs}{Number of runs [default 1].}
+\item{num.runs}{Number of runs [default 1].}
 
-\item{length_run}{1–4 specifying run length (short, medium, long, very
+\item{length.run}{1–4 specifying run length (short, medium, long, very
 long) [default 2].}
 
-\item{monitor_method}{0 = monitor by iteration number; 1 = monitor by time
+\item{monitor.method}{0 = monitor by iteration number; 1 = monitor by time
 (seconds) [default 0].}
 
-\item{monitor_interval}{Interval for monitoring (either iteration count or
+\item{monitor.interval}{Interval for monitoring (either iteration count or
 seconds) [default 10000].}
 
-\item{windows_gui}{0 = no Windows GUI; 1 = use Windows GUI [default 0].}
+\item{windows.gui}{0 = no Windows GUI; 1 = use Windows GUI [default 0].}
 
 \item{likelihood}{0–2 specifying likelihood scoring (PairLikelihood,
 FullLikelihood, FPLS) [default 0].}
 
-\item{precision_fl}{0–3 specifying precision level for full-likelihood (Low,
+\item{precision.fl}{0–3 specifying precision level for full-likelihood (Low,
 Medium, High, VeryHigh) [default 2].}
 
-\item{marker_id}{Marker IDs string for all loci [default 'mk@'].}
+\item{marker.id}{Marker IDs string for all loci [default 'mk@'].}
 
-\item{marker_type}{Marker types string for all loci (0@ for codominant, 1@
+\item{marker.type}{Marker types string for all loci (0@ for codominant, 1@
 for dominant) [default '0@'].}
 
-\item{allelic_dropout}{Allelic dropout rate string per locus
+\item{allelic.dropout}{Allelic dropout rate string per locus
 [default '0.000@'].}
 
-\item{other_typ_err}{Other typing error rate string per locus
+\item{other.typ.err}{Other typing error rate string per locus
 [default '0.05@'].}
 
-\item{paternity_exclusion_threshold}{Threshold for paternity exclusion
+\item{paternity.exclusion.threshold}{Threshold for paternity exclusion
 ("0 0") [default '0 0'].}
 
-\item{maternity_exclusion_threshold}{Threshold for maternity exclusion
+\item{maternity.exclusion.threshold}{Threshold for maternity exclusion
 ("0 0") [default '0 0'].}
 
-\item{paternal_sibship}{Number of known paternal sibships [default 0].}
+\item{paternal.sibship}{Number of known paternal sibships [default 0].}
 
-\item{maternal_sibship}{Number of known maternal sibships [default 0].}
+\item{maternal.sibship}{Number of known maternal sibships [default 0].}
 
-\item{excluded_paternity}{Number of offspring with excluded paternity
+\item{excluded.paternity}{Number of offspring with excluded paternity
 [default 0].}
 
-\item{excluded_maternity}{Number of offspring with excluded maternity
+\item{excluded.maternity}{Number of offspring with excluded maternity
 [default 0].}
 
-\item{excluded_paternal_sibships}{Number of excluded paternal sibships
+\item{excluded.paternal.sibships}{Number of excluded paternal sibships
 [default 0].}
 
-\item{excluded_maternity_sibships}{Number of excluded maternal sibships
+\item{excluded.maternity.sibships}{Number of excluded maternal sibships
 [default 0].}
 
 \item{verbose}{Verbosity: 0, silent or fatal errors; 1, begin and end; 2,
@@ -162,15 +167,14 @@ metadata and genotype matrix.
 }
 \examples{
 # gl2colony(x = platypus.gl,
-#            filename_out = "colony2.dat",
-#            project_name = "parentage_fish_2022",
-#            output_name = "parentage_fish_jul_2022",
+#            project.name = "parentage_fish_2022",
+#            output.name = "parentage_fish_jul_2022",
 #            seed = 1234,
-#            probability_father = 0.6,
-#            probability_mother = 0.4,
-#            update_allele_freq = 1,
-#            allelic_dropout = '0.01',
-#            other_typ_err = '0.001')
+#            probability.father = 0.6,
+#            probability.mother = 0.4,
+#            update.allele.freq = 1,
+#            allelic.dropout = '0.01',
+#            other.typ.err = '0.001')
 
 }
 \references{
