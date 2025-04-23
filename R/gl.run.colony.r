@@ -196,15 +196,15 @@ gl.run.colony <- function(x,
   os <- Sys.info()["sysname"]
   
   if (Sys.info()["sysname"] == "Windows") {
-    system(paste0("./Colony2p.exe IFN:",outfilespec))
+    system(paste0(colony.path,"/Colony2p.exe IFN:",outfilespec))
   }
   
   if (Sys.info()["sysname"] == "Linux") {
-    system(paste0("./colony2s.ifort.out IFN:",outfilespec))
+    system(paste0(colony.path,"/colony2s.ifort.out IFN:",outfilespec))
   }
   
   if (Sys.info()["sysname"] == "Darwin") {
-    system(paste0("./colony2s.out IFN:",outfilespec))
+    system(paste0(colony.path,"/colony2s.out IFN:",outfilespec))
   }
   
   
