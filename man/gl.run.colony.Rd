@@ -51,6 +51,8 @@ gl.run.colony(
 'offspring', 'mother', and 'father' indicating 'yes'/'no' for each sample
 [required].}
 
+\item{colony.path}{Path to the colony executable [default getwd()].}
+
 \item{outfile}{File name of the output file (including extension)
 [default "colony2.dat"].}
 

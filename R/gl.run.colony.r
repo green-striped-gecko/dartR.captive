@@ -10,6 +10,7 @@
 #' @param x A \code{genlight} object with individual metadata columns
 #' 'offspring', 'mother', and 'father' indicating 'yes'/'no' for each sample
 #' [required].
+#' @param colony.path Path to the colony executable [default getwd()].
 #' @param outfile File name of the output file (including extension)
 #' [default "colony2.dat"].
 #' @param outpath Path where to save the output file [default global working
