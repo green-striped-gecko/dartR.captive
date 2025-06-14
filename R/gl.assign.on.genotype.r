@@ -55,259 +55,259 @@
 #' @seealso \code{\link{gl.assign.pca}}, \code{\link{gl.assign.pa}}, \code{\link{gl.assign.mahalanobis}}
 
 gl.assign.on.genotype <- function(x,
-                         unknown,
-                         nmin = 10,
-                         n.best = NULL,
-                         aic.threshold=0.05,
-                         verbose = NULL) {
-    
-# SET VERBOSITY
-    verbose <- gl.check.verbosity(verbose)
-    
-# FLAG SCRIPT START
-    funname <- match.call()[[1]]
-    utils.flag.start(func = funname,
-                     build = "v2025-05-29",
-                     verbose = verbose)
-    
-# CHECK DATATYPE
-    datatype <- utils.check.datatype(x, verbose = verbose)
-    
-    if (!is(x, "dartR")) {
-      class(x) <- "dartR"  
-      if (verbose>2) {
-        cat(warn("Warning: Standard adegenet genlight object encountered. Converted to compatible dartR genlight object\n"))
-        cat(warn("                    Should you wish to convert it back to an adegenet genlight object for later use outside dartR, 
+                                  unknown,
+                                  nmin = 10,
+                                  n.best = NULL,
+                                  aic.threshold=0.05,
+                                  verbose = NULL) {
+  
+  # SET VERBOSITY
+  verbose <- gl.check.verbosity(verbose)
+  
+  # FLAG SCRIPT START
+  funname <- match.call()[[1]]
+  utils.flag.start(func = funname,
+                   build = "v2025-05-29",
+                   verbose = verbose)
+  
+  # CHECK DATATYPE
+  datatype <- utils.check.datatype(x, verbose = verbose)
+  
+  if (!is(x, "dartR")) {
+    class(x) <- "dartR"  
+    if (verbose>2) {
+      cat(warn("Warning: Standard adegenet genlight object encountered. Converted to compatible dartR genlight object\n"))
+      cat(warn("                    Should you wish to convert it back to an adegenet genlight object for later use outside dartR, 
                  please use function dartR2gl\n"))
-      }
     }
-    
-# FUNCTION SPECIFIC ERROR CHECKING
-    
-    if (any(duplicated(indNames(x)))) {
-      stop(error("Fatal Error: Duplicate individual names in genlight object.\n"))
-    }
-    
-    if (any(is.na(indNames(x)))) {
-      stop(error("Fatal Error: NA found in individual names.\n"))
-    }
-    
-    test <- unknown %in% indNames(x)
-    if (!all(test, na.rm = FALSE)) {
-        stop(
-            error(
-                "Fatal Error: nominated focal individual (of unknown provenance) 
+  }
+  
+  # FUNCTION SPECIFIC ERROR CHECKING
+  
+  if (any(duplicated(indNames(x)))) {
+    stop(error("Fatal Error: Duplicate individual names in genlight object.\n"))
+  }
+  
+  if (any(is.na(indNames(x)))) {
+    stop(error("Fatal Error: NA found in individual names.\n"))
+  }
+  
+  test <- unknown %in% indNames(x)
+  if (!all(test, na.rm = FALSE)) {
+    stop(
+      error(
+        "Fatal Error: nominated focal individual (of unknown provenance) 
                 is not present in the dataset!\n"
-            )
-        )
-    }
-    
-    if (is.null(pop(x))) {
-      stop(error("Fatal Error: Population assignments (pop(x)) are NULL.\n"))
-    }
-    
-    if (any(is.na(pop(x)))) {
-      stop(error("Fatal Error: NA values found in population assignments.\n"))
-    }
-    
-    if (nmin <= 0) {
-      if(verbose >=1){cat(
-            warn(
-                "  Warning: the minimum size of the target population must be 
+      )
+    )
+  }
+  
+  if (is.null(pop(x))) {
+    stop(error("Fatal Error: Population assignments (pop(x)) are NULL.\n"))
+  }
+  
+  if (any(is.na(pop(x)))) {
+    stop(error("Fatal Error: NA values found in population assignments.\n"))
+  }
+  
+  if (nmin <= 0) {
+    if(verbose >=1){cat(
+      warn(
+        "  Warning: the minimum size of the target population must be 
                 greater than zero, set to 10\n"
-            )
-        )}
-        nmin <- 10
-    }
-
-    if (!is.null(n.best)) {
-        if (n.best < 1) {
-            if(verbose >=1){cat(
-                warn(
-                    "  Warning: the n.best parameter for retention of best 
-                    match populations must be a positive integer, set to NULL\n"
-                )
-            )}
-            n.best <- NULL
-        }
-    }
-    
-    if (aic.threshold < 0 || aic.threshold > 1) {
-      if(verbose >= 1){cat(
+      )
+    )}
+    nmin <- 10
+  }
+  
+  if (!is.null(n.best)) {
+    if (n.best < 1) {
+      if(verbose >=1){cat(
         warn(
-          "  Warning: the aic.threshold must be 
-                greater than zero and less than 1, set to default 0.05\n"
+          "  Warning: the n.best parameter for retention of best 
+                    match populations must be a positive integer, set to NULL\n"
         )
       )}
-      aic.threshold <- 0.05
+      n.best <- NULL
     }
-    
-# DO THE JOB
-    
+  }
+  
+  if (aic.threshold < 0 || aic.threshold > 1) {
+    if(verbose >= 1){cat(
+      warn(
+        "  Warning: the aic.threshold must be 
+                greater than zero and less than 1, set to default 0.05\n"
+      )
+    )}
+    aic.threshold <- 0.05
+  }
+  
+  # DO THE JOB
+  
   # Set a hard recommended minimum population size
-    hard.min <- 10
-    if (nmin < hard.min) {
-        if(verbose >= 1){cat(warn(
-            "  Warning: The specified minimum sample size is less than",hard.min, 
-            "individuals\n"
-        ))
-        cat(warn("    Risk of the allele profile of the putative source populations
+  hard.min <- 10
+  if (nmin < hard.min) {
+    if(verbose >= 1){cat(warn(
+      "  Warning: The specified minimum sample size is less than",hard.min, 
+      "individuals\n"
+    ))
+      cat(warn("    Risk of the allele profile of the putative source populations
                 lacking sufficient representation of the populations from which they
                 are drawn is quite high.\n"
-        ))}
-    }
-    
-    # Separate unknown individual from x
-    unknown.ind <- gl.keep.ind(x,ind.list=unknown,verbose=0)
-    pop(unknown.ind) <- "unknown"
-    
-    # Convert unknown to a vector
-    unknown.vec <- as.vector(as.matrix(unknown.ind))
-    
-    # Knowns
-    knowns <- gl.drop.ind(x,ind.list=unknown,verbose=0)
-    if(any(popNames(knowns)=="unknowns")){
-       knowns <- gl.drop.pop(x,pop.list="unknowns",verbose=0)
-    }   
-    
-    # Remove all known populations with less than nmin individuals
-    pop.keep <- levels(pop(knowns))[table(pop(knowns)) >= nmin]
-    pop.toss <- levels(pop(knowns))[table(pop(knowns)) < nmin]
-    if (verbose >= 3) {
-      cat("  Discarding",length(pop.toss),"populations with sample size <",nmin,":\n")
-      cat(paste(pop.toss, collapse = ", "), "\n")
-     }
-    if (length(pop.keep) == 0) {
-      stop(error("Fatal Error: All target populations excluded based on minimum sample size.\n"))
-    }
-    knowns <- gl.keep.pop(knowns, pop.list = pop.keep, verbose = 0) 
- 
+      ))}
+  }
+  
+  # Separate unknown individual from x
+  unknown.ind <- gl.keep.ind(x,ind.list=unknown,verbose=0)
+  pop(unknown.ind) <- "unknown"
+  
+  # Convert unknown to a vector
+  unknown.vec <- as.vector(as.matrix(unknown.ind))
+  
+  # Knowns
+  knowns <- gl.drop.ind(x,ind.list=unknown,verbose=0)
+  if(any(popNames(knowns)=="unknowns")){
+    knowns <- gl.drop.pop(x,pop.list="unknowns",verbose=0)
+  }   
+  
+  # Remove all known populations with less than nmin individuals
+  pop.keep <- levels(pop(knowns))[table(pop(knowns)) >= nmin]
+  pop.toss <- levels(pop(knowns))[table(pop(knowns)) < nmin]
+  if (verbose >= 3) {
+    cat("  Discarding",length(pop.toss),"populations with sample size <",nmin,":\n")
+    cat(paste(pop.toss, collapse = ", "), "\n")
+  }
+  if (length(pop.keep) == 0) {
+    stop(error("Fatal Error: All target populations excluded based on minimum sample size.\n"))
+  }
+  knowns <- gl.keep.pop(knowns, pop.list = pop.keep, verbose = 0) 
+  
   # Split the genlight object into a list of matricies
+  
+  # Split into a list of genlight objects by population
+  pop.list <- seppop(knowns)
+  
+  # Convert each to a matrix
+  matrix.list <- lapply(pop.list, function(g) as.matrix(g))
+  
+  # Name the list elements by population
+  names(matrix.list) <- names(pop.list)
+  
+  # Now we have each population represented by a matrix in the list
+  # matrix.list plus an additional population containing the unknown.
+  
+  # Make a function that calculates the mean and standard deviation
+  # of the number of private alleles for each individual in a population.
+  # Note that the distribution of private alleles can be approximately
+  # represented by a Poisson distribution (or a Negative Bionomial) whereby
+  # a log10 transformation will render it approximately normal.
+  
+  # Function to calculate log liklihood for a focal genotype vector vs a population matrix
+  
+  utils.gen.prob <- function(focal, popmat) {
     
-    # Split into a list of genlight objects by population
-    pop.list <- seppop(knowns)
+    # Ensure dimensions are compatible
+    stopifnot(length(focal) == ncol(popmat))
     
-    # Convert each to a matrix
-    matrix.list <- lapply(pop.list, function(g) as.matrix(g))
+    # Calculate allele frequencies (0/1/2 encoding) and HWE genotype probabilities
+    p <- colMeans(popmat, na.rm = TRUE) / 2  # frequency of 'B' allele
+    pAA <- (1 - p)^2
+    pAB <- 2 * p * (1 - p)
+    pBB <- p^2
     
-    # Name the list elements by population
-    names(matrix.list) <- names(pop.list)
+    # Likelihood of focal genotype under HWE
+    logL_focal <- mapply(function(g, pa, pb, pc) {
+      if (is.na(g)) return(NA)
+      if (g == 0) return(log(pa + 1e-10))
+      if (g == 1) return(log(pb + 1e-10))
+      if (g == 2) return(log(pc + 1e-10))
+      return(NA)
+    }, focal, pAA, pAB, pBB)
     
-    # Now we have each population represented by a matrix in the list
-    # matrix.list plus an additional population containing the unknown.
+    logL_focal_total <- sum(logL_focal, na.rm = TRUE)
     
-    # Make a function that calculates the mean and standard deviation
-    # of the number of private alleles for each individual in a population.
-    # Note that the distribution of private alleles can be approximately
-    # represented by a Poisson distribution (or a Negative Bionomial) whereby
-    # a log10 transformation will render it approximately normal.
-    
-    # Function to calculate log liklihood for a focal genotype vector vs a population matrix
-    
-    utils.gen.prob <- function(focal, popmat) {
-      
-      # Ensure dimensions are compatible
-      stopifnot(length(focal) == ncol(popmat))
-      
-      # Calculate allele frequencies (0/1/2 encoding) and HWE genotype probabilities
-      p <- colMeans(popmat, na.rm = TRUE) / 2  # frequency of 'B' allele
-      pAA <- (1 - p)^2
-      pAB <- 2 * p * (1 - p)
-      pBB <- p^2
-      
-      # Likelihood of focal genotype under HWE
-      logL_focal <- mapply(function(g, pa, pb, pc) {
+    # Likelihoods for each individual in the population
+    logLs_pop <- apply(popmat, 1, function(ind) {
+      mapply(function(g, pa, pb, pc) {
         if (is.na(g)) return(NA)
         if (g == 0) return(log(pa + 1e-10))
         if (g == 1) return(log(pb + 1e-10))
         if (g == 2) return(log(pc + 1e-10))
         return(NA)
-      }, focal, pAA, pAB, pBB)
-      
-      logL_focal_total <- sum(logL_focal, na.rm = TRUE)
-      
-      # Likelihoods for each individual in the population
-      logLs_pop <- apply(popmat, 1, function(ind) {
-        mapply(function(g, pa, pb, pc) {
-          if (is.na(g)) return(NA)
-          if (g == 0) return(log(pa + 1e-10))
-          if (g == 1) return(log(pb + 1e-10))
-          if (g == 2) return(log(pc + 1e-10))
-          return(NA)
-        }, ind, pAA, pAB, pBB)
-      })
-      
-      logL_pop_totals <- colSums(logLs_pop, na.rm = TRUE)
-      logL = logL_focal_total
-      
-      return(logL)
-    }
+      }, ind, pAA, pAB, pBB)
+    })
     
-    # Prepare results container
-    result <- data.frame(
-      population = names(matrix.list),
-      logL = NA_real_,
-      flag = ""
-    )
+    logL_pop_totals <- colSums(logLs_pop, na.rm = TRUE)
+    logL = logL_focal_total
     
-    # Loop through each population 
-    for (i in 1:length(matrix.list)) {
-      
-      pop.mat <- matrix.list[[i]]
-      n <- nrow(pop.mat)
-      
-      # Calculate the stats
-      
-      logL <- utils.gen.prob(unknown.vec,pop.mat)
-      # Store results
-      result$logL[i] <- logL
-
-    } # End loop
+    return(logL)
+  }
+  
+  # Prepare results container
+  result <- data.frame(
+    population = names(matrix.list),
+    logL = NA_real_,
+    flag = ""
+  )
+  
+  # Loop through each population 
+  for (i in 1:length(matrix.list)) {
     
-    #results$population <- names(matrix.list)
-    # Calculate AIC values
-    result$aic <- -2*result$logL
-    result$delta.aic <- result$aic - min(result$aic)
-    result$aic.wt <- exp(-0.5*result$delta.aic)/sum(exp(-0.5*result$delta.aic)) 
+    pop.mat <- matrix.list[[i]]
+    n <- nrow(pop.mat)
     
-    # Apply significance
-    result$flag[result$aic.wt < aic.threshold] <- "no"
-    result$flag[result$aic.wt >= aic.threshold] <- "yes"
-
-    result <- result[order(result$aic.wt,decreasing=TRUE),]
+    # Calculate the stats
     
-    # View result
-    result <- result[, c("population", "logL", "aic", "delta.aic", "aic.wt", "flag")]
-    names(result) <- c("population","Log Likelihood","AIC","dAIC","AIC.wt","assign")
-    print(result)
+    logL <- utils.gen.prob(unknown.vec,pop.mat)
+    # Store results
+    result$logL[i] <- logL
     
-    if(verbose >=3){
-      cat("\n  Best prospect for source population is",result$population[1],"\n\n")
-    }
-    
-    # Retain only those n.best populations, or if n.best not set, the non-significant
-    # populations
-    
-    if(!is.null(n.best)){
-      pop.keep <- result$pop[1:n.best]
-    } else {
-      pop.keep <- result$pop[result$assign == "yes"]
-    }
-    
-    gl.out <- gl.keep.pop(knowns,pop.list=pop.keep,verbose=0)
-    gl.out <- gl.join(gl.out,unknown.ind,method="end2end",verbose=0)
-    
-    gl.out <- gl.filter.monomorphs(gl.out,verbose=0)
- 
-    if (nInd(gl.out) == 1) {
-      cat(warn("Warning: Final genlight object contains only the unknown individual, no populations assigned.\n"))
-    }
-    
-    # FLAG SCRIPT END
-    
-    if (verbose > 0) {
-        cat(report("Completed:", funname, "\n"))
-    }
-    
-    return(gl.out)
+  } # End loop
+  
+  #results$population <- names(matrix.list)
+  # Calculate AIC values
+  result$aic <- -2*result$logL
+  result$delta.aic <- result$aic - min(result$aic)
+  result$aic.wt <- exp(-0.5*result$delta.aic)/sum(exp(-0.5*result$delta.aic)) 
+  
+  # Apply significance
+  result$flag[result$aic.wt < aic.threshold] <- "no"
+  result$flag[result$aic.wt >= aic.threshold] <- "yes"
+  
+  result <- result[order(result$aic.wt,decreasing=TRUE),]
+  
+  # View result
+  result <- result[, c("population", "logL", "aic", "delta.aic", "aic.wt", "flag")]
+  names(result) <- c("population","Log Likelihood","AIC","dAIC","AIC.wt","assign")
+  print(result)
+  
+  if(verbose >=3){
+    cat("\n  Best prospect for source population is",result$population[1],"\n\n")
+  }
+  
+  # Retain only those n.best populations, or if n.best not set, the non-significant
+  # populations
+  
+  if(!is.null(n.best)){
+    pop.keep <- result$pop[1:n.best]
+  } else {
+    pop.keep <- result$pop[result$assign == "yes"]
+  }
+  
+  gl.out <- gl.keep.pop(knowns,pop.list=pop.keep,verbose=0)
+  gl.out <- gl.join(gl.out,unknown.ind,method="join.by.loc",verbose=0)
+  
+  gl.out <- gl.filter.monomorphs(gl.out,verbose=0)
+  
+  if (nInd(gl.out) == 1) {
+    cat(warn("Warning: Final genlight object contains only the unknown individual, no populations assigned.\n"))
+  }
+  
+  # FLAG SCRIPT END
+  
+  if (verbose > 0) {
+    cat(report("Completed:", funname, "\n"))
+  }
+  
+  return(gl.out)
 }
