@@ -2,6 +2,7 @@
 
 export(gl.assign.grm)
 export(gl.assign.mahalanobis)
+export(gl.assign.on.genotype)
 export(gl.assign.pa)
 export(gl.assign.pca)
 export(gl.filter.parent.offspring)
