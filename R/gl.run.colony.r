@@ -140,7 +140,7 @@ gl.run.colony <- function(x,
   verbose <- gl.check.verbosity(verbose)
   
   # SET WORKING DIRECTORY
-  outpath <- gl.check.wd(outpath,verbose=0)
+  # outpath <- gl.check.wd(outpath,verbose=0)
   outfilespec <- file.path(outpath, outfile)
   
   # FLAG SCRIPT START
@@ -219,6 +219,6 @@ gl.run.colony <- function(x,
     cat(report('\nCompleted:, ', funname, '\n'))
   }
   
-  return(invisible(outfilespec))
+  return(invisible(outpath))
   
 }
