@@ -2,7 +2,7 @@
 #' @title Calculate probabilities of assignment of an individual of unknown provenance 
 #' to population based on Mahalanobis Distance
 #' @description
-#' This script assigns an individual of unknown provenance to one or more target
+#' This scriptassigns an individual of unknown provenance to one or more target
 #' populations based on the unknown individual's proximity to population 
 #' centroids; proximity is estimated using Mahalanobis Distance and a z score and
 #' probability of assignment is calculated.
