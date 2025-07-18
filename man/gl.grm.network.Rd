@@ -18,7 +18,7 @@ gl.grm.network(
   link.size = 2,
   relatedness_factor = 0.125,
   title = "Network of a similarity matrix",
-  legent.title = "Populations",
+  legend.title = "Populations",
   palette_discrete = gl.select.colors(x, library = "brewer", palette = "PuOr", ncolors =
     nPop(x), verbose = 0),
   plot.dir = NULL,
@@ -53,7 +53,7 @@ see details [default FALSE].}
 
 \item{title}{Title for the plot [default 'Network of similarity matrix'].}
 
-\item{legent.title}{Title for the legend [default "Populations"].}
+\item{legend.title}{Title for the legend [default "Populations"].}
 
 \item{palette_discrete}{A discrete set of colors
 with as many colors as there are populations in the dataset

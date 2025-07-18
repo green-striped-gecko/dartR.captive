@@ -18,7 +18,7 @@
 #' @param link.size Size of the links [default 2].
 #' @param relatedness_factor Factor of relatedness [default 0.125].
 #' @param title Title for the plot [default 'Network of similarity matrix'].
-#' @param legent.title Title for the legend [default "Populations"].
+#' @param legend.title Title for the legend [default "Populations"].
 #' @param palette_discrete A discrete set of colors
 #'  with as many colors as there are populations in the dataset
 #'  [default NULL].
@@ -132,7 +132,7 @@ gl.grm.network <- function(G,
                            link.size = 2,
                            relatedness_factor = 0.125,
                            title = "Network of a similarity matrix",
-                           legent.title = "Populations",
+                           legend.title = "Populations",
                            palette_discrete = gl.select.colors(x, 
                                                                library = "brewer", 
                                                                palette = "PuOr", 
@@ -299,10 +299,11 @@ gl.grm.network <- function(G,
   # assigning colors to populations
   if(is.null(palette_discrete)){
     # function to replicate defaults colors of ggplot
-    discrete_palette <- function(n) {
-      hues <-seq(15, 375, length = n + 1)
-      return(hcl(h = hues, l = 65, c = 100)[1:n])
-    }
+    discrete_palette <- gl.select.colors(x, 
+                                         library = "brewer", 
+                                         palette = "PuOr", 
+                                         ncolors = nPop(x), 
+                                         verbose = 0)
     
     palette_discrete <- discrete_palette
   }
@@ -349,7 +350,7 @@ gl.grm.network <- function(G,
                pch = 21,
                alpha=plotcord$kinship,
                size = node.size) +
-    scale_fill_manual(name = legent.title, values = colors_pops)+
+    scale_fill_manual(name = legend.title, values = colors_pops)+
     coord_fixed(ratio = 1) + 
     theme_void() +
     ggtitle(paste(title, "\n[", layout.name, "]")) + 
