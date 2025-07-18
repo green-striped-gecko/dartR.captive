@@ -30,9 +30,9 @@
 #' progress log; 3, progress and results summary; 5, full report
 #'  [default NULL, unless specified using gl.set.verbosity]
 #' @details
-#' 'The results of EMIBD9 include the identical in state (IIS) values for each mode 
+#' The results of EMIBD9 include the identical in state (IIS) values for each mode 
 #'(S1 - 9) and nine condensed identical by descent (IBD) modes (∆1 - ∆9) as well as 
-#'#'the relatedness coefficient (r). Alleles are IIS if they are the same. Similarly,
+#' the relatedness coefficient (r). Alleles are IIS if they are the same. Similarly,
 #' IBD describes a matching allele between two individuals that has been inherited 
 #' from a common ancestor or common gene. In a pairwise comparison, ∆1 to ∆9 are the
 #'  probabilities associated with each IBD mode. ∆1 to ∆6 take vakue > 0 in presence
@@ -49,28 +49,20 @@
 #'  drawn from two individuals are IBD.
 #'
 #'Below is a table modified from Speed & Balding (2015) showing kinship values,
-#'and their confidence intervals (CI), for different relationships that could
-#'be used to guide the choosing of the relatedness threshold in the function.
+#'and their confidence intervals (CI), for different relationships.
 #'
-#'|Relationship                               |Kinship  |     95% CI       |
-#'
-#'|Identical twins/clones/same individual     | 0.5     |        -         |
-#'
-#'|Sibling/Parent-Offspring                   | 0.25    |    (0.204, 0.296)|
-#'
-#'|Half-sibling                               | 0.125   |    (0.092, 0.158)|
-#'
-#'|First cousin                               | 0.062   |    (0.038, 0.089)|
-#'
-#'|Half-cousin                                | 0.031   |    (0.012, 0.055)|
-#'
-#'|Second cousin                              | 0.016   |    (0.004, 0.031)|
-#'
-#'|Half-second cousin                         | 0.008   |    (0.001, 0.020)|
-#'
-#'|Third cousin                               | 0.004   |    (0.000, 0.012)|
-#'
-#'|Unrelated                                  | 0       |        -         |
+#' \tabular{lll}{
+#'   \strong{Relationship} \tab \strong{Kinship} \tab \strong{95\% CI} \cr
+#'   Identical twins / clones / same individual \tab 0.5   \tab –              \cr
+#'   Sibling / Parent–Offspring                \tab 0.25  \tab (0.204, 0.296)\cr
+#'   Half‑sibling                              \tab 0.125 \tab (0.092, 0.158)\cr
+#'   First cousin                              \tab 0.062 \tab (0.038, 0.089)\cr
+#'   Half‑cousin                               \tab 0.031 \tab (0.012, 0.055)\cr
+#'   Second cousin                             \tab 0.016 \tab (0.004, 0.031)\cr
+#'   Half‑second cousin                        \tab 0.008 \tab (0.001, 0.020)\cr
+#'   Third cousin                              \tab 0.004 \tab (0.000, 0.012)\cr
+#'   Unrelated                                 \tab 0     \tab –              \cr
+#' }
 #'
 #'For greater detail on the methods employed by EMIBD9, we encourage you to 
 #'read Wang, J. (2022).

@@ -170,7 +170,9 @@ simultaneously infers sibships and parentage by considering the likelihood
 of entire pedigree configurations rather than pairwise comparisons.
 }
 \examples{
-# gl2colony(x = platypus.gl)
+\dontrun{
+gl2colony(x = platypus.gl)
+}
 
 }
 \references{
