@@ -24,11 +24,14 @@
 #' @param ... Parameters passed to function A.mat from package rrBLUP.
 #'
 #' @details
-#' Two or more alleles are identical by descent (IBD) if they are identical
-#' copies of the same ancestral allele in a base population. The additive
-#' relationship matrix is a theoretical framework for estimating a relationship
-#' matrix that is consistent with an approach to estimate the probability that
-#' the alleles at a random locus are identical in state (IBS).
+#' This function uses the A.mat function from the rrBLUP package. This method 
+#' follows the approach developed by Endelman and Jannink (2012).
+#' 
+#' Two alleles are Identical by State (IBS) if they are the same in state, 
+#' regardless of whether they come from a common ancestor. Two alleles are 
+#' Identical by Descent (IBD) if they are inherited from a common ancestor. 
+#' While IBS does not necessarily imply IBD, using high-density SNP data 
+#' improves the estimation of IBD probabilities from IBS measures.
 #'
 #' This function also plots a heatmap, and a dendrogram, of IBD values where
 #' each diagonal element has a mean that equals 1+f, where f is the inbreeding

@@ -88,7 +88,9 @@
 #' \url{https://groups.google.com/d/forum/dartr}
 #'
 #' @examples
-#' # gl2colony(x = platypus.gl)
+#' \dontrun{
+#' gl2colony(x = platypus.gl)
+#' }
 #'
 #' @references
 #' Wang, J. (2011). COLONY: a program for parentage and sibship inference

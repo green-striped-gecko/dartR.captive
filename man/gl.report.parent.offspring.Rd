@@ -68,9 +68,11 @@ if the two focal individuals have a count of pedigree inconsistent loci less
 than would be expected of typical unrelated individuals. There are some quite
 sophisticated software packages available to formally apply likelihoods to
 the decision, but we use a simple outlier comparison.
+
 To reduce the frequency of miss-calls, and so emphasize the difference
 between true parent-offspring pairs and unrelated pairs, the data can be
 filtered on read depth.
+
 Typically minimum read depth is set to 5x, but you can examine the
 distribution of read depths with the function \code{\link[dartR.base]{gl.report.rdepth}}
 and push this up with an acceptable loss of loci. 12x might be a good minimum
@@ -80,13 +82,16 @@ loci. Reproducibility is stored in the slot \code{@other$loc.metrics$RepAvg}
 and is defined as the proportion of technical replicate assay pairs for which
 the marker score is consistent. You can examine the distribution of
  reproducibility with the function \code{\link[dartR.base]{gl.report.reproducibility}}.
+ 
 Note that the null expectation is not well defined, and the power reduced, if
 the population from which the putative parent-offspring pairs are drawn
 contains many sibs. Note also that if an individual has been genotyped twice
 in the dataset, the replicate pair will be assessed by this script as being
 in a parent-offspring relationship.
+
 The function \code{\link{gl.filter.parent.offspring}} will filter out those
 individuals in a parent offspring relationship.
+
 Note that if your dataset does not contain RepAvg or rdepth among the locus
 metrics, the filters for reproducibility and read depth are no used.
  Examples of other themes that can be used can be consulted in \itemize{
