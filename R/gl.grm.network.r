@@ -122,7 +122,6 @@
 gl.grm.network <- function(G,
                            x,
                            standardise = FALSE,
-                           method_relatedness = "",
                            method = "fr",
                            node.size = 8,
                            node.label = TRUE,
@@ -318,10 +317,8 @@ gl.grm.network <- function(G,
   
   if(is.null(link.color)){
     # taken from wes_palette::Zissou1
-    diverging_palette <-
-      colorRampPalette(c("#3B9AB2", "#78B7C5", "#EBCC2A", "#E1AF00", "#F21A00"))
-    # creating convergent to 0 palette
-    link.color <- diverging_palette
+    link.color <- grDevices::colorRampPalette(
+      c("#3B9AB2", "#78B7C5", "#EBCC2A", "#E1AF00", "#F21A00"))
   }
   
   names(colors_pops) <- as.character(levels(x$pop))

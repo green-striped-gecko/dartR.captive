@@ -8,7 +8,6 @@ gl.grm.network(
   G,
   x,
   standardise = FALSE,
-  method_relatedness = "",
   method = "fr",
   node.size = 8,
   node.label = TRUE,
