@@ -8,6 +8,11 @@
 #' @param x A genlight object from which the matrix was generated [required].
 #' @param standardise Whether to standardise matrix using Goudet et al method, 
 #' see details [default FALSE].
+#' @param categorise Whether to categorise the color of the link representing 
+#' relatedness values into relationships. Same Individual (>0.3), Full Siblings / Parent-Offspring 
+#' (>0.2 & <0.3) and Half Siblings (>0.1 & <0.2) [default FALSE].
+#' @param color.categories A vector of three colors to represent the above 
+#' relatedness categories [default = c("#E63E94","#E5D44C","#3ED2E6")].
 #' @param method One of 'fr', 'kk', 'gh' or 'mds' [default 'fr'].
 #' @param node.size Size of the symbols for the network nodes [default 8].
 #' @param node.label TRUE to display node labels [default TRUE].
@@ -123,6 +128,10 @@
 gl.grm.network <- function(G,
                            x,
                            standardise = FALSE,
+                           categorise  = FALSE, 
+                           color.categories = c("#E63E94",
+                                                "#E5D44C",
+                                                "#3ED2E6"),
                            method = "fr",
                            node.size = 8,
                            node.label = TRUE,
@@ -327,27 +336,64 @@ gl.grm.network <- function(G,
   breaks <- round(seq(min(edges$size),
                       max(edges$size),
                       0.1),1)
-  p1 <-
-    ggplot() + 
-    geom_segment(data = edges,
-                 aes( x = X1, y = Y1, xend = X2,yend = Y2,color = size),
-                 linewidth = link.size) +
-    scale_colour_gradientn(
-      name = "Relatedness",
-      colours = link.color,
-      breaks = breaks,
-      labels = as.character(breaks)
-    ) +
-    geom_point(data = plotcord,aes(x = X1,y = X2, fill = pop), 
-               pch = 21,
-               alpha=plotcord$kinship,
-               size = node.size) +
-    scale_fill_manual(name = legend.title, values = colors_pops)+
-    coord_fixed(ratio = 1) + 
-    theme_void() +
-    ggtitle(paste(title, "\n[", layout.name, "]")) + 
-    theme(legend.position = "bottom",
-          plot.title = element_text( hjust = 0.5, face = "bold",size = 14)) 
+  
+  if(categorise){
+    edges$cat <- NULL
+    edges[edges$size >0.3,"cat"] <- "Same Individual" 
+    edges[edges$size >0.2 & 
+            edges$size < 0.3,"cat"] <-"Full Siblings\nParent-Offspring"
+    edges[edges$size >0.1 & 
+            edges$size < 0.2,"cat"] <-"Half Siblings"
+
+p1 <-
+  ggplot() + 
+  geom_segment(data = edges,
+               aes( x = X1, 
+                    y = Y1, 
+                    xend = X2,
+                    yend = Y2,
+                    color = cat),
+               linewidth = link.size) +
+  scale_color_manual(
+    name = "Relatedness",
+    values = color.categories
+  ) +
+  geom_point(data = plotcord,aes(x = X1,y = X2, fill = pop), 
+             pch = 21,
+             alpha=plotcord$kinship,
+             size = node.size) +
+  scale_fill_manual(name = legend.title, values = colors_pops)+
+  coord_fixed(ratio = 1) + 
+  theme_void() +
+  ggtitle(paste(title, "\n[", layout.name, "]")) + 
+  theme(legend.position = "bottom",
+        plot.title = element_text( hjust = 0.5, face = "bold",size = 14)) 
+    
+  }else{
+    
+    p1 <-
+      ggplot() + 
+      geom_segment(data = edges,
+                   aes( x = X1, y = Y1, xend = X2,yend = Y2,color = size),
+                   linewidth = link.size) +
+      scale_colour_gradientn(
+        name = "Relatedness",
+        colours = link.color,
+        breaks = breaks,
+        labels = as.character(breaks)
+      ) +
+      geom_point(data = plotcord,aes(x = X1,y = X2, fill = pop), 
+                 pch = 21,
+                 alpha=plotcord$kinship,
+                 size = node.size) +
+      scale_fill_manual(name = legend.title, values = colors_pops)+
+      coord_fixed(ratio = 1) + 
+      theme_void() +
+      ggtitle(paste(title, "\n[", layout.name, "]")) + 
+      theme(legend.position = "bottom",
+            plot.title = element_text( hjust = 0.5, face = "bold",size = 14))  
+    
+  }
   
   if (node.label == T) {
     p1 <-

@@ -8,6 +8,8 @@ gl.grm.network(
   G,
   x,
   standardise = FALSE,
+  categorise = FALSE,
+  color.categories = c("#E63E94", "#E5D44C", "#3ED2E6"),
   method = "fr",
   node.size = 8,
   node.label = TRUE,
@@ -18,8 +20,7 @@ gl.grm.network(
   relatedness_factor = 0.125,
   title = "Network of a similarity matrix",
   legend.title = "Populations",
-  palette_discrete = gl.select.colors(x, library = "brewer", palette = "PuOr", ncolors =
-    nPop(x), verbose = 0),
+  palette_discrete = NULL,
   plot.dir = NULL,
   plot.file = NULL,
   verbose = NULL
@@ -33,6 +34,13 @@ gl.grm.network(
 \item{standardise}{Whether to standardise matrix using Goudet et al method, 
 see details [default FALSE].}
 
+\item{categorise}{Whether to categorise the color of the link representing 
+relatedness values into relationships. Same Individual (>0.3), Full Siblings / Parent-Offspring 
+(>0.2 & <0.3) and Half Siblings (>0.1 & <0.2) [default FALSE].}
+
+\item{color.categories}{A vector of three colors to represent the above 
+relatedness categories [default = c("#E63E94","#E5D44C","#3ED2E6")].}
+
 \item{method}{One of 'fr', 'kk', 'gh' or 'mds' [default 'fr'].}
 
 \item{node.size}{Size of the symbols for the network nodes [default 8].}
@@ -44,7 +52,8 @@ see details [default FALSE].}
 \item{node.label.color}{Color of the text of the node labels
 [default 'black'].}
 
-\item{link.color}{Colors for links [default gl.select.colors].}
+\item{link.color}{Colors for links, either a vector of colors or a color 
+palette function [NULL].}
 
 \item{link.size}{Size of the links [default 2].}
 
