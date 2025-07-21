@@ -14,7 +14,8 @@
 #' @param node.label.size Size of the node labels [default 3].
 #' @param node.label.color Color of the text of the node labels
 #' [default 'black'].
-#' @param link.color  Colors for links [default gl.select.colors].
+#' @param link.color Colors for links, either a vector of colors or a color 
+#' palette function [NULL].
 #' @param link.size Size of the links [default 2].
 #' @param relatedness_factor Factor of relatedness [default 0.125].
 #' @param title Title for the plot [default 'Network of similarity matrix'].
@@ -132,11 +133,7 @@ gl.grm.network <- function(G,
                            relatedness_factor = 0.125,
                            title = "Network of a similarity matrix",
                            legend.title = "Populations",
-                           palette_discrete = gl.select.colors(x, 
-                                                               library = "brewer", 
-                                                               palette = "PuOr", 
-                                                               ncolors = nPop(x), 
-                                                               verbose = 0),
+                           palette_discrete = NULL,
                            plot.dir = NULL,
                            plot.file = NULL,
                            verbose = NULL) {
@@ -277,7 +274,7 @@ gl.grm.network <- function(G,
   edges <- data.frame(plotcord[edgelist[, 1], ], plotcord[edgelist[, 2], ])
   # using kinship for the size of the edges
   edges$size <- links[links$kinship >= q, "kinship"]
-  X1 <- X2 <- Y1 <- Y2 <- label.node <- NA
+  size <- X1 <- X2 <- Y1 <- Y2 <- label.node <- NA
   colnames(edges) <- c("X1", "Y1", "X2", "Y2", "size")
   
   # node labels
@@ -297,14 +294,11 @@ gl.grm.network <- function(G,
   
   # assigning colors to populations
   if(is.null(palette_discrete)){
-    # function to replicate defaults colors of ggplot
-    discrete_palette <- gl.select.colors(x, 
-                                         library = "brewer", 
-                                         palette = "PuOr", 
-                                         ncolors = nPop(x), 
-                                         verbose = 0)
-    
-    palette_discrete <- discrete_palette
+    palette_discrete <-  gl.select.colors(x, 
+                                          library = "gr.hcl", 
+                                          palette = "cm.colors", 
+                                          ncolors = nPop(x), 
+                                          verbose = 0)
   }
   
   if (is(palette_discrete, "function")) {
@@ -321,9 +315,11 @@ gl.grm.network <- function(G,
       c("#3B9AB2", "#78B7C5", "#EBCC2A", "#E1AF00", "#F21A00"))
   }
   
+  if (is(link.color, "function")) {
+    link.color <- link.color(255)
+  }
+  
   names(colors_pops) <- as.character(levels(x$pop))
-  pal <- link.color(length(levels(x$pop)))
-  size <- NULL
   new_levels <- unique(plotcord$pop[order(as.character(plotcord$pop))])
   # Rebuild the factor
   plotcord$pop <- factor(plotcord$pop, levels = new_levels)
@@ -331,7 +327,6 @@ gl.grm.network <- function(G,
   breaks <- round(seq(min(edges$size),
                       max(edges$size),
                       0.1),1)
-  
   p1 <-
     ggplot() + 
     geom_segment(data = edges,
@@ -339,7 +334,7 @@ gl.grm.network <- function(G,
                  linewidth = link.size) +
     scale_colour_gradientn(
       name = "Relatedness",
-      colours = pal,
+      colours = link.color,
       breaks = breaks,
       labels = as.character(breaks)
     ) +
