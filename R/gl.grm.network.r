@@ -25,6 +25,8 @@
 #' @param relatedness_factor Factor of relatedness [default 0.125].
 #' @param title Title for the plot [default 'Network of similarity matrix'].
 #' @param legend.title Title for the legend [default "Populations"].
+#' @param title.size Font size of the title [default 16].
+#' @param legend.size Font size of the legend [default 14].
 #' @param palette_discrete A discrete set of colors
 #'  with as many colors as there are populations in the dataset
 #'  [default NULL].
@@ -142,6 +144,8 @@ gl.grm.network <- function(G,
                            relatedness_factor = 0.125,
                            title = "Network of a similarity matrix",
                            legend.title = "Populations",
+                           title.size = 16,
+                           legend.size = 14,
                            palette_discrete = NULL,
                            plot.dir = NULL,
                            plot.file = NULL,
@@ -367,7 +371,9 @@ p1 <-
   theme_void() +
   ggtitle(paste(title, "\n[", layout.name, "]")) + 
   theme(legend.position = "bottom",
-        plot.title = element_text( hjust = 0.5, face = "bold",size = 14)) 
+        plot.title = element_text( hjust = 0.5, face = "bold",size = title.size),
+        legend.title = element_text(size = legend.size),
+        legend.text = element_text(size = legend.size)) 
     
   }else{
     
@@ -391,7 +397,9 @@ p1 <-
       theme_void() +
       ggtitle(paste(title, "\n[", layout.name, "]")) + 
       theme(legend.position = "bottom",
-            plot.title = element_text( hjust = 0.5, face = "bold",size = 14))  
+            plot.title = element_text( hjust = 0.5, face = "bold",size = title.size),
+            legend.title = element_text(size = legend.size),
+            legend.text = element_text(size = legend.size))  
     
   }
   
