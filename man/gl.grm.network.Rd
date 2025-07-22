@@ -17,7 +17,7 @@ gl.grm.network(
   node.label.color = "black",
   link.color = NULL,
   link.size = 2,
-  relatedness_factor = 0.125,
+  kinship.threshold = 0.125,
   title = "Network of a similarity matrix",
   legend.title = "Populations",
   title.size = 16,
@@ -59,7 +59,8 @@ palette function [NULL].}
 
 \item{link.size}{Size of the links [default 2].}
 
-\item{relatedness_factor}{Factor of relatedness [default 0.125].}
+\item{kinship.threshold}{Threshold of kinship value to display in the 
+network diagram [default 0.125].}
 
 \item{title}{Title for the plot [default 'Network of similarity matrix'].}
 
@@ -161,7 +162,7 @@ if (requireNamespace("igraph", quietly = TRUE) & requireNamespace("rrBLUP",
   # relatedness matrix
   res <- gl.grm(t1, plotheatmap = FALSE)
   # relatedness network
-  res2 <- gl.grm.network(res, t1, relatedness_factor = 0.125)
+  res2 <- gl.grm.network(res, t1, kinship.threshold = 0.125)
 }
 }
 \references{

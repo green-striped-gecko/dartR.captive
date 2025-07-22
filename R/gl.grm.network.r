@@ -22,7 +22,8 @@
 #' @param link.color Colors for links, either a vector of colors or a color 
 #' palette function [NULL].
 #' @param link.size Size of the links [default 2].
-#' @param relatedness_factor Factor of relatedness [default 0.125].
+#' @param kinship.threshold Threshold of kinship value to display in the 
+#' network diagram [default 0.125].
 #' @param title Title for the plot [default 'Network of similarity matrix'].
 #' @param legend.title Title for the legend [default "Populations"].
 #' @param title.size Font size of the title [default 16].
@@ -112,7 +113,7 @@
 #'   # relatedness matrix
 #'   res <- gl.grm(t1, plotheatmap = FALSE)
 #'   # relatedness network
-#'   res2 <- gl.grm.network(res, t1, relatedness_factor = 0.125)
+#'   res2 <- gl.grm.network(res, t1, kinship.threshold = 0.125)
 #' }
 #' @references
 #' \itemize{
@@ -141,7 +142,7 @@ gl.grm.network <- function(G,
                            node.label.color = "black",
                            link.color = NULL,
                            link.size = 2,
-                           relatedness_factor = 0.125,
+                           kinship.threshold = 0.125,
                            title = "Network of a similarity matrix",
                            legend.title = "Populations",
                            title.size = 16,
@@ -238,7 +239,7 @@ gl.grm.network <- function(G,
   links_matrix <- apply(links_matrix, 2, as.numeric)
   rownames(links_matrix) <- colnames(links_matrix)
   
-  links_plot_tmp <- links_tmp[links_tmp$kinship>relatedness_factor,]
+  links_plot_tmp <- links_tmp[links_tmp$kinship>=kinship.threshold,]
   links_plot_2 <- links_plot_tmp[,c("from","kinship")]
   colnames(links_plot_2) <- c("label.node","kinship")
   links_plot_3 <- links_plot_tmp[,c("to","kinship")]
@@ -252,7 +253,7 @@ gl.grm.network <- function(G,
                                            vertices = nodes,
                                            directed = FALSE)
   
-  q <- relatedness_factor
+  q <- kinship.threshold
   network.FS <-
     igraph::delete_edges(network, igraph::E(network)[links$kinship < q])
   
@@ -301,9 +302,12 @@ gl.grm.network <- function(G,
   plotcord$pop <- as.factor(plotcord$pop)
   
   plotcord <- merge(plotcord,links_plot,by="label.node",all.x = TRUE)
-  plotcord[is.na(plotcord$kinship),"kinship"] <- 0
   plotcord$kinship <- as.numeric(plotcord$kinship)
-  plotcord$kinship <- scales::rescale(plotcord$kinship, to = c(0.1, 1))
+  plotcord[is.na(plotcord$kinship),"kinship"] <- 0
+  plotcord[plotcord$kinship >= kinship.threshold,"kinship"] <- 1
+  plotcord[plotcord$kinship < kinship.threshold,"kinship"] <- 1/3
+  
+  # plotcord$kinship <- scales::rescale(plotcord$kinship, to = c(0.1, 1))
   
   # assigning colors to populations
   if(is.null(palette_discrete)){
