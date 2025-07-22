@@ -20,6 +20,8 @@ gl.grm.network(
   relatedness_factor = 0.125,
   title = "Network of a similarity matrix",
   legend.title = "Populations",
+  title.size = 16,
+  legend.size = 14,
   palette_discrete = NULL,
   plot.dir = NULL,
   plot.file = NULL,
@@ -62,6 +64,10 @@ palette function [NULL].}
 \item{title}{Title for the plot [default 'Network of similarity matrix'].}
 
 \item{legend.title}{Title for the legend [default "Populations"].}
+
+\item{title.size}{Font size of the title [default 16].}
+
+\item{legend.size}{Font size of the legend [default 14].}
 
 \item{palette_discrete}{A discrete set of colors
 with as many colors as there are populations in the dataset
