@@ -37,11 +37,11 @@ gl.grm.network(
 see details [default FALSE].}
 
 \item{categorise}{Whether to categorise the color of the link representing 
-relatedness values into relationships. Same Individual (>0.3), Full Siblings / Parent-Offspring 
+kinship values into relationships. Same Individual (>0.3), Full Siblings / Parent-Offspring 
 (>0.2 & <0.3) and Half Siblings (>0.1 & <0.2) [default FALSE].}
 
 \item{color.categories}{A vector of three colors to represent the above 
-relatedness categories [default = c("#E63E94","#E5D44C","#3ED2E6")].}
+kinship categories [default = c("#E63E94","#E5D44C","#3ED2E6")].}
 
 \item{method}{One of 'fr', 'kk', 'gh' or 'mds' [default 'fr'].}
 
@@ -85,7 +85,7 @@ progress log ; 3, progress and results summary; 5, full report
 [default 2 or as specified using gl.set.verbosity].}
 }
 \value{
-A network plot showing relatedness between individuals
+A network plot showing kinship between individuals
 }
 \description{
 This script takes any similarity matrix and represents
@@ -136,7 +136,7 @@ genetic relatedness within the population.
 
 Below is a table modified from Speed & Balding (2015) showing kinship values,
  and their confidence intervals (CI), for different relationships that could
- be used to guide the choosing of the relatedness threshold in the function.
+ be used to guide the choosing of the kinship threshold in the function.
 
 \tabular{lll}{
   \strong{Relationship} \tab \strong{Kinship} \tab \strong{95\% CI} \cr

@@ -9,10 +9,10 @@
 #' @param standardise Whether to standardise matrix using Goudet et al method, 
 #' see details [default FALSE].
 #' @param categorise Whether to categorise the color of the link representing 
-#' relatedness values into relationships. Same Individual (>0.3), Full Siblings / Parent-Offspring 
+#' kinship values into relationships. Same Individual (>0.3), Full Siblings / Parent-Offspring 
 #' (>0.2 & <0.3) and Half Siblings (>0.1 & <0.2) [default FALSE].
 #' @param color.categories A vector of three colors to represent the above 
-#' relatedness categories [default = c("#E63E94","#E5D44C","#3ED2E6")].
+#' kinship categories [default = c("#E63E94","#E5D44C","#3ED2E6")].
 #' @param method One of 'fr', 'kk', 'gh' or 'mds' [default 'fr'].
 #' @param node.size Size of the symbols for the network nodes [default 8].
 #' @param node.label TRUE to display node labels [default TRUE].
@@ -83,7 +83,7 @@
 #'
 #' Below is a table modified from Speed & Balding (2015) showing kinship values,
 #'  and their confidence intervals (CI), for different relationships that could
-#'  be used to guide the choosing of the relatedness threshold in the function.
+#'  be used to guide the choosing of the kinship threshold in the function.
 #'
 #' \tabular{lll}{
 #'   \strong{Relationship} \tab \strong{Kinship} \tab \strong{95\% CI} \cr
@@ -99,7 +99,7 @@
 #' }
 #' 
 #'
-#' @return A network plot showing relatedness between individuals
+#' @return A network plot showing kinship between individuals
 #' @author Custodian: Arthur Georges -- Post to
 #' \url{https://groups.google.com/d/forum/dartr}
 #' @examples
@@ -341,9 +341,9 @@ gl.grm.network <- function(G,
   # Rebuild the factor
   plotcord$pop <- factor(plotcord$pop, levels = new_levels)
   
-  breaks <- round(seq(min(edges$size),
+  breaks <- pretty(round(seq(min(edges$size),
                       max(edges$size),
-                      0.1),1)
+                      0.1),1),4)
   
   if(categorise){
     edges$cat <- NULL
@@ -363,7 +363,7 @@ p1 <-
                     color = cat),
                linewidth = link.size) +
   scale_color_manual(
-    name = "Relatedness",
+    name = "Kinship",
     values = color.categories
   ) +
   geom_point(data = plotcord,aes(x = X1,y = X2, fill = pop), 
@@ -377,7 +377,7 @@ p1 <-
   theme(legend.position = "bottom",
         plot.title = element_text( hjust = 0.5, face = "bold",size = title.size),
         legend.title = element_text(size = legend.size),
-        legend.text = element_text(size = legend.size)) 
+        legend.text = element_text(size = 8)) 
     
   }else{
     
@@ -387,7 +387,7 @@ p1 <-
                    aes( x = X1, y = Y1, xend = X2,yend = Y2,color = size),
                    linewidth = link.size) +
       scale_colour_gradientn(
-        name = "Relatedness",
+        name = "Kinship",
         colours = link.color,
         breaks = breaks,
         labels = as.character(breaks)
@@ -403,7 +403,7 @@ p1 <-
       theme(legend.position = "bottom",
             plot.title = element_text( hjust = 0.5, face = "bold",size = title.size),
             legend.title = element_text(size = legend.size),
-            legend.text = element_text(size = legend.size))  
+            legend.text = element_text(size = 8))  
     
   }
   
