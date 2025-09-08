@@ -340,6 +340,7 @@ gl.run.EMIBD9 <- function(x,
   
   p1 <- gl.plot.heatmap(res,
                           palette.divergent = palette_convergent,
+                        plot.out = plot.out,
                         verbose = 0)
   if (plot.out) {
     invisible(p1)
