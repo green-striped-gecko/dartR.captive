@@ -374,9 +374,7 @@ relatedLevelPlots <- function(relatedDf, which_tests, pedSim=F){
     return(asf)
   }else{
     
-    df1 <- reshape2::melt(relatedDf, 
-                          id.vars=c("ind1","ind2"), 
-                          measure.vars=which_tests)
+    df1 <- relatedDf
     
     outputBoxPlot <- ggplot(df1, aes(x=variable,y=value,color=variable,
                                      fill=variable))+
@@ -393,7 +391,7 @@ relatedLevelPlots <- function(relatedDf, which_tests, pedSim=F){
 runE9 <- function(inputObj, e9Path, numCores, e9parallel=e9parallel){
   
   e9runObj <- gl.run.EMIBD9(inputObj,emibd9.path = e9Path, 
-                            parallel=e9parallel, ncores=numCores,plot.out=F) %>%
+                            parallel=e9parallel, ncores=numCores) %>%
     {. <- .$rel}%>%
     {.[upper.tri(.)] <- NA; .} %>% 
     as.matrix() %>%
@@ -611,6 +609,46 @@ generateRelatedTableBaseInput <- function(baseInput,fullRun){
   
   return(asdf)
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
