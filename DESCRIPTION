@@ -13,7 +13,8 @@ Authors@R: c(
             person("Lindsay V.", "Clark", email="lvclark@illinois.edu", role="ctb"),
             person("Floriaan", "Devloo-Delva",email="Floriaan.Devloo-Delva@csiro.au", role="ctb"),
             person("Eric","Archer", email="eric.archer@noaa.gov", role="ctb"),
-            person("Sam", "Amini", email="samuelamini20@gmail.com", role="ctb")
+            person("Sam", "Amini", email="samuelamini20@gmail.com", role="ctb"),
+            person("Ethan","Halford", email="ethan.halford03@gmail.com", role="ctb")
             )
 Description: Functions are provided that facilitate the analysis of SNP 
     (single nucleotide polymorphism) data to answer questions regarding 
@@ -23,16 +24,16 @@ Description: Functions are provided that facilitate the analysis of SNP
     Mijangos et al. (2022) <doi:10.1111/2041-210X.13918>.
 Encoding: UTF-8
 Depends: R (>= 3.5), adegenet (>= 2.0.0),  dartR.base, dartR.data, dartR.sim
-Imports: methods, utils,  crayon, ggplot2, patchwork, stringr, data.table
+Imports: methods, utils,  crayon, ggplot2, patchwork, stringr, data.table, gridExtra, magrittr,related,reshape2,tidyr,digest
 Suggests: 
     SIBER,
     gplots,
     fields,
     igraph,
-    reshape2,
     rrBLUP,
     scales,
-    spelling
+    spelling, 
+    tidyverse
 License: GPL (>= 3)
 RoxygenNote: 7.3.2
 NeedsCompilation: no
@@ -46,7 +47,8 @@ Author: Bernd Gruber [aut, cre],
   Lindsay V. Clark [ctb],
   Floriaan Devloo-Delva [ctb],
   Eric Archer [ctb],
-  Sam Amini [ctb]
+  Sam Amini [ctb],
+  Ethan Halford [ctb]
 URL: https://green-striped-gecko.github.io/dartR/
 BugReports: https://groups.google.com/g/dartr?pli=1
 Language: en-US

@@ -49,9 +49,10 @@
 #'   \url{https://groups.google.com/d/forum/dartr}
 #'   
 #' @examples
+#' \dontrun{
 #' # Test run with a focal individual from the Macleay River (EmmacMaclGeor)
 #' test <- gl.assign.on.genotype(testset.gl,unknown='UC_00146',nmin=10,verbose=3)
-#'
+#' }
 #' @seealso \code{\link{gl.assign.pca}}, \code{\link{gl.assign.pa}}, \code{\link{gl.assign.mahalanobis}}
 
 gl.assign.on.genotype <- function(x,
