@@ -219,6 +219,7 @@ gl.diagnostics.relatedness <- function(
   }
   
   datatype <- utils.check.datatype(x)
+  
   corOutList <- NULL
   pedOrSim <-FALSE
   if(run_sim ==T | includedPed==T){
@@ -392,7 +393,7 @@ gl.diagnostics.relatedness <- function(
   
   templateClass <- new("finalOutputClass")
   templateClass@InputDf <- x
-  templateClass@SimOutput <- finalClassValues[["MergedDf"]]
+  templateClass@SimOutput <- finalClassValues[["SimOutput"]]
   templateClass@corVals <- finalClassValues[["corVals"]]
   templateClass@corOutList <- finalClassValues[["corOutList"]]
   templateClass@plotList <- finalClassValues[["plotList"]]
@@ -403,6 +404,4 @@ gl.diagnostics.relatedness <- function(
   
   
 }
-
-
 

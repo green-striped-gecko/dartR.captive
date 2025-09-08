@@ -31,12 +31,19 @@ setGeneric("do_sim", function(object) standardGeneric("do_sim"))
 setMethod("do_sim", "DartSim", function(object) {
   ref_table <- gl.sim.WF.table(
     file_var = object@table_input,
+    real_pops = TRUE,
+    real_pop_size = TRUE,
+    # real_loc = TRUE,
+    # real_freq = TRUE,
+    replace_parents = TRUE,
     x = object@input_data,
     interactive_vars = FALSE
   )
   
   res_sim <- gl.sim.WF.run(
     file_var = object@sim_input,
+    # real_loc = T,
+    # real_freq = T,
     ref_table = ref_table,
     x = object@input_data,
     number_iterations = object@number_iterations,
@@ -121,6 +128,7 @@ setClass("corVals",
 setMethod("show", "corVals", function(object){
   printCorVals(object@corVals)
 })
+
 
 
 
