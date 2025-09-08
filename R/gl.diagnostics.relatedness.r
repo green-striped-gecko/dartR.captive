@@ -185,11 +185,10 @@ gl.diagnostics.relatedness <- function(
             pedigree from simulation to be used instead. To use attached pedigree,
             run separately without simulation (ie run_sim=F)")
   }
-  #if(rmseOut | varOut & !(run_sim) & !(includedPed)){
-  #  stop("Without attached pedigree or pedigree from simulation, cannot calculate RMSE or 
-  #       Variance for methods, please set both rmseOut and varOut to false, run_sim to True
-  #       or attach pedigree")
-  #}
+  if (!(run_sim | includedPed) & (varOut | rmseOut)) {
+    stop("Cannot calculate variance or RMSE without pedigree, either from simulation or 
+         appended to original dataset. Please set varOut and rmseOut to F or run_sim=T")
+  }
   
   # Warn if no loci present
   if (nLoc(x) == 0) {
@@ -404,3 +403,6 @@ gl.diagnostics.relatedness <- function(
   
   
 }
+
+
+
