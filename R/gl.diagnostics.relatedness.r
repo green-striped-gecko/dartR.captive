@@ -20,6 +20,7 @@
 #' @param run_sim Logical. If TRUE, run simulations [default = FALSE].
 #' @param IncludePlots Logical. If TRUE, generate and return plots
 #'   [default = FALSE].
+#' @param plotOut Logical. If TRUE, prints plots [default = FALSE]. 
 #' @param varOut Logical. If TRUE, return variance results [default = FALSE].
 #' @param rmseOut Logical. If TRUE, return RMSE results [default = FALSE].
 #' @param numberIterations Integer. Number of simulation iterations
@@ -29,6 +30,8 @@
 #' @param genToSave Either "all" or a numeric vector of generations to save
 #'   [default = "all"].
 #' @param runE9 Logical. If TRUE, include E9 analysis [default = FALSE].
+#' @param E9Inbreed Logical. If TRUE, then runs EMIBD9 twice - once with inbreeding once w/out 
+#'   [default = FALSE].
 #' @param e9Path Path to external E9 binary [optional].
 #' @param verbose Verbosity level: 0–5. If NULL, set by
 #'   \code{gl.set.verbosity()} [default = NULL].
@@ -82,6 +85,7 @@ gl.diagnostics.relatedness <- function(
     which_tests = "wang",
     run_sim = FALSE,
     IncludePlots = FALSE,
+    plotOut = FALSE, 
     varOut = FALSE,
     rmseOut = FALSE,
     numberIterations = 1,
@@ -405,7 +409,9 @@ gl.diagnostics.relatedness <- function(
   templateClass@corOutList <- finalClassValues[["corOutList"]]
   templateClass@plotList <- finalClassValues[["plotList"]]
   
-  
+  if(plotOut){
+    finalClassValues[["plotList"]]
+  }
   
   return(templateClass)
   
