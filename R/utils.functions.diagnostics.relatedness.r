@@ -1,20 +1,3 @@
-ID1 <- NA
-ID2 <- NA
-RelDegree <- NA
-child1 <- NA
-child2 <- NA
-dad <- NA
-id <- NA
-id1 <- NA
-id2 <- NA
-ind1 <- NA
-ind2 <- NA
-mom <- NA
-relationship <- NA
-value <- NA
-variable <- NA
-yintercept<- NA
-
 coanct_clean <- function(input, coanctTests = NULL){
   
   # Gets gl2realted input or coancestry 
@@ -388,16 +371,22 @@ relatedLevelPlots <- function(relatedDf, which_tests, pedSim=F){
   }
 }
 
-runE9 <- function(inputObj, e9Path, numCores, e9parallel=e9parallel){
-  
-  e9runObj <- gl.run.EMIBD9(inputObj,emibd9.path = e9Path, 
-                            parallel=e9parallel, ncores=numCores) %>%
+runE9 <- function(inputObj, e9Path, numCores, e9parallel=e9parallel, E9Inbreed=F){
+  e9Name <- "E9"
+  if(E9Inbreed){
+    e9Name <- "E9_Inbred"
+  }
+  e9runObj <- gl.run.EMIBD9(inputObj,
+                            emibd9.path = e9Path, 
+                            parallel=e9parallel, 
+                            ncores=numCores,
+                            Inbreed = E9Inbreed) %>%
     {. <- .$rel}%>%
     {.[upper.tri(.)] <- NA; .} %>% 
     as.matrix() %>%
     as.table() %>%
     as.data.frame() %>%
-    {colnames(.) <- c("ind1", "ind2", "E9"); .} %>%
+    {colnames(.) <- c("ind1", "ind2", e9Name); .} %>%
     {. <- na.omit(.);.}
   
   return(e9runObj)
@@ -609,78 +598,6 @@ generateRelatedTableBaseInput <- function(baseInput,fullRun){
   
   return(asdf)
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
