@@ -325,7 +325,7 @@ relatedLevelPlots <- function(relatedDf, which_tests, pedSim=F){
         linetype = "dashed", 
         linewidth = 1             
       ) +
-      facet_wrap(~ RelDegree,   scales = "fixed", ncol =2) + 
+      facet_wrap(~ RelDegree,   scales = "free", ncol =2) + 
       theme_bw() + 
       labs(
         x = "Estimator",
@@ -342,7 +342,7 @@ relatedLevelPlots <- function(relatedDf, which_tests, pedSim=F){
         linetype = "dashed", 
         linewidth = 1             
       ) +
-      facet_wrap(~ variable,scales ="free") + 
+      facet_wrap(~ variable,scales ="fixed") + 
       theme_bw() + 
       labs(
         x = "Relatedness Value",
