@@ -1,4 +1,16 @@
 setOldClass(c("ggplot", "gg"))
+# Slot descriptions for output
+slotDescriptions <- NULL
+slotDescriptions[["InputDf"]] <- "Original genlight input"
+slotDescriptions[["SimOutput"]] <- "Genlight object of simulation output"
+slotDescriptions[["MergedDf"]] <- "Final dataframe containing results of relatedness analysis"
+slotDescriptions[["corOutList"]] <- "Results of correlation analysis"
+slotDescriptions[["corVals"]] <- "Output of correlation results bewteen methods"
+slotDescriptions[["plotList"]] <- "List of plots"
+
+corrSlotDescriptions <- NULL
+corrSlotDescriptions[["rmsePlot"]] <- "Plot of RMSE bewteen actual and estimated related values"
+corrSlotDescriptions[["varPlot"]] <- "Plot of variance bewteen actual and estimated related values"
 
 # Base output class (stores original genlight input)
 setClass("OutputS4",
@@ -31,19 +43,12 @@ setGeneric("do_sim", function(object) standardGeneric("do_sim"))
 setMethod("do_sim", "DartSim", function(object) {
   ref_table <- gl.sim.WF.table(
     file_var = object@table_input,
-    real_pops = TRUE,
-    real_pop_size = TRUE,
-    # real_loc = TRUE,
-    # real_freq = TRUE,
-    replace_parents = TRUE,
     x = object@input_data,
     interactive_vars = FALSE
   )
   
   res_sim <- gl.sim.WF.run(
     file_var = object@sim_input,
-    # real_loc = T,
-    # real_freq = T,
     ref_table = ref_table,
     x = object@input_data,
     number_iterations = object@number_iterations,
@@ -77,7 +82,7 @@ setMethod("show", signature =  "finalOutputClass",
               if(is.null(currSlot)){
                 cat("  @",i,": NULL","\n", sep = "")
               }else{
-                cat("  @",i,"\n", sep = "")
+                cat("  @",i,": ", slotDescriptions[[i]], "\n", sep = "")
               }
             }
           })
@@ -100,7 +105,7 @@ setMethod("show", signature =  "corOutList",
               if(is.null(currSlot)){
                 cat("  @",i,": NULL","\n", sep = "")
               }else{
-                cat("  @",i,"\n", sep = "")
+                cat("  @",i,": ", corrSlotDescriptions[[i]], "\n", sep = "")
               }
             }
           })
