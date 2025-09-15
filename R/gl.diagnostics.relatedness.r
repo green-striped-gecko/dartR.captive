@@ -238,15 +238,6 @@ gl.diagnostics.relatedness <- function(
   finalSimOutput <- NULL
   slotNeedsClass <- NULL
   
-  # Slot descriptions for output
-  slotDescriptions <- NULL
-  slotDescriptions[["InputDf"]] <- "Original genlight input"
-  slotDescriptions[["SimOutput"]] <- "Genlight object of simulation output"
-  slotDescriptions[["MergedDf"]] <- "Final dataframe containing results of relatedness analysis"
-  slotDescriptions[["corOutList"]] <- "Results of correlation analysis"
-  slotDescriptions[["corVals"]] <- "Output of correlation results bewteen methods"
-  slotDescriptions[["plotList"]] <- "List of plots"
-  
   
   # 1. Run sim and store output 
   if(run_sim){
