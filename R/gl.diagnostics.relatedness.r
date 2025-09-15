@@ -88,6 +88,7 @@ gl.diagnostics.relatedness <- function(
     numberGenerations = 3,
     genToSave = "all",
     runE9 = FALSE,
+    E9Inbreed = FALSE, 
     e9Path = NULL,
     verbose = NULL,
     e9parallel = FALSE,
@@ -219,7 +220,6 @@ gl.diagnostics.relatedness <- function(
   }
   
   datatype <- utils.check.datatype(x)
-  
   corOutList <- NULL
   pedOrSim <-FALSE
   if(run_sim ==T | includedPed==T){
@@ -303,6 +303,22 @@ gl.diagnostics.relatedness <- function(
                              test_select = which_tests);.}
       analysisOutputDf[[i]] <- e9Run
     }
+    
+    if(isTRUE(E9Inbreed)){
+      which_tests <- c(which_tests, "E9_Inbred")
+      for(i in 1:length(defaultAnalysisDf)){
+        e9Run <- runE9(defaultAnalysisDf[[i]], 
+                       e9Path, 
+                       e9parallel=e9parallel, 
+                       numCores=nCores, 
+                       E9Inbreed = T) %>%
+          {. <- mergeE9Related(., 
+                               analysisOutputDf[[i]], 
+                               test_select = which_tests);.}
+        analysisOutputDf[[i]] <- e9Run
+      }
+    }
+    
   }
   
   finalClassValues[["MergedDf"]] <- analysisOutputDf
@@ -395,4 +411,3 @@ gl.diagnostics.relatedness <- function(
   
   
 }
-
