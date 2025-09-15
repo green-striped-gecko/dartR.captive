@@ -296,7 +296,6 @@ printCorVals <- function(corValues, whichTests){
   }
 }
 
-
 relatedLevelPlots <- function(relatedDf, which_tests, pedSim=F){
   
   if(pedSim){
@@ -380,7 +379,8 @@ runE9 <- function(inputObj, e9Path, numCores, e9parallel=e9parallel, E9Inbreed=F
                             emibd9.path = e9Path, 
                             parallel=e9parallel, 
                             ncores=numCores,
-                            Inbreed = E9Inbreed) %>%
+                            Inbreed = E9Inbreed, 
+                            plot.out = F) %>%
     {. <- .$rel}%>%
     {.[upper.tri(.)] <- NA; .} %>% 
     as.matrix() %>%
