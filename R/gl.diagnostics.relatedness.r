@@ -329,14 +329,14 @@ gl.diagnostics.relatedness <- function(
   
   
   # 3. Pedigree calculation - either after sim/added pedigree
-  if(!(includedPed) && run_sim){
+  if((!(includedPed) && run_sim) || (includedPed && run_sim)){
     pedigreeDfFinal <- mapply(mergeRelatedManual, 
                               relatedDf = analysisOutputDf, 
                               RecodeDf = RelatedManualRecode, 
                               SIMPLIFY = FALSE)
     finalClassValues[["MergedDf"]] <- pedigreeDfFinal
   }else if (includedPed && !(run_sim)){
-    pedigreeDfFinal <- generateRelatedTableBaseInput(x, analysisOutputDf)
+    pedigreeDfFinal <- generateRelatedTableBaseInput(x, analysisOutputDf[[1]])
     finalClassValues[["MergedDf"]] <- pedigreeDfFinal
   }
   
