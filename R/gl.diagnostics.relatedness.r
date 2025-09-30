@@ -47,12 +47,13 @@
 #' control checks on input objects and file paths before analysis.
 #'
 #' @return Returns an S4 object containing simulation and/or relatedness
-#'   outputs. The output class depends on chosen options:
+#'   outputs. The slots for the output class are as follows: 
 #'   \itemize{
-#'     \item OutputS4Sim – simulations only
-#'     \item OutputS4SimPlots – simulations + plots
-#'     \item OutputS4JustPlots – plots only
-#'     \item OutputS4 – base object
+#'     \item @InputDf: Original genlight input
+#'     \item @SimOutput: Genlight object of simulation outputs
+#'     \item @corOutList: Results of correlation analysis
+#'     \item @corVals: Output of correlation results between methods
+#'     \item @plotList: List of plots
 #'   }
 #'
 #' @author Ethan, Luis (Post to
