@@ -120,7 +120,7 @@ gl.run.EMIBD9 <- function(x,
                           plot.dir = NULL,
                           plot.file = NULL,
                           verbose = NULL) {
-  # SET VERBOSITY
+  # SET VERBOSITy
   verbose <- gl.check.verbosity(verbose)
   
   # SET WORKING DIRECTORY
@@ -140,7 +140,7 @@ gl.run.EMIBD9 <- function(x,
   if (Sys.info()["sysname"] == "Windows") {
     prog <- c("EM_IBD_P.exe", "impi.dll", "libiomp5md.dll")
     cmd <- "EM_IBD_P.exe INP:MyData.par"
-  }
+  } 
   
   if (Sys.info()["sysname"] == "Linux") {
     if(parallel){
