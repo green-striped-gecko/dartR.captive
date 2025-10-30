@@ -120,7 +120,7 @@ gl.run.EMIBD9 <- function(x,
                           plot.dir = NULL,
                           plot.file = NULL,
                           verbose = NULL) {
-  # SET VERBOSITY
+  # SET VERBOSITy
   verbose <- gl.check.verbosity(verbose)
   
   # SET WORKING DIRECTORY
@@ -140,7 +140,7 @@ gl.run.EMIBD9 <- function(x,
   if (Sys.info()["sysname"] == "Windows") {
     prog <- c("EM_IBD_P.exe", "impi.dll", "libiomp5md.dll")
     cmd <- "EM_IBD_P.exe INP:MyData.par"
-  }
+  } 
   
   if (Sys.info()["sysname"] == "Linux") {
     if(parallel){
@@ -273,6 +273,13 @@ gl.run.EMIBD9 <- function(x,
   linez_data <- x_lines[(strt + 1):stp]
   tmp_headings <- unlist(stringr::str_split(linez_headings, " "))
   tmp_data <- stringr::str_split(linez_data, " ")
+  
+  # write outfile if requested
+  if(outpath != tempdir()){
+    file.copy(paste0(tempdir(),"/", outfile),
+              to = outpath,
+              overwrite = TRUE)
+  }
   
   # Raw data
   tmp_data_raw_1 <- lapply(tmp_data, "[", c(2:22))
