@@ -341,16 +341,25 @@ gl.run.EMIBD9 <- function(x,
   }
   
   # PRINTING OUTPUTS
-  if (is.null(palette_convergent)) {
-    palette_convergent <- gl.colors("div")
-  } 
   
-  p1 <- gl.plot.heatmap(res,
-                          palette.divergent = palette_convergent,
-                        plot.out = plot.out,
-                        verbose = 0)
   if (plot.out) {
+    
+    if (is.null(palette_convergent)) {
+      palette_convergent <- gl.colors("div")
+    } 
+    
+    p1 <- gl.plot.heatmap(res,
+                          palette.divergent = palette_convergent,
+                          plot.out = plot.out,
+                          verbose = 0)
     invisible(p1)
+  }
+  
+  # write outfile if requested
+  if(outpath != tempdir()){
+    file.copy(paste0(tempdir(),"/", outfile),
+              to = outpath,
+              overwrite = TRUE)
   }
   
   # Optionally save the plot ---------------------
