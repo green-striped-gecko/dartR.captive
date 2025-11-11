@@ -72,6 +72,7 @@
 # @examples 
 # \dontrun{
 # #Test run with a focal individual from the Macleay River (EmmacMaclGeor) 
+# if (isTRUE(getOption("dartR_fbm"))) testset.gl <- gl.gen2fbm(testset.gl)
 # test <- gl.assign.pca(testset.gl, unknown='UC_00146',verbose=3) 
 # }
 

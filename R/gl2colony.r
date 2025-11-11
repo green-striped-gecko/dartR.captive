@@ -88,6 +88,7 @@
 #'
 #' @examples
 #' \dontrun{
+#' if (isTRUE(getOption("dartR_fbm"))) platypus.gl <- gl.gen2fbm(platypus.gl)
 #' gl2colony(x = platypus.gl,
 #'             project.name = "parentage_fish_2022",
 #'             output.name = "parentage_fish_jul_2022",

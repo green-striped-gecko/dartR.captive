@@ -61,7 +61,8 @@
 #'
 #' @examples
 #' \dontrun{
-#' gl.diagnostics.relatedness(possums.gl, run_sim = TRUE, IncludePlots = TRUE)
+#' if (isTRUE(getOption("dartR_fbm"))) testset.gl <- gl.gen2fbm(testset.gl)
+#' gl.diagnostics.relatedness(testset.gl, run_sim = TRUE, IncludePlots = TRUE)
 #' }
 #'
 #' @seealso \code{\link{gl.filter.callrate}},
