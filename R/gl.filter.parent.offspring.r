@@ -77,6 +77,7 @@
 #' @author Custodian: Arthur Georges -- Post to
 #'  \url{https://groups.google.com/d/forum/dartr}
 #' @examples
+#' if (isTRUE(getOption("dartR_fbm"))) testset.gl <- gl.gen2fbm(testset.gl)
 #' out <- gl.filter.parent.offspring(testset.gl[1:10, 1:50])
 #' @seealso  \code{\link[dartR.base]{gl.report.rdepth}} , \code{\link[dartR.base]{gl.report.reproducibility}},
 #' \code{\link{gl.report.parent.offspring}}

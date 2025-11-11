@@ -100,6 +100,7 @@ metrics, the filters for reproducibility and read depth are no used.
  }
 }
 \examples{
+if (isTRUE(getOption("dartR_fbm"))) testset.gl <- gl.gen2fbm(testset.gl)
 out <- gl.report.parent.offspring(testset.gl[1:10, 1:100])
 }
 \seealso{
