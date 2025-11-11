@@ -136,6 +136,8 @@ gl.run.EMIBD9 <- function(x,
   datatype <- utils.check.datatype(x, verbose = verbose)
   #check if embid9 is available
   os <- Sys.info()["sysname"]
+  # setting running directory 
+  rundir <- tempdir()
   
   if (Sys.info()["sysname"] == "Windows") {
     prog <- c("EM_IBD_P.exe", "impi.dll", "libiomp5md.dll")
@@ -153,9 +155,6 @@ gl.run.EMIBD9 <- function(x,
   }
   
   if (Sys.info()["sysname"] == "Darwin") {
-    prog <- c("EM_IBD_P","libquadmath.0.dylib","libmpi_usempif08.40.dylib",
-              "libmpi_usempif08.40.dylib","libquadmath.0.dylib")
-    cmd <- "./EM_IBD_P INP:MyData.par"
     if(parallel){
     prog <- "EM_IBD_P_mpi"
     cmd <- paste("mpirun -np",ncores,"--use-hwthread-cpus ./EM_IBD_P_mpi INP:MyData.par")
@@ -189,8 +188,6 @@ gl.run.EMIBD9 <- function(x,
   
   # Resolve no visible global function definition 
   J <- NULL
-
-  rundir <- tempdir()
   
   # individual IDs must have a maximal length of 20 characters. The IDs must NOT
   # contain blank space and other illegal characters (such as /), and must be
@@ -210,9 +207,8 @@ gl.run.EMIBD9 <- function(x,
     Inbreed <- 0
   }
   
-  # Inbreed <- Inbreed
   GtypeFile <- "EMIBD9_Gen.dat"
-  OutFileName <-  outfile
+  OutFileName <- outfile
   # ISeed <- ISeed
   RndDelta0 <- 1
   EM_Method <- 1
@@ -231,14 +227,6 @@ gl.run.EMIBD9 <- function(x,
     sep = "\n"
   )
   
-  write.table(
-    param,
-    quote = FALSE,
-    row.names = FALSE,
-    col.names = FALSE,
-    file = file.path(rundir, "MyData.par"))
-
-  
   IndivID <- paste(indNames(x2))
   
   gl_mat <- as.matrix(x2)
@@ -249,19 +237,24 @@ gl.run.EMIBD9 <- function(x,
   }))
   
   tmp <- rbind(paste(indNames(x2), collapse = " "), tmp)
-  
-  write.table(tmp,
-              file = file.path(rundir, "EMIBD9_Gen.dat"),
-              quote = FALSE,
-              row.names = FALSE,
-              col.names = FALSE
-  )
-  
+
   # run EMIBD9
   # change into tempdir (run it there)
   old.path <- getwd()
   on.exit(setwd(old.path))
   setwd(rundir)
+  write.table(tmp,
+              file = GtypeFile,
+              quote = FALSE,
+              row.names = FALSE,
+              col.names = FALSE
+  )
+  write.table(
+    param,
+    quote = FALSE,
+    row.names = FALSE,
+    col.names = FALSE,
+    file = "MyData.par")
   system(cmd)
   
   ### get output  
@@ -273,13 +266,6 @@ gl.run.EMIBD9 <- function(x,
   linez_data <- x_lines[(strt + 1):stp]
   tmp_headings <- unlist(stringr::str_split(linez_headings, " "))
   tmp_data <- stringr::str_split(linez_data, " ")
-  
-  # write outfile if requested
-  if(outpath != tempdir()){
-    file.copy(paste0(tempdir(),"/", outfile),
-              to = outpath,
-              overwrite = TRUE)
-  }
   
   # Raw data
   tmp_data_raw_1 <- lapply(tmp_data, "[", c(2:22))
@@ -320,9 +306,9 @@ gl.run.EMIBD9 <- function(x,
        report("Exporting individual diversity and inbreeding values \n"))
    }
    
-   inbTable <- fread(file = outfile, nrows = nInd(x), skip = inbreedStart)
+   inbTable <- fread(file = OutFileName, nrows = nInd(x), skip = inbreedStart)
  }
-
+ 
   #return to old path
   setwd(old.path)
   
@@ -357,9 +343,9 @@ gl.run.EMIBD9 <- function(x,
   
   # write outfile if requested
   if(outpath != tempdir()){
-    file.copy(paste0(tempdir(),"/", outfile),
-              to = outpath,
-              overwrite = TRUE)
+    temp_path <- file.path(tempdir(), outfile)
+    dest_path <- file.path(outpath, outfile)
+    file.copy(from = temp_path, to = dest_path, overwrite = TRUE)
   }
   
   # Optionally save the plot ---------------------
