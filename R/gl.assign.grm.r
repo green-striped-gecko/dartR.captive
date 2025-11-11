@@ -21,6 +21,9 @@
 #' @author Custodian: Luis Mijangos -- Post to
 #' \url{https://groups.google.com/d/forum/dartr}
 #' @examples
+#' if (isTRUE(getOption("dartR_fbm"))) possums.gl <- gl.gen2fbm(possums.gl)
+#' out <- gl.assign.grm(possums.gl, unknown="300")
+#' 
 #' require("dartR.data")
 #' if ((requireNamespace("rrBLUP", quietly = TRUE)) & (requireNamespace("gplots", quietly = TRUE))) {
 #'   res <- gl.assign.grm(platypus.gl, unknown = "T27")

@@ -12,12 +12,14 @@ gl.diagnostics.relatedness(
   which_tests = "wang",
   run_sim = FALSE,
   IncludePlots = FALSE,
+  plotOut = FALSE,
   varOut = FALSE,
   rmseOut = FALSE,
   numberIterations = 1,
   numberGenerations = 3,
   genToSave = "all",
   runE9 = FALSE,
+  E9Inbreed = FALSE,
   e9Path = NULL,
   verbose = NULL,
   e9parallel = FALSE,
@@ -43,6 +45,8 @@ before simulation [default = FALSE].}
 \item{IncludePlots}{Logical. If TRUE, generate and return plots
 [default = FALSE].}
 
+\item{plotOut}{Logical. If TRUE, prints plots [default = FALSE].}
+
 \item{varOut}{Logical. If TRUE, return variance results [default = FALSE].}
 
 \item{rmseOut}{Logical. If TRUE, return RMSE results [default = FALSE].}
@@ -57,6 +61,9 @@ before simulation [default = FALSE].}
 [default = "all"].}
 
 \item{runE9}{Logical. If TRUE, include E9 analysis [default = FALSE].}
+
+\item{E9Inbreed}{Logical. If TRUE, then runs EMIBD9 twice - once with inbreeding once w/out 
+[default = FALSE].}
 
 \item{e9Path}{Path to external E9 binary [optional].}
 
@@ -73,12 +80,13 @@ before simulation [default = FALSE].}
 }
 \value{
 Returns an S4 object containing simulation and/or relatedness
-  outputs. The output class depends on chosen options:
+  outputs. The slots for the output class are as follows: 
   \itemize{
-    \item OutputS4Sim – simulations only
-    \item OutputS4SimPlots – simulations + plots
-    \item OutputS4JustPlots – plots only
-    \item OutputS4 – base object
+    \item @InputDf: Original genlight input
+    \item @SimOutput: Genlight object of simulation outputs
+    \item @corOutList: Results of correlation analysis
+    \item @corVals: Output of correlation results between methods
+    \item @plotList: List of plots
   }
 }
 \description{

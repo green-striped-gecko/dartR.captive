@@ -2,15 +2,15 @@
 % Please edit documentation in R/gl.assign.pa.r
 \name{gl.assign.pa}
 \alias{gl.assign.pa}
-\title{Use private alleles to identify populations as possible source populations for an 
-individual of unknown provenance.}
+\title{Eliminates populations as possible source populations for an
+individual of unknown provenance, using private alleles}
 \usage{
 gl.assign.pa(
   x,
   unknown,
   nmin = 10,
+  threshold = 0,
   n.best = NULL,
-  alpha = 0.01,
   verbose = NULL
 )
 }
@@ -23,13 +23,13 @@ provenance is unknown [required].}
 \item{nmin}{Minimum sample size for a target population to be included in the
 analysis [default 10].}
 
-\item{n.best}{If given a value, dictates the best n=n.best populations to
-retain for consideration (or more if their are ties) based on private alleles. If not
-specified, then the putative source populations identified as significant (p < alpha)
-are retained. [default NULL].}
+\item{threshold}{Populations to retain for consideration; those for which the
+focal individual has less than or equal to threshold loci with private
+alleles [default 0].}
 
-\item{alpha}{The critical value used to select populations for which the unknown individual
-has a count of private alleles within expectation [default 0.001]}
+\item{n.best}{If given a value, dictates the best n=n.best populations to
+retain for consideration (or more if their are ties) based on private alleles
+ [default NULL].}
 
 \item{verbose}{Verbosity: 0, silent or fatal errors; 1, begin and end; 2,
 progress log; 3, progress and results summary; 5, full report
@@ -38,42 +38,35 @@ progress log; 3, progress and results summary; 5, full report
 \value{
 A genlight object containing the focal individual (assigned to
 population 'unknown') and populations for which the focal individual is not
-distinctive. If no such populations, the genlight object contains only data
-for the unknown individual with a warning.
+distinctive (number of loci with private alleles less than or equal to the
+threshold). If no such populations, the genlight object contains only data
+for the unknown individual.
 }
 \description{
-This script identifies as putative source populations,
-those for which the individual has an expected number of private alleles. The
-putative source populations are retained and returned in a genlight object.
+This script eliminates from consideration as putative source populations,
+those populations for which the individual has too many private alleles. The
+populations that remain are putative source populations, subject to further
+consideration.
 
-The algorithm calculates an expectation based on the number of private alleles each individual
-in the putative source population has in comparison with the other members of that population. 
-From the distribution of these values, an expectation
-is established as a mean and standard deviation. The private alleles possessed by the unknown
-individual in comparison with the putative source population is compared to this expectation.
-Significant departures from expectation renders a population unlikely to be the source 
-for the focal unknown individual.
+The algorithm identifies those target populations for which the individual
+has no private alleles or for which the number of private alleles does not
+exceed a user specified threshold.
 
 An excessive count of private alleles is an indication that the unknown does
 not belong to a target population (provided that the sample size is
 adequate, say >=10).
- 
-WARNING: If a putative population is not in Hardy-Weinberg equilibrium, as might occur if it
-includes F1 hybrids and backcrosses, then the standard deviation for the expectation will
-be inflated. This inflation may result in false identification of the population
-as a putative source for the focal unknown individual. For this reason, you may wish to 
-remove populations that contain individuals likely
-to be subject to contemporary hybridization or admixture.
 }
 \examples{
 # Test run with a focal individual from the Macleay River (EmmacMaclGeor)
-#test <- gl.assign.pa(testset.gl,unknown='UC_00146',nmin=10,verbose=3)
+if (isTRUE(getOption("dartR_fbm"))) testset.gl <- gl.gen2fbm(testset.gl)
+test <- gl.assign.pa(testset.gl,
+  unknown = "UC_00146", nmin = 10, threshold = 1)
 
 }
 \seealso{
 \code{\link{gl.assign.pca}}
 }
 \author{
-Script: Arthur Georges. Custodian: Arthur Georges -- Post to
+Custodian: Arthur Georges -- Post to
   \url{https://groups.google.com/d/forum/dartr}
 }

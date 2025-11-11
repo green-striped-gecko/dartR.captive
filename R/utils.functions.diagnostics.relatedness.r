@@ -87,6 +87,9 @@ cleanup_rel <- function(input_val, testSelect=NULL){
 
 # Returns relatedness plot 
 plot_rel <- function(cleanup_out){
+  value <- NULL
+  variable <- NULL
+  yintercept<- NULL
   rel_plotgg <- ggplot(cleanup_out,aes(y=value,x=variable,color = variable,fill = variable)) +
     geom_point(position=position_jitterdodge(dodge.width=1),show.legend = F) +
     geom_violin(alpha=0.1,scale = "count")+
@@ -175,6 +178,16 @@ ExtractParents <- function(inputClass, iteration=1){
 
 
 CleanupExtractParents <- function(parentalTable){
+  
+  child1 <- NULL
+  child2 <- NULL
+  dad <- NULL
+  id <- NULL
+  id1 <- NULL
+  id2 <- NULL
+  ind1 <- NULL
+  ind2 <- NULL
+  mom <- NULL
   
   ped <- as.data.table(parentalTable)
   
@@ -298,6 +311,11 @@ printCorVals <- function(corValues, whichTests){
 
 relatedLevelPlots <- function(relatedDf, which_tests, pedSim=F){
   
+  value <- NULL
+  variable <- NULL
+  yintercept<- NULL
+  RelDegree <- NULL
+  
   if(pedSim){
     
     df1 <- reshape2::melt(relatedDf, id.vars = "RelDegree", measure.vars = which_tests) %>%
@@ -395,6 +413,12 @@ runE9 <- function(inputObj, e9Path, numCores, e9parallel=e9parallel, E9Inbreed=F
 
 mergeRelatedManual <- function(relatedDf, RecodeDf){
   
+  relationship <- NULL
+  ind1 <- NULL
+  ind2 <- NULL
+  ID1 <- NULL
+  ID2 <- NULL
+  
   relatedTransform <- relatedDf %>%
     rbind() %>%
     na.omit() 
@@ -437,6 +461,11 @@ mergeRelatedManual <- function(relatedDf, RecodeDf){
 }
 
 mergeE9Related <- function(relatedDf, RecodeDf,test_select){
+  
+  ind1 <- NULL
+  ind2 <- NULL
+  ID1 <- NULL
+  ID2 <- NULL
   
   relatedTransform <- relatedDf %>%
     rbind() %>%

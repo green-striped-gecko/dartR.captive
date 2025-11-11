@@ -168,12 +168,12 @@ gl2colony <- function(x,
   
   if(any(!c("offspring","mother","father") %in% 
          colnames(x$other$ind.metrics))){
-  x$other$ind.metrics$offspring <- "yes"
-  x$other$ind.metrics$mother <- "no"
-  x$other$ind.metrics$father <- "no"
-  
-  cat(warn(
-    "  The colums offspring, mother and father were not found in the genligth object. Setting all the individuals as offspring.\n"
+    x$other$ind.metrics$offspring <- "yes"
+    x$other$ind.metrics$mother <- "no"
+    x$other$ind.metrics$father <- "no"
+    
+    cat(warn(
+      "  The colums offspring, mother and father were not found in the genligth object. Setting all the individuals as offspring.\n"
     ))
   }
   

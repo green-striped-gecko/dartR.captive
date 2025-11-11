@@ -35,7 +35,14 @@ code <- crayon::cyan
   ))
 }
 
+.onLoad <- function(libname, pkgname) {
+  # Only set a default if user hasn’t set it already
+  if (is.null(getOption("dartR_fbm"))) {
+    val <- Sys.getenv("dartR_fbm", "")
+    # Accept a few truthy values: 1, true, yes, on (case-insensitive)
+    if (val=="TRUE") options(dartR_fbm = TRUE) else options(dartR_fbm=FALSE)
+  }
+}
+
 # Fix error using . as placeholder 
 if(getRversion() >= "2.15.1") utils::globalVariables(".")
-
-

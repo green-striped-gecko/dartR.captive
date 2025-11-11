@@ -68,6 +68,9 @@ be used to guide the choosing of the relatedness threshold in the function.
 \examples{
 \dontrun{
 #To run this function needs EMIBD9 installed in your computer
+if (isTRUE(getOption("dartR_fbm"))) platypus.gl <- gl.gen2fbm(platypus.gl)
+t1 <- gl.filter.allna(platypus.gl)
+gl.run.sim.relatedness(t1)
 }
 
 }

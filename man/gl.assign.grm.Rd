@@ -31,6 +31,9 @@ This function is a re-implementation of the function multilocus_assignment
 https://dyerlab.github.io/applied_population_genetics/population-assignment.html
 }
 \examples{
+if (isTRUE(getOption("dartR_fbm"))) possums.gl <- gl.gen2fbm(possums.gl)
+out <- gl.assign.grm(possums.gl, unknown="300")
+
 require("dartR.data")
 if ((requireNamespace("rrBLUP", quietly = TRUE)) & (requireNamespace("gplots", quietly = TRUE))) {
   res <- gl.assign.grm(platypus.gl, unknown = "T27")

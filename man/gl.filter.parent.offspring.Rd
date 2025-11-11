@@ -76,7 +76,6 @@ the two focal individuals have a count of pedigree inconsistent loci less
 than would be expected of typical unrelated individuals. There are some quite
 sophisticated software packages available to formally apply likelihoods to
 the decision, but we use a simple outlier comparison.
-
 To reduce the frequency of miss-calls, and so emphasize the difference
 between true parent-offspring pairs and unrelated pairs, the data can be
 filtered on read depth. Typically minimum read depth is set to 5x, but you
@@ -89,26 +88,23 @@ result in an unacceptable loss of loci. Reproducibility is stored in the slot
  technical replicate assay pairs for which the marker score is consistent.
 You can examine the distribution of reproducibility with the function
 \code{\link[dartR.base]{gl.report.reproducibility}}.
-
 Note that the null expectation is not well defined, and the power reduced, if
 the population from which the putative parent-offspring pairs are drawn
 contains many sibs. Note also that if an individual has been genotyped twice
 in the dataset, the replicate pair will be assessed by this script as being
 in a parent-offspring relationship.
-
 You should run \code{\link{gl.report.parent.offspring}} before filtering. Use
 this report to decide min.rdepth and min.reproducibility and assess impact on
 your dataset.
-
 Note that if your dataset does not contain RepAvg or rdepth among the locus
 metrics, the filters for reproducibility and read depth are no used.
-
  Examples of other themes that can be used can be consulted in \itemize{
  \item \url{https://ggplot2.tidyverse.org/reference/ggtheme.html} and \item
  \url{https://yutannihilation.github.io/allYourFigureAreBelongToUs/ggthemes/}
  }
 }
 \examples{
+if (isTRUE(getOption("dartR_fbm"))) testset.gl <- gl.gen2fbm(testset.gl)
 out <- gl.filter.parent.offspring(testset.gl[1:10, 1:50])
 }
 \seealso{

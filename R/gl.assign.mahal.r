@@ -89,7 +89,8 @@
 #'
 #@examples
 # # Test run with a focal individual from the Macleay River (EmmacMaclGeor)
-# test <- gl.assign.mahalanobis(testset.gl,unknown='UC_00146',verbose=3)
+# if (isTRUE(getOption("dartR_fbm"))) testset.gl <- gl.gen2fbm(possums.gl)
+# testset.gl <- gl.assign.grm(possums.gl, unknown="300")
 #
 # @examples 
 # \dontrun{

@@ -66,6 +66,7 @@ to be subject to contemporary hybridization or admixture.
 \examples{
 \dontrun{
 # Test run with a focal individual from the Macleay River (EmmacMaclGeor)
+if (isTRUE(getOption("dartR_fbm"))) testset.gl <- gl.gen2fbm(possums.gl)
 test <- gl.assign.on.genotype(testset.gl,unknown='UC_00146',nmin=10,verbose=3)
 }
 }
