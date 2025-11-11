@@ -18,7 +18,8 @@
 #' @param OutAlleleFre Whether to write , 1, or not, 0, the allele frequency file [default 0].
 #' @param palette_convergent A continuous palette function for the relatedness 
 #' values [default NULL].
-#' @param parallel Use parallelisation[default FALSE].
+#' @param parallel Use parallelisation. Only works for Mac and Linux at the 
+#' moment[default FALSE].
 #' @param ncores How many cores should be used [default 1].
 #' @param ISeed An integer used to seed the random number generator [default 42].
 #' @param plot.out A boolean that indicates whether to plot the results [default TRUE].
@@ -76,6 +77,12 @@
 #'  running really slow you may want to create the files using the function 
 #'  and then run in parallel using the documentation provided by the authors
 #'   [you need to have mpiexec installed].
+#'   
+#'  Please note individual names must have a maximal length of 20 characters. 
+#'  The IDs must NOT contain blank space and other illegal characters 
+#'  (such as /), and must be unique among all sampled individuals (i.e. NO 
+#'  duplications). Any string longer than 20 characters for individual ID will 
+#'  be truncated to have 20 characters.
 #'
 #' @return A list with three or four elements depending on whether inbreeding was
 #' selected. The first element (rel) is a matrix with pairwise relatedness. 
@@ -83,7 +90,7 @@
 #' is the 'processed' output from the table (self-comparisons - an individuals with 
 #' itself - and redundant pairs - e.g. the second individuals with the first, when the first 
 #' vs the second is already present in the results - are removed). The last (inbreeding)
-#'  is a table of indiviudal inbreeding values (if requested). 
+#'  is a table of individual inbreeding values (if requested). 
 # 
 #' @author Custodian: Luis Mijangos -- Post to
 #' \url{https://groups.google.com/d/forum/dartr}
@@ -196,8 +203,7 @@ gl.run.EMIBD9 <- function(x,
   # than 20 characters for individual ID will be truncated to have 20 characters.
 
   x2 <- x  #copy to work only on the copied data set
-  hold_names <- indNames(x)
-  indNames(x2) <- 1:nInd(x2)
+  # indNames(x2) <- 1:nInd(x2)
   
   NumIndiv <- nInd(x2)
   NumLoci <- nLoc(x2)
@@ -210,10 +216,8 @@ gl.run.EMIBD9 <- function(x,
   
   GtypeFile <- "EMIBD9_Gen.dat"
   OutFileName <- outfile
-  # ISeed <- ISeed
   RndDelta0 <- 1
   EM_Method <- 1
-  #OutAlleleFre <- 0
 
   param <- paste(NumIndiv,
     NumLoci,
@@ -276,28 +280,36 @@ gl.run.EMIBD9 <- function(x,
   colnames(tmp_data_raw_3) <- tmp_headings[2:22]
   
   # Kick out self & redundant comparisons
-  unq_pairs <- data.table(t(combn(nInd(x), 2)))
+  # unq_pairs <- data.table(t(combn(nInd(x), 2)))
+  unq_pairs <- data.table(t(combn(indNames(x), 2)))
+  # unq_pairs <- data.table(t(combn(nInd(x), 2)))
   setnames(unq_pairs, new = c("Indiv1", "Indiv2"))
   
-  table_output <- data.table(apply(tmp_data_raw_3, 2, as.numeric))
+  # table_output <- data.table(apply(tmp_data_raw_3, 2, as.numeric))
   table_output <- cbind(Ind1=rep(indNames(x), each=nInd(x)), 
                         Ind2=rep(indNames(x), nInd(x)),
-                        table_output)
+                        tmp_data_raw_3)
+  table_output <- as.data.table(table_output)
   setkeyv(table_output, c("Indiv1", "Indiv2"))
+  
   table_output <- table_output[J(unq_pairs), c(1, 2, 14:23), with=FALSE]
   
   #Relatedness
   df <- data.frame(ind1=tmp_data_raw_3$Indiv1, ind2=tmp_data_raw_3$Indiv2,rel= tmp_data_raw_3$`r(1,2)`)
-  df<- apply(df, 2, as.numeric)
+  # df <- apply(df, 2, as.numeric)
 
-  res <- matrix(NA, nrow = nInd(x), ncol = nInd(x))
+  # res <- matrix(NA, nrow = nInd(x), ncol = nInd(x))
+  # 
+  # for (i in 1:nrow(df)) {
+  #   res[df[i, 1], df[i, 2]] <- df[i, 3]
+  # }
   
-  for (i in 1:nrow(df)) {
-    res[df[i, 1], df[i, 2]] <- df[i, 3]
-  }
+  res <- reshape2::acast(df, ind1 ~ ind2, value.var = "rel")
+  res <- apply(res, 2, as.numeric)
 
-  colnames(res) <- indNames(x)
-  rownames(res) <- indNames(x)
+  # colnames(res) <- indNames(x)
+  # rownames(res) <- indNames(x)
+  rownames(res) <- colnames(res)
 
 # Inbreeding 
  inbreedStart <- which(grepl("^Indiv genotypes at polymorphic loci", x_lines)) + 1
