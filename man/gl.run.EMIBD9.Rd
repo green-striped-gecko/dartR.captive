@@ -45,7 +45,8 @@ is not and is allowed in estimating IBD coefficients [default FALSE].}
 \item{palette_convergent}{A continuous palette function for the relatedness 
 values [default NULL].}
 
-\item{parallel}{Use parallelisation[default FALSE].}
+\item{parallel}{Use parallelisation. Only works for Mac and Linux at the 
+moment[default FALSE].}
 
 \item{ncores}{How many cores should be used [default 1].}
 
@@ -70,7 +71,7 @@ The second (raw) is the raw output table from the program. The third (processed)
 is the 'processed' output from the table (self-comparisons - an individuals with 
 itself - and redundant pairs - e.g. the second individuals with the first, when the first 
 vs the second is already present in the results - are removed). The last (inbreeding)
- is a table of indiviudal inbreeding values (if requested).
+ is a table of individual inbreeding values (if requested).
 }
 \description{
 Run program EMIBD9
@@ -122,6 +123,12 @@ For Windows, Mac and Linux install the program then point to the folder
  running really slow you may want to create the files using the function 
  and then run in parallel using the documentation provided by the authors
   [you need to have mpiexec installed].
+  
+ Please note individual names must have a maximal length of 20 characters. 
+ The IDs must NOT contain blank space and other illegal characters 
+ (such as /), and must be unique among all sampled individuals (i.e. NO 
+ duplications). Any string longer than 20 characters for individual ID will 
+ be truncated to have 20 characters.
 }
 \examples{
 \dontrun{
