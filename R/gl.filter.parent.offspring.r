@@ -284,7 +284,7 @@ gl.filter.parent.offspring <- function(x,
                    fill = plot_colors[2]) +
     geom_vline(xintercept = cutoff,
                color = "red",
-               size = 1) +
+               linewidth = 1) +
     coord_cartesian(xlim = c(min(count), max(count))) +
     xlab("No. Pedigree incompatible") +
     ylab("Count") +
