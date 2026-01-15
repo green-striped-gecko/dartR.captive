@@ -77,6 +77,7 @@
 #' @author Custodian: Arthur Georges -- Post to
 #'  \url{https://groups.google.com/d/forum/dartr}
 #' @examples
+#' if (isTRUE(getOption("dartR_fbm"))) testset.gl <- gl.gen2fbm(testset.gl)
 #' out <- gl.filter.parent.offspring(testset.gl[1:10, 1:50])
 #' @seealso  \code{\link[dartR.base]{gl.report.rdepth}} , \code{\link[dartR.base]{gl.report.reproducibility}},
 #' \code{\link{gl.report.parent.offspring}}
@@ -99,8 +100,7 @@ gl.filter.parent.offspring <- function(x,
                                        verbose = NULL) {
   # SET VERBOSITY
   verbose <- gl.check.verbosity(verbose)
-
-
+  
   # SET WORKING DIRECTORY
   plot.dir <- gl.check.wd(plot.dir, verbose = 0)
 
@@ -306,18 +306,29 @@ gl.filter.parent.offspring <- function(x,
       ind_to_remove <- vector()
       for (i in 1:nrow(ind_to_remove_temp)) {
         ind_to_remove_temp_2 <- unname(unlist(ind_to_remove_temp[i, ]))
+        fbm <- .fbm_or_null(hold) 
+        if(is.null(fbm)){
         ind_1 <-
           sum(glNA(
             hold[which(indNames(hold) ==
-              ind_to_remove_temp_2[1])],
+              ind_to_remove_temp_2[1]),],
             alleleAsUnit = FALSE
           ))
+        }else{
+          ind_1 <- sum(is.na(hold@fbm[which(indNames(hold) ==
+                                     ind_to_remove_temp_2[1]),]))
+        }
+        if(is.null(fbm)){
         ind_2 <-
           sum(glNA(
             hold[which(indNames(hold) ==
-              ind_to_remove_temp_2[2])],
+              ind_to_remove_temp_2[2]),],
             alleleAsUnit = FALSE
           ))
+        }else{
+          ind_2 <- sum(is.na(hold@fbm[which(indNames(hold) ==
+                                              ind_to_remove_temp_2[2]),]))
+        }
         ind_to_remove_temp_3 <-
           as.data.frame(cbind(ind_to_remove_temp_2, c(ind_1, ind_2)))
         colnames(ind_to_remove_temp_3) <-

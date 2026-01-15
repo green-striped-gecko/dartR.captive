@@ -3,7 +3,7 @@
 \docType{data}
 \name{zzz}
 \alias{zzz}
-\title{Setting up the package dartR.popgenomics}
+\title{Setting up dartR.captive}
 \format{
 An object of class \code{NULL} of length 0.
 }
