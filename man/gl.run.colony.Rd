@@ -171,7 +171,8 @@ of entire pedigree configurations rather than pairwise comparisons.
 }
 \examples{
 \dontrun{
-gl2colony(x = platypus.gl)
+if (isTRUE(getOption("dartR_fbm"))) testset.gl <- gl.gen2fbm(testset.gl)
+gl2colony(x = testset.gl)
 }
 
 }

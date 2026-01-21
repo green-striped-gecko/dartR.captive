@@ -106,6 +106,7 @@
 #' if (requireNamespace("igraph", quietly = TRUE) & requireNamespace("rrBLUP",
 #'   quietly = TRUE
 #' ) & requireNamespace("fields", quietly = TRUE)) {
+#'   if (isTRUE(getOption("dartR_fbm"))) possums.gl <- gl.gen2fbm(possums.gl)
 #'   t1 <- possums.gl
 #'   # filtering on call rate
 #'   t1 <- gl.filter.callrate(t1)

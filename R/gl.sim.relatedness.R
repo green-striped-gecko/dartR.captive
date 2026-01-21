@@ -39,6 +39,8 @@
 #' @examples
 #' \dontrun{
 #' #To run this function needs EMIBD9 installed in your computer
+#' if (isTRUE(getOption("dartR_fbm"))) platypus.gl <- gl.gen2fbm(platypus.gl)
+#' gl.sim.relatedness(platypus.gl)
 #' }
 #'
 #' @references

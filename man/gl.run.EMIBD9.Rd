@@ -133,6 +133,7 @@ For Windows, Mac and Linux install the program then point to the folder
 \examples{
 \dontrun{
 #To run this function needs EMIBD9 installed in your computer
+if (isTRUE(getOption("dartR_fbm"))) platypus.gl <- gl.gen2fbm(platypus.gl)
 t1 <- gl.filter.allna(platypus.gl)
 res_rel <- gl.run.EMIBD9(t1)
 }
