@@ -78,7 +78,7 @@
 #' @importFrom magrittr %>%
 #' @importFrom tidyr pivot_wider
 #' @importFrom reshape2 acast
-#' @importFrom related coancestry
+# @importFrom related coancestry
 gl.diagnostics.relatedness <- function(
     x,
     cleanup = FALSE,
@@ -131,8 +131,12 @@ gl.diagnostics.relatedness <- function(
   
   # FUNCTION SPECIFIC ERROR CHECKING ----
   # Check required packages
+  # needed_pkgs <- c(
+  #   "dartRverse", "related", "Rcpp",
+  #   "ggplot2", "tidyverse", "reshape2", "data.table"
+  # )
   needed_pkgs <- c(
-    "dartRverse", "related", "Rcpp",
+    "dartRverse", "Rcpp",
     "ggplot2", "tidyverse", "reshape2", "data.table"
   )
   for (pkg in needed_pkgs) {
