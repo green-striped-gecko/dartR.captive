@@ -10,6 +10,7 @@ gl.run.EMIBD9(
   outpath = tempdir(),
   emibd9.path = getwd(),
   OutAlleleFre = 0,
+  EM_Method = 1,
   Inbreed = FALSE,
   palette_convergent = NULL,
   parallel = FALSE,
@@ -36,21 +37,6 @@ Please note there are 2 different executables depending on your OS:
 EM_IBD_P.exe (=Windows) EM_IBD_P (=Mac, Linux).
 You only need to point to the folder (the function will recognise which OS 
 you are running) [default getwd()].}
-
-\item{OutAlleleFre}{Whether to write , 1, or not, 0, the allele frequency file [default 0].}
-
-\item{Inbreed}{A Boolean, taking values TRUE or FALSE to indicate inbreeding 
-is not and is allowed in estimating IBD coefficients [default FALSE].}
-
-\item{palette_convergent}{A continuous palette function for the relatedness 
-values [default NULL].}
-
-\item{parallel}{Use parallelisation. Only works for Mac and Linux at the 
-moment[default FALSE].}
-
-\item{ncores}{How many cores should be used [default 1].}
-
-\item{ISeed}{An integer used to seed the random number generator [default 42].}
 
 \item{plot.out}{A boolean that indicates whether to plot the results [default TRUE].}
 
