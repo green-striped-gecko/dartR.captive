@@ -6,7 +6,7 @@
 #' @importFrom grDevices rainbow hcl
 #' @importFrom graphics lines par
 #' @importFrom stats ave pchisq var variable.names complete.cases pnorm quantile sd
-#' @import adegenet
+#' @rawNamespace import(adegenet, except = c(glMean, glSum))
 #' @import dartR.base
 #' @import ggplot2
 #' @importFrom crayon red yellow green blue cyan
