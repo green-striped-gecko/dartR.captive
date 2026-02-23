@@ -170,7 +170,10 @@ simultaneously infers sibships and parentage by considering the likelihood
 of entire pedigree configurations rather than pairwise comparisons.
 }
 \examples{
-# gl2colony(x = platypus.gl)
+\dontrun{
+if (isTRUE(getOption("dartR_fbm"))) testset.gl <- gl.gen2fbm(testset.gl)
+gl2colony(x = testset.gl)
+}
 
 }
 \references{

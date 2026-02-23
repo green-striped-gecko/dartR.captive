@@ -81,6 +81,7 @@ Colors of node symbols are those of the rainbow.
 }
 \examples{
 if ((requireNamespace("rrBLUP", quietly = TRUE)) & (requireNamespace("gplots", quietly = TRUE))) {
+  if (isTRUE(getOption("dartR_fbm"))) platypus.gl <- gl.gen2fbm(platypus.gl)
   test <- gl.subsample.loc(platypus.gl, n = 100)
   test <- gl.keep.ind(test, ind.list = indNames(test)[1:10])
   D <- gl.grm(test, legendx = 0.04)

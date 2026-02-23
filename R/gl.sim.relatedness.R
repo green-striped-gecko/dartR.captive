@@ -9,36 +9,56 @@
 #'and their confidence intervals (CI), for different relationships that could 
 #'be used to guide the choosing of the relatedness threshold in the function.
 #'
-#'|Relationship                               |Kinship  |     95% CI       |
-#'
-#'|Identical twins/clones/same individual     | 0.5     |        -         |
-#'
-#'|Sibling/Parent-Offspring                   | 0.25    |    (0.204, 0.296)|
-#'
-#'|Half-sibling                               | 0.125   |    (0.092, 0.158)|
-#'
-#'|First cousin                               | 0.062   |    (0.038, 0.089)|
-#'
-#'|Unrelated                                  | 0       |        -         | 
+#' \tabular{lll}{
+#'   \strong{Relationship} \tab \strong{Kinship} \tab \strong{95\% CI} \cr
+#'   Identical twins / clones / same individual \tab 0.5   \tab –              \cr
+#'   Sibling / Parent–Offspring                \tab 0.25  \tab (0.204, 0.296)\cr
+#'   Half‑sibling                              \tab 0.125 \tab (0.092, 0.158)\cr
+#'   First cousin                              \tab 0.062 \tab (0.038, 0.089)\cr
+#'   Half‑cousin                               \tab 0.031 \tab (0.012, 0.055)\cr
+#'   Second cousin                             \tab 0.016 \tab (0.004, 0.031)\cr
+#'   Half‑second cousin                        \tab 0.008 \tab (0.001, 0.020)\cr
+#'   Third cousin                              \tab 0.004 \tab (0.000, 0.012)\cr
+#'   Unrelated                                 \tab 0     \tab –              \cr
+#' }
+#' 
 #' @param x Name of the genlight object containing the SNP data [required].
 #' @param rel The degree of relatedness you wish to simulate. One of, 'full.sib', 
 #' 'half.sib','first.cousin' [default 'full.sib']. 
-#' @param nboots The number of simulation replicates you wish to perform [default 10].
-#' @param emibd9.path The location of all necessary files to run EMIBD9 (read more at gl.run.EMIBD9)
-#' @param conf The specified threshold for confidence interval calculation from simulated relatedness values [default 0.95]
-#' @param plot.out A boolean that indicates whether to plot the results [default TRUE].
-#' @param plot.dir Directory to save the plot RDS files [default as specified by the global working directory or tempdir()]
-#' @param plot.file Name for the RDS binary file to save (base name only, exclude extension) [default NULL]
-#' @param iseed An integer used to seed the random number generator [default 42].
+#' @param nboots The number of simulation replicates you wish to perform 
+#' [default 10].
+#' @param emibd9.path The location of all necessary files to run EMIBD9 
+#' (read more at gl.run.EMIBD9) [required].
+#' @param conf The specified threshold for confidence interval calculation 
+#' from simulated relatedness values [default 0.95].
+#' @param OutAlleleFre Whether to write , 1, or not, 0, the allele frequency 
+#' file [default 0].
+#' @param EM_Method Whether to estimate Δ only (EM_Method=0) or to estimate Δ 
+#' and p jointly (EM_Method=1) [default 1].
+#' @param Inbreed A Boolean, taking values TRUE or FALSE to indicate inbreeding 
+#' is not and is allowed in estimating IBD coefficients [default FALSE].
+#' @param ISeed An integer used to seed the random number generator [default 42].
+#' @param parallel Use parallelisation. Only works for Mac and Linux at the 
+#' moment[default FALSE].
+#' @param ncores How many cores should be used [default 1].
+#' @param plot.out A boolean that indicates whether to plot the results 
+#' [default TRUE].
+#' @param plot.dir Directory to save the plot RDS files [default as specified 
+#' by the global working directory or tempdir()]
+#' @param plot.file Name for the RDS binary file to save (base name only, 
+#' exclude extension) [default NULL]
 #' @param verbose Verbosity: 0, silent or fatal errors; 1, begin and end; 2,
 #' progress log; 3, progress and results summary; 5, full report
 #'  [default NULL, unless specified using gl.set.verbosity]
-#' @return Summary statistics of chosen relatedness relationship and a histogram of relatedness values showing the mean. 
+#' @return Summary statistics of chosen relatedness relationship and a 
+#' histogram of relatedness values showing the mean. 
 #' @author Custodian: Sam Amini -- Post to
 #' \url{https://groups.google.com/d/forum/dartr}
 #' @examples
 #' \dontrun{
 #' #To run this function needs EMIBD9 installed in your computer
+#' if (isTRUE(getOption("dartR_fbm"))) platypus.gl <- gl.gen2fbm(platypus.gl)
+#' gl.sim.relatedness(platypus.gl)
 #' }
 #'
 #' @references
@@ -47,8 +67,8 @@
 #'  frequencies from a small sample of individuals. Methods in Ecology and
 #'  Evolution, 13(11), 2443-2462.
 #'  
-#'  Speed, D., Balding, D. Relatedness in the post-genomic era: is it still useful?. Nat
-#'  Rev Genet 16, 33–44 (2015). 
+#'  Speed, D., Balding, D. Relatedness in the post-genomic era: is it still 
+#'  useful?. Nat Rev Genet 16, 33–44 (2015). 
 #' }
 #' @importFrom stringr str_split
 #' @importFrom dartR.sim gl.sim.offspring
@@ -56,16 +76,20 @@
 #' @export
 
 gl.sim.relatedness <- function(x,
-                               rel = "full.sib", 
+                               rel = "full.sib",
                                nboots = 10,
                                emibd9.path = getwd(),
                                conf = 0.95,
-                               iseed = 42, 
+                               OutAlleleFre = 0,
+                               EM_Method = 1,
+                               Inbreed = FALSE,
+                               ISeed = 42,
+                               parallel = FALSE,
+                               ncores = 1,
                                plot.out = TRUE,
-                               plot.dir=NULL,
+                               plot.dir = NULL,
                                plot.file = NULL,
                                verbose = NULL) {
-  
   
   # SET VERBOSITY
   verbose <- gl.check.verbosity(verbose)
@@ -93,6 +117,20 @@ gl.sim.relatedness <- function(x,
     ))
     return(-1)
   }
+  pkg <- "related"
+  if (!(requireNamespace(pkg, quietly = TRUE))) {
+    cat(
+      error(
+        "Package",
+        pkg,
+        " needed for this function to work. Please install it using: \n
+    devtools::install_github('timothyfrasier/related')"
+      )
+    )
+    return(-1)
+  }
+  
+  
   
   #Do the job
   
@@ -103,11 +141,22 @@ gl.sim.relatedness <- function(x,
     mother <- x[parents[1],]
     father <- x[parents[2],]
     
-    off <- dartR.sim::gl.sim.offspring(father, mother, noffpermother = 2, sexratio = 0.5)
+    off <- dartR.sim::gl.sim.offspring(father, 
+                                       mother, 
+                                       noffpermother = 2,
+                                       sexratio = 0.5)
     ppoff <- rbind(x,off[1,])
     
     res <- gl.run.EMIBD9(ppoff, 
-                         emibd9.path = emibd9.path)
+                         emibd9.path = emibd9.path,
+                         OutAlleleFre = OutAlleleFre,
+                         EM_Method = EM_Method,
+                         Inbreed = Inbreed,
+                         ISeed = ISeed,
+                         parallel = parallel,
+                         ncores = ncores,
+                         plot.out = plot.out,
+                         verbose = verbose)
     
     
     relo <- (res$rel[parents[1], nInd(ppoff)] + res$rel[parents[2], nInd(ppoff)])/2
@@ -127,7 +176,15 @@ gl.sim.relatedness <- function(x,
         ppoff <- rbind(x,off1[1,],off2[2,])
         
         res <- gl.run.EMIBD9(ppoff, 
-                             emibd9.path = emibd9.path)
+                             emibd9.path = emibd9.path,
+                             OutAlleleFre = OutAlleleFre,
+                             EM_Method = EM_Method,
+                             Inbreed = Inbreed,
+                             ISeed = ISeed,
+                             parallel = parallel,
+                             ncores = ncores,
+                             plot.out = plot.out,
+                             verbose = verbose)
         
   
         
@@ -157,7 +214,15 @@ gl.sim.relatedness <- function(x,
           ppoff <- rbind(x,off1, cousin1, cousin2)
           
           res <- gl.run.EMIBD9(ppoff, 
-                               emibd9.path = emibd9.path)
+                               emibd9.path = emibd9.path,
+                               OutAlleleFre = OutAlleleFre,
+                               EM_Method = EM_Method,
+                               Inbreed = Inbreed,
+                               ISeed = ISeed,
+                               parallel = parallel,
+                               ncores = ncores,
+                               plot.out = plot.out,
+                               verbose = verbose)
           
           relo <- (res$rel["cousin1","cousin2"])
           return(relo)

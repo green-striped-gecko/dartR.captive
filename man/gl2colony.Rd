@@ -166,15 +166,18 @@ candidate genotypes, based on the \code{genlight} object's individual
 metadata and genotype matrix.
 }
 \examples{
-# gl2colony(x = platypus.gl,
-#            project.name = "parentage_fish_2022",
-#            output.name = "parentage_fish_jul_2022",
-#            seed = 1234,
-#            probability.father = 0.6,
-#            probability.mother = 0.4,
-#            update.allele.freq = 1,
-#            allelic.dropout = '0.01',
-#            other.typ.err = '0.001')
+\dontrun{
+if (isTRUE(getOption("dartR_fbm"))) platypus.gl <- gl.gen2fbm(platypus.gl)
+gl2colony(x = platypus.gl,
+            project.name = "parentage_fish_2022",
+            output.name = "parentage_fish_jul_2022",
+            seed = 1234,
+            probability.father = 0.6,
+            probability.mother = 0.4,
+            update.allele.freq = 1,
+            allelic.dropout = '0.01',
+            other.typ.err = '0.001')
+}
 
 }
 \references{

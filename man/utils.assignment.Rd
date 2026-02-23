@@ -32,6 +32,7 @@ https://dyerlab.github.io/applied_population_genetics/population-assignment.html
 }
 \examples{
 require("dartR.data")
+if (isTRUE(getOption("dartR_fbm"))) platypus.gl <- gl.gen2fbm(platypus.gl)
 res <- utils.assignment(platypus.gl, unknown = "T27")
 }
 \author{

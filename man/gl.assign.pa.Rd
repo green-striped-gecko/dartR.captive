@@ -67,7 +67,8 @@ to be subject to contemporary hybridization or admixture.
 }
 \examples{
 # Test run with a focal individual from the Macleay River (EmmacMaclGeor)
-test <- gl.assign.pa(testset.gl,unknown='UC_00146',nmin=10,verbose=3)
+if (isTRUE(getOption("dartR_fbm"))) testset.gl <- gl.gen2fbm(testset.gl)
+#test <- gl.assign.pa(testset.gl,unknown='UC_00146',nmin=10,verbose=3)
 
 }
 \seealso{
