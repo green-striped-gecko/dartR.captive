@@ -23,6 +23,7 @@
 #' @examples
 #' require("dartR.data")
 #' if ((requireNamespace("rrBLUP", quietly = TRUE)) & (requireNamespace("gplots", quietly = TRUE))) {
+#'   if (isTRUE(getOption("dartR_fbm"))) platypus.gl <- gl.gen2fbm(platypus.gl)
 #'   res <- gl.assign.grm(platypus.gl, unknown = "T27")
 #' }
 #' @export

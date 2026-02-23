@@ -13,14 +13,21 @@
 #'  EM_IBD_P.exe (=Windows) EM_IBD_P (=Mac, Linux).
 #'  You only need to point to the folder (the function will recognise which OS 
 #'  you are running) [default getwd()].
-#' @param Inbreed A Boolean, taking values TRUE or FALSE to indicate inbreeding 
-#' is not and is allowed in estimating IBD coefficients [default FALSE].
-#' @param OutAlleleFre Whether to write , 1, or not, 0, the allele frequency file [default 0].
-#' @param palette_convergent A continuous palette function for the relatedness 
-#' values [default NULL].
-#' @param parallel Use parallelisation[default FALSE].
-#' @param ncores How many cores should be used [default 1].
-#' @param ISeed An integer used to seed the random number generator [default 42].
+#' @param OutAlleleFre A boolean that indicates whether to output allele frequencies
+#'  [default FALSE].
+#' @param EM_Method An integer that indicates the method to use for the expectation
+#'  maximization (EM) algorithm. 1, the standard EM method;
+#'  2, the EM method with a quasi-Newton acceleration; 3, the EM method with a
+#'  SQUAREM acceleration [default 1].
+#' @param Inbreed A boolean that indicates whether to compute inbreeding (i.e. delta1 to delta6) [default FALSE].
+#' @param palette_convergent A character vector of colours to use for the heatmap plot.
+#'  If NULL, the default palette from gl.colors("div") will be used [default NULL].
+#' @param parallel A boolean that indicates whether to run the parallel version of EM
+#' IBD9 (EM_IBD_P_mpi) [default FALSE].
+#' @param ncores An integer specifying the number of cores to use when parallel is TRUE
+#' [default 1].
+#' @param ISeed An integer specifying the random seed to use for the EM algorithm
+#' [default 42].
 #' @param plot.out A boolean that indicates whether to plot the results [default TRUE].
 #' @param plot.dir Directory to save the plot RDS files [default as specified
 #' by the global working directory or tempdir()]
@@ -30,9 +37,9 @@
 #' progress log; 3, progress and results summary; 5, full report
 #'  [default NULL, unless specified using gl.set.verbosity]
 #' @details
-#' 'The results of EMIBD9 include the identical in state (IIS) values for each mode 
+#' The results of EMIBD9 include the identical in state (IIS) values for each mode 
 #'(S1 - 9) and nine condensed identical by descent (IBD) modes (∆1 - ∆9) as well as 
-#'#'the relatedness coefficient (r). Alleles are IIS if they are the same. Similarly,
+#' the relatedness coefficient (r). Alleles are IIS if they are the same. Similarly,
 #' IBD describes a matching allele between two individuals that has been inherited 
 #' from a common ancestor or common gene. In a pairwise comparison, ∆1 to ∆9 are the
 #'  probabilities associated with each IBD mode. ∆1 to ∆6 take vakue > 0 in presence
@@ -49,28 +56,20 @@
 #'  drawn from two individuals are IBD.
 #'
 #'Below is a table modified from Speed & Balding (2015) showing kinship values,
-#'and their confidence intervals (CI), for different relationships that could
-#'be used to guide the choosing of the relatedness threshold in the function.
+#'and their confidence intervals (CI), for different relationships.
 #'
-#'|Relationship                               |Kinship  |     95% CI       |
-#'
-#'|Identical twins/clones/same individual     | 0.5     |        -         |
-#'
-#'|Sibling/Parent-Offspring                   | 0.25    |    (0.204, 0.296)|
-#'
-#'|Half-sibling                               | 0.125   |    (0.092, 0.158)|
-#'
-#'|First cousin                               | 0.062   |    (0.038, 0.089)|
-#'
-#'|Half-cousin                                | 0.031   |    (0.012, 0.055)|
-#'
-#'|Second cousin                              | 0.016   |    (0.004, 0.031)|
-#'
-#'|Half-second cousin                         | 0.008   |    (0.001, 0.020)|
-#'
-#'|Third cousin                               | 0.004   |    (0.000, 0.012)|
-#'
-#'|Unrelated                                  | 0       |        -         |
+#' \tabular{lll}{
+#'   \strong{Relationship} \tab \strong{Kinship} \tab \strong{95\% CI} \cr
+#'   Identical twins / clones / same individual \tab 0.5   \tab –              \cr
+#'   Sibling / Parent–Offspring                \tab 0.25  \tab (0.204, 0.296)\cr
+#'   Half‑sibling                              \tab 0.125 \tab (0.092, 0.158)\cr
+#'   First cousin                              \tab 0.062 \tab (0.038, 0.089)\cr
+#'   Half‑cousin                               \tab 0.031 \tab (0.012, 0.055)\cr
+#'   Second cousin                             \tab 0.016 \tab (0.004, 0.031)\cr
+#'   Half‑second cousin                        \tab 0.008 \tab (0.001, 0.020)\cr
+#'   Third cousin                              \tab 0.004 \tab (0.000, 0.012)\cr
+#'   Unrelated                                 \tab 0     \tab –              \cr
+#' }
 #'
 #'For greater detail on the methods employed by EMIBD9, we encourage you to 
 #'read Wang, J. (2022).
@@ -84,6 +83,12 @@
 #'  running really slow you may want to create the files using the function 
 #'  and then run in parallel using the documentation provided by the authors
 #'   [you need to have mpiexec installed].
+#'   
+#'  Please note individual names must have a maximal length of 20 characters. 
+#'  The IDs must NOT contain blank space and other illegal characters 
+#'  (such as /), and must be unique among all sampled individuals (i.e. NO 
+#'  duplications). Any string longer than 20 characters for individual ID will 
+#'  be truncated to have 20 characters.
 #'
 #' @return A list with three or four elements depending on whether inbreeding was
 #' selected. The first element (rel) is a matrix with pairwise relatedness. 
@@ -91,13 +96,14 @@
 #' is the 'processed' output from the table (self-comparisons - an individuals with 
 #' itself - and redundant pairs - e.g. the second individuals with the first, when the first 
 #' vs the second is already present in the results - are removed). The last (inbreeding)
-#'  is a table of indiviudal inbreeding values (if requested). 
+#'  is a table of individual inbreeding values (if requested). 
 # 
 #' @author Custodian: Luis Mijangos -- Post to
 #' \url{https://groups.google.com/d/forum/dartr}
 #' @examples
 #' \dontrun{
 #' #To run this function needs EMIBD9 installed in your computer
+#' if (isTRUE(getOption("dartR_fbm"))) platypus.gl <- gl.gen2fbm(platypus.gl)
 #' t1 <- gl.filter.allna(platypus.gl)
 #' res_rel <- gl.run.EMIBD9(t1)
 #' }
@@ -118,7 +124,8 @@ gl.run.EMIBD9 <- function(x,
                           outfile = "EMIBD9_Res.ibd9",
                           outpath = tempdir(),
                           emibd9.path = getwd(),
-                          OutAlleleFre=0,
+                          OutAlleleFre = 0,
+                          EM_Method = 1,
                           Inbreed = FALSE,
                           palette_convergent = NULL,
                           parallel = FALSE,
@@ -128,7 +135,7 @@ gl.run.EMIBD9 <- function(x,
                           plot.dir = NULL,
                           plot.file = NULL,
                           verbose = NULL) {
-  # SET VERBOSITY
+  # SET VERBOSITy
   verbose <- gl.check.verbosity(verbose)
   
   # SET WORKING DIRECTORY
@@ -144,11 +151,13 @@ gl.run.EMIBD9 <- function(x,
   datatype <- utils.check.datatype(x, verbose = verbose)
   #check if embid9 is available
   os <- Sys.info()["sysname"]
+  # setting running directory 
+  rundir <- tempdir()
   
   if (Sys.info()["sysname"] == "Windows") {
     prog <- c("EM_IBD_P.exe", "impi.dll", "libiomp5md.dll")
     cmd <- "EM_IBD_P.exe INP:MyData.par"
-  }
+  } 
   
   if (Sys.info()["sysname"] == "Linux") {
     if(parallel){
@@ -161,9 +170,6 @@ gl.run.EMIBD9 <- function(x,
   }
   
   if (Sys.info()["sysname"] == "Darwin") {
-    prog <- c("EM_IBD_P","libquadmath.0.dylib","libmpi_usempif08.40.dylib",
-              "libmpi_usempif08.40.dylib","libquadmath.0.dylib")
-    cmd <- "./EM_IBD_P INP:MyData.par"
     if(parallel){
     prog <- "EM_IBD_P_mpi"
     cmd <- paste("mpirun -np",ncores,"--use-hwthread-cpus ./EM_IBD_P_mpi INP:MyData.par")
@@ -197,8 +203,6 @@ gl.run.EMIBD9 <- function(x,
   
   # Resolve no visible global function definition 
   J <- NULL
-
-  rundir <- tempdir()
   
   # individual IDs must have a maximal length of 20 characters. The IDs must NOT
   # contain blank space and other illegal characters (such as /), and must be
@@ -206,8 +210,7 @@ gl.run.EMIBD9 <- function(x,
   # than 20 characters for individual ID will be truncated to have 20 characters.
 
   x2 <- x  #copy to work only on the copied data set
-  hold_names <- indNames(x)
-  indNames(x2) <- 1:nInd(x2)
+  # indNames(x2) <- 1:nInd(x2)
   
   NumIndiv <- nInd(x2)
   NumLoci <- nLoc(x2)
@@ -218,13 +221,10 @@ gl.run.EMIBD9 <- function(x,
     Inbreed <- 0
   }
   
-  # Inbreed <- Inbreed
   GtypeFile <- "EMIBD9_Gen.dat"
-  OutFileName <-  outfile
-  # ISeed <- ISeed
+  OutFileName <- outfile
   RndDelta0 <- 1
-  EM_Method <- 1
-  #OutAlleleFre <- 0
+  EM_Method <- EM_Method
 
   param <- paste(NumIndiv,
     NumLoci,
@@ -239,14 +239,6 @@ gl.run.EMIBD9 <- function(x,
     sep = "\n"
   )
   
-  write.table(
-    param,
-    quote = FALSE,
-    row.names = FALSE,
-    col.names = FALSE,
-    file = file.path(rundir, "MyData.par"))
-
-  
   IndivID <- paste(indNames(x2))
   
   gl_mat <- as.matrix(x2)
@@ -257,19 +249,24 @@ gl.run.EMIBD9 <- function(x,
   }))
   
   tmp <- rbind(paste(indNames(x2), collapse = " "), tmp)
-  
-  write.table(tmp,
-              file = file.path(rundir, "EMIBD9_Gen.dat"),
-              quote = FALSE,
-              row.names = FALSE,
-              col.names = FALSE
-  )
-  
+
   # run EMIBD9
   # change into tempdir (run it there)
   old.path <- getwd()
   on.exit(setwd(old.path))
   setwd(rundir)
+  write.table(tmp,
+              file = GtypeFile,
+              quote = FALSE,
+              row.names = FALSE,
+              col.names = FALSE
+  )
+  write.table(
+    param,
+    quote = FALSE,
+    row.names = FALSE,
+    col.names = FALSE,
+    file = "MyData.par")
   system(cmd)
   
   ### get output  
@@ -290,28 +287,36 @@ gl.run.EMIBD9 <- function(x,
   colnames(tmp_data_raw_3) <- tmp_headings[2:22]
   
   # Kick out self & redundant comparisons
-  unq_pairs <- data.table(t(combn(nInd(x), 2)))
+  # unq_pairs <- data.table(t(combn(nInd(x), 2)))
+  unq_pairs <- data.table(t(combn(indNames(x), 2)))
+  # unq_pairs <- data.table(t(combn(nInd(x), 2)))
   setnames(unq_pairs, new = c("Indiv1", "Indiv2"))
   
-  table_output <- data.table(apply(tmp_data_raw_3, 2, as.numeric))
+  # table_output <- data.table(apply(tmp_data_raw_3, 2, as.numeric))
   table_output <- cbind(Ind1=rep(indNames(x), each=nInd(x)), 
                         Ind2=rep(indNames(x), nInd(x)),
-                        table_output)
+                        tmp_data_raw_3)
+  table_output <- as.data.table(table_output)
   setkeyv(table_output, c("Indiv1", "Indiv2"))
+  
   table_output <- table_output[J(unq_pairs), c(1, 2, 14:23), with=FALSE]
   
   #Relatedness
   df <- data.frame(ind1=tmp_data_raw_3$Indiv1, ind2=tmp_data_raw_3$Indiv2,rel= tmp_data_raw_3$`r(1,2)`)
-  df<- apply(df, 2, as.numeric)
+  # df <- apply(df, 2, as.numeric)
 
-  res <- matrix(NA, nrow = nInd(x), ncol = nInd(x))
+  # res <- matrix(NA, nrow = nInd(x), ncol = nInd(x))
+  # 
+  # for (i in 1:nrow(df)) {
+  #   res[df[i, 1], df[i, 2]] <- df[i, 3]
+  # }
   
-  for (i in 1:nrow(df)) {
-    res[df[i, 1], df[i, 2]] <- df[i, 3]
-  }
+  res <- reshape2::acast(df, ind1 ~ ind2, value.var = "rel")
+  res <- apply(res, 2, as.numeric)
 
-  colnames(res) <- indNames(x)
-  rownames(res) <- indNames(x)
+  # colnames(res) <- indNames(x)
+  # rownames(res) <- indNames(x)
+  rownames(res) <- colnames(res)
 
 # Inbreeding 
  inbreedStart <- which(grepl("^Indiv genotypes at polymorphic loci", x_lines)) + 1
@@ -321,9 +326,9 @@ gl.run.EMIBD9 <- function(x,
        report("Exporting individual diversity and inbreeding values \n"))
    }
    
-   inbTable <- fread(file = outfile, nrows = nInd(x), skip = inbreedStart)
+   inbTable <- fread(file = OutFileName, nrows = nInd(x), skip = inbreedStart)
  }
-
+ 
   #return to old path
   setwd(old.path)
   
@@ -342,15 +347,25 @@ gl.run.EMIBD9 <- function(x,
   }
   
   # PRINTING OUTPUTS
-  if (is.null(palette_convergent)) {
-    palette_convergent <- gl.colors("div")
-  } 
   
-  p1 <- gl.plot.heatmap(res,
-                          palette.divergent = palette_convergent,
-                        verbose = 0)
   if (plot.out) {
+    
+    if (is.null(palette_convergent)) {
+      palette_convergent <- gl.colors("div")
+    } 
+    
+    p1 <- gl.plot.heatmap(res,
+                          palette.divergent = palette_convergent,
+                          plot.out = plot.out,
+                          verbose = 0)
     invisible(p1)
+  }
+  
+  # write outfile if requested
+  if(outpath != tempdir()){
+    temp_path <- file.path(tempdir(), outfile)
+    dest_path <- file.path(outpath, outfile)
+    file.copy(from = temp_path, to = dest_path, overwrite = TRUE)
   }
   
   # Optionally save the plot ---------------------

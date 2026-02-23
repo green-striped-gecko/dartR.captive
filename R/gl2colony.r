@@ -1,271 +1,406 @@
-################################################################################
-##          Function to export a COLONY2 file from a genlight object          ##
-##                                                                            ##
-##  Authors: Jesús Castrejón-Figueroa. R developer, Monash University         ##
-##           Diana A Robledo-Ruiz. Research Fellow, Monash University         ##
-##  Date: 2022-07-01                                                          ##
-##                                                                            ##
-##  This function requires:                                                   ##
-##   - Input: a genlight object with offspring and parental information       ##
-##            contained in gl@other$ind.metrics as columns 'offspring',       ##
-##            'mother' and 'father' taking values 'yes'/'no'.                 ##
-##   - User specified parameters:                                             ##
-##         - filename_out = path of the output COLONY2 file.                  ##
-##         - Others are set to a default value (check Colony User-Manual for  ##
-##           further information).                                            ##
-##   - Two custom made functions called 'parental.ids' and 'gl2structure'     ##
-##     included after the main function in this script.                       ##
-##                                                                            ##
-##  Output:                                                                   ##
-##   - A formatted text file ready to be analysed by COLONY2.                 ##
-##                                                                            ##
-##  Index:                                                                    ##
-##    Line 31: Main function gl2colony                                        ##
-##    Line 247: Function parental.ids                                         ##
-##    Line 278: Function gl2structure                                         ##
-##    Line 339: Example of use for gl2colony                                  ##
-################################################################################
+#' @name gl2colony
+#' @title Export a COLONY2 input file from a genlight object
+#' @description
+#' Export a formatted text file compatible with the COLONY2 software from a
+#'  \code{genlight} object containing parental and offspring information
+#'  stored in the individual metadata.
+#'
+#' @param x A \code{genlight} object with individual metadata columns
+#' 'offspring', 'mother', and 'father' indicating 'yes'/'no' for each sample
+#' [required].
+#' @param outfile File name of the output file (including extension)
+#' [default "colony2.dat"].
+#' @param outpath Path where to save the output file [default global working 
+#' directory or if not specified, tempdir()].
+#' @param project.name Project name to include in the file header
+#'  [default 'my_project'].
+#' @param output.name Output name to include in the file header
+#' [default 'my_project'].
+#' @param probability.father Probability that the father of an offspring is
+#' included among candidates [default 0.5].
+#' @param probability.mother Probability that the mother of an offspring is
+#' included among candidates [default 0.5].
+#' @param seed Seed for the random number generator [default NULL].
+#' @param update.allele.freq 0 = do not update allele frequencies; 1 = update
+#' [default 0].
+#' @param di.mono.ecious 2 = dioecious species; 1 = monoecious species
+#' [default 2].
+#' @param inbreed 0 = no inbreeding; 1 = inbreeding allowed [default 0].
+#' @param haplodiploid 0 = diploid species; 1 = haplodiploid species
+#'  [default 0].
+#' @param polygamy.male 0 = polygamy; 1 = monogamy for males [default 0].
+#' @param polygamy.female 0 = polygamy; 1 = monogamy for females [default 0].
+#' @param clone.inference 0 = no clone inference; 1 = infer clones [default 1].
+#' @param scale.shibship 0 = do not scale full sibship; 1 = scale [default 1].
+#' @param sibship.prior 0–4 specifying sibship prior strength (No, Weak,
+#' Medium, Strong, Optimal) [default 0].
+#' @param known.allele.freq 0 = unknown allele frequencies; 1 = known
+#' [default 0].
+#' @param num.runs Number of runs [default 1].
+#' @param length.run 1–4 specifying run length (short, medium, long, very
+#' long) [default 2].
+#' @param monitor.method 0 = monitor by iteration number; 1 = monitor by time
+#'  (seconds) [default 0].
+#' @param monitor.interval Interval for monitoring (either iteration count or
+#'  seconds) [default 10000].
+#' @param windows.gui 0 = no Windows GUI; 1 = use Windows GUI [default 0].
+#' @param likelihood 0–2 specifying likelihood scoring (PairLikelihood,
+#' FullLikelihood, FPLS) [default 0].
+#' @param precision.fl 0–3 specifying precision level for full-likelihood (Low,
+#'  Medium, High, VeryHigh) [default 2].
+#' @param marker.id Marker IDs string for all loci [default 'mk@'].
+#' @param marker.type Marker types string for all loci (0@ for codominant, 1@
+#' for dominant) [default '0@'].
+#' @param allelic.dropout Allelic dropout rate string per locus
+#' [default '0.000@'].
+#' @param other.typ.err Other typing error rate string per locus
+#' [default '0.05@'].
+#' @param paternity.exclusion.threshold Threshold for paternity exclusion
+#' ("0 0") [default '0 0'].
+#' @param maternity.exclusion.threshold Threshold for maternity exclusion
+#' ("0 0") [default '0 0'].
+#' @param paternal.sibship Number of known paternal sibships [default 0].
+#' @param maternal.sibship Number of known maternal sibships [default 0].
+#' @param excluded.paternity Number of offspring with excluded paternity
+#' [default 0].
+#' @param excluded.maternity Number of offspring with excluded maternity
+#'  [default 0].
+#' @param excluded.paternal.sibships Number of excluded paternal sibships
+#'  [default 0].
+#' @param excluded.maternity.sibships Number of excluded maternal sibships
+#' [default 0].
+#' @param verbose Verbosity: 0, silent or fatal errors; 1, begin and end; 2,
+#'  progress log ; 3, progress and results summary; 5, full report
+#'  [default 2 or as specified using gl.set.verbosity].
+#'
+#' @details
+#' This function formats and writes a COLONY2-compatible text file, including
+#' header, offspring genotypes, parental candidate probabilities, and
+#' candidate genotypes, based on the \code{genlight} object's individual
+#' metadata and genotype matrix.
+#'
+#' @return
+#' Invisibly returns the output filename.
+#'
+#' @author
+#' Jesús Castrejón-Figueroa, Diana A. Robledo-Ruiz -- Post to
+#' \url{https://groups.google.com/d/forum/dartr}
+#'
+#' @examples
+#' \dontrun{
+#' if (isTRUE(getOption("dartR_fbm"))) platypus.gl <- gl.gen2fbm(platypus.gl)
+#' gl2colony(x = platypus.gl,
+#'             project.name = "parentage_fish_2022",
+#'             output.name = "parentage_fish_jul_2022",
+#'             seed = 1234,
+#'             probability.father = 0.6,
+#'             probability.mother = 0.4,
+#'             update.allele.freq = 1,
+#'             allelic.dropout = '0.01',
+#'             other.typ.err = '0.001')
+#' }
+#'
+#' @references
+#' Wang, J. (2011). COLONY: a program for parentage and sibship inference
+#' from multilocus genotype data. Molecular Ecology Resources 10: 551–555.
+#'
+#' @importFrom utils write.table
+#' @export
 
-######################## Define MAIN function gl2colony ########################
-library(crayon)
-
-gl2colony <- function(gl = NULL,           
-                      filename_out = NULL,
-                      project_name = 'my_project',
-                      output_name = 'my_project',
-                      probability_father = 0.5,
-                      probability_mother = 0.5,
-                      seed = NULL,                # Seed for random number generator
-                      update_allele_freq = 0,     # 0/1=Not updating/updating allele frequency
-                      di_mono_ecious = 2,         # 2/1=Dioecious/Monoecious species
-                      inbreed = 0,                # 0/1=no inbreeding/inbreeding
-                      haplodiploid = 0,           # 0/1=Diploid species/HaploDiploid species
-                      polygamy_male = 0,          # 0/1=Polygamy/Monogamy for males
-                      polygamy_female = 0,        # 0/1=Polygamy/Monogamy for females
-                      clone_inference = 1,        # 0/1=Clone inference =No/Yes
-                      scale_shibship = 1,         # 0/1=Scale full sibship=No/Yes
-                      sibship_prior = 0,          # 0/1/2/3/4=No/Weak/Medium/Strong/Optimal sibship prior
-                      known_allele_freq = 0,      # 0/1=Unknown/Known population allele frequency
-                      num_runs = 1,               # Number of runs
-                      length_run = 2,             # 1/2/3/4=short/medium/long/very long run
-                      monitor_method = 0,         # 0/1=Monitor method by Iterate#/Time in second
-                      monitor_interval = 10000,   # Monitor interval in Iterate# / in seconds
-                      windows_gui = 0,            # 0/1=No/Yes for run with Windows GUI
-                      likelihood = 0,             # 0/1/2=PairLikelihood score/Fulllikelihood/FPLS
-                      precision_fl = 2,           # 0/1/2/3=Low/Medium/High/Very high precision with Full-likelihood
-                      marker_id = 'mk@',          # Marker Ids
-                      marker_type = '0@',         # Marker types, 0/1=Codominant/Dominant
-                      allelic_dropout = '0.000@', # Allelic dropout rate at each locus
-                      other_typ_err = '0.05@',    # Other typing error rate at each locus
-                      paternity_exclusion_threshold = '0 0',
-                      maternity_exclusion_threshold = '0 0',
-                      paternal_sibship = 0,
-                      maternal_sibship = 0,
-                      excluded_paternity = 0,
-                      excluded_maternity = 0,
-                      excluded_paternal_sibships = 0,
-                      excluded_maternity_sibships = 0) {
+gl2colony <- function(x,
+                      outfile = "colony2.dat",
+                      outpath = NULL,
+                      project.name = 'my_project',
+                      output.name = 'my_project',
+                      probability.father = 0.5,
+                      probability.mother = 0.5,
+                      seed = NULL,
+                      update.allele.freq = 0,
+                      di.mono.ecious = 2,
+                      inbreed = 0,
+                      haplodiploid = 0,
+                      polygamy.male = 0,
+                      polygamy.female = 0,
+                      clone.inference = 1,
+                      scale.shibship = 1,
+                      sibship.prior = 0,
+                      known.allele.freq = 0,
+                      num.runs = 1,
+                      length.run = 2,
+                      monitor.method = 0,
+                      monitor.interval = 10000,
+                      windows.gui = 0,
+                      likelihood = 0,
+                      precision.fl = 2,
+                      marker.id = 'mk@',
+                      marker.type = '0@',
+                      allelic.dropout = '0.000@',
+                      other.typ.err = '0.05@',
+                      paternity.exclusion.threshold = '0 0',
+                      maternity.exclusion.threshold = '0 0',
+                      paternal.sibship = 0,
+                      maternal.sibship = 0,
+                      excluded.paternity = 0,
+                      excluded.maternity = 0,
+                      excluded.paternal.sibships = 0,
+                      excluded.maternity.sibships = 0,
+                      verbose = NULL) {
+  # SET VERBOSITY
+  verbose <- gl.check.verbosity(verbose)
   
-  if(is.null(gl)){
-    stop('Missing Genlight object.')
-  }
+  # SET WORKING DIRECTORY
+  outpath <- gl.check.wd(outpath,verbose=0)
+  outfilespec <- file.path(outpath, outfile)
   
-  if(is.null(filename_out)){
-    stop('Missing output filename.')
-  }
+  # FLAG SCRIPT START
+  funname <- match.call()[[1]]
+  utils.flag.start(func = funname,
+                   build = "Jody",
+                   verbose = verbose)
   
-  loci = dim(gl)[2]
+  # CHECK DATATYPE
+  datatype <- utils.check.datatype(x, verbose = verbose)
   
-  if(is.null(loci)){
-    stop('Number of loci must be non-zero.')
-  } 
-  
-  if(is.null(seed)){
-    # random seed oherwise set manually
+  # SET RANDOM SEED
+  if (is.null(seed)) {
     seed <- sample.int(65535, 1)
   }
-  message(sprintf('Random seed set to %d',seed))
+  cat(code(sprintf('Random seed set to %d', seed)), "\n")
   
+  if(any(!c("offspring","mother","father") %in% 
+         colnames(x$other$ind.metrics))){
+  x$other$ind.metrics$offspring <- "yes"
+  x$other$ind.metrics$mother <- "no"
+  x$other$ind.metrics$father <- "no"
   
-  x <- parental.ids(gl)
-  
-  offspring_ids <- x$offs
-  dad_ids       <- x$dad
-  mum_ids       <- x$mum
-  
-  n_offspring <- length(offspring_ids)
-  n_dads     <- length(dad_ids)
-  n_mums   <- length(mum_ids)
-  
-  n_total <- n_offspring + n_mums + n_dads
-  
-  message(sprintf('%d Offspring detected. \n%d Fathers detected. \n%d Mothers detected.\n', n_offspring, n_dads, n_mums))
-  
-  if( !length(dad_ids) && !length(mum_ids)) {
-    message('Missing paternal and maternal IDs: only sibship inference will be possible.')
+  cat(warn(
+    "  The colums offspring, mother and father were not found in the genligth object. Setting all the individuals as offspring.\n"
+    ))
   }
   
-  if( !length(offspring_ids) ) {
-    stop('Missing offspring IDs.')
+  x$other$ind.metrics$id <- indNames(x)
+  
+  # EXTRACT PARENTAL IDS
+  ids <- parental.ids(x)
+  offspring.ids <- ids$offs
+  dad.ids       <- ids$dad
+  mum.ids       <- ids$mum
+  
+  # COUNTS
+  n.offspring <- length(offspring.ids)
+  n.dads      <- length(dad.ids)
+  n.mums      <- length(mum.ids)
+  loci        <- nLoc(x)
+  n.total     <- n.offspring + n.dads + n.mums
+  
+  cat(report(
+    sprintf(
+      '%d offspring, %d fathers, %d mothers detected.',
+      n.offspring,
+      n.dads,
+      n.mums
+    )
+  ), "\n")
+  
+  # WARN IF OFFSPRING MISSING
+  if (n.offspring == 0) {
+    stop(error('No offspring IDs found in metadata.'))
   }
   
-  # Transform genlight object to structure format
-  message("Exporting Genlight object to COLONY2 format...")
-  str_1row_with0s <- gl2structure(gl)
+  # CONVERT TO STRUCTURE FORMAT
+  cat(report('Exporting genlight object to COLONY2 format...'), "\n")
+  struct.mat <- gl2structure(x)
   
-  # Subset structure dataset with offspring
-  offspring_geno_to_keep <- match(offspring_ids, rownames(str_1row_with0s))  
-  offspring_gen <- str_1row_with0s[offspring_geno_to_keep,]  # keep only offspring genotypes
+  # SUBSET GENOTYPES
+  offspring.gen <- struct.mat[offspring.ids, , drop = FALSE]
   
-  # Subset structure dataset with only mums
-  if(length(mum_ids) > 0) {
-    mum_geno_to_keep <- match(mum_ids, rownames(str_1row_with0s))
-    mum_gen <- str_1row_with0s[mum_geno_to_keep,]  # keep only mum genotypes
-  } else {
-    probability_mother = 0
+  mum.gen       <- if (n.mums > 0){
+    struct.mat[mum.ids, , drop = FALSE]
+  }else{
+    NULL
   }
   
-  # Subset structure dataset with only dads
-  if(length(dad_ids) > 0) {
-    dad_geno_to_keep <- match(dad_ids, rownames(str_1row_with0s))
-    dad_gen <- str_1row_with0s[dad_geno_to_keep,]  # keep only dad genotypes
-  } else {
-    probability_father = 0
+  dad.gen       <- if (n.dads > 0){
+    struct.mat[dad.ids, , drop = FALSE]
+  }else{
+    NULL
   }
   
-  ###################### 1. Create header for COLONY2 file
-  head_comments <- list('! No. offspring',
-                        '! No. of loci',
-                        '! Seed for random number generator',
-                        '! 0/1=Not updating/updating allele frequency',
-                        '! 2/1=Dioecious/Monoecious species',
-                        '! 0/1=no inbreeding/inbreeding',
-                        '! 0/1=Diploid species/HaploDiploid species',
-                        '! 0/1=Polygamy/Monogamy for males & females',
-                        '! 0/1=Clone/duplicates inference =No/Yes',
-                        '! 0/1=Scale full sibship=No/Yes',
-                        '! 0/1/2/3=No/Weak/Medium/Strong sibship prior',
-                        '! 0/1=Unknown/Known population allele frequency',
-                        '! Number of runs',
-                        '! 1/2/3/4=short/medium/long/very long run',
-                        '! 0/1=Monitor method by Iterate#/Time in second',
-                        '! Monitor interval in Iterate# / in seconds',
-                        '! 0/1=No/Yes for run with Windows GUI',
-                        '! 0/1/2=PairLikelihood score/Fulllikelihood/FPLS',
-                        '! 0/1/2/3=Low/Medium/High/Very high precision FL',
-                        '',
-                        '! Marker Ids (consecutive for all)',
-                        '! Marker types, 0/1=Codominant/Dominant',
-                        '! Allelic dropout rate for all loci',
-                        '! Other typing error rate for all loci')
+  if (n.mums == 0){
+    probability.mother <- 0
+  }
   
-  polygamy <- paste(polygamy_male, polygamy_female,sep=' ')
+  if (n.dads == 0){
+    probability.father <- 0
+  }
   
-  head.list <- list(n_offspring,loci,seed,update_allele_freq,di_mono_ecious,inbreed,haplodiploid,
-                    polygamy,clone_inference,scale_shibship,sibship_prior,known_allele_freq,
-                    num_runs,length_run,monitor_method,monitor_interval,windows_gui,likelihood,precision_fl,'',marker_id,
-                    marker_type,allelic_dropout,other_typ_err
+  # PREPARE HEADER
+  head.comments <- c(
+    '! No. offspring',
+    '! No. of loci',
+    '! Seed for RNG',
+    '! 0/1 = update allele freq',
+    '! 2/1 = dioecious/monoecious',
+    '! 0/1 = no inbreeding/inbreeding',
+    '! 0/1 = diploid/haplodiploid',
+    '! polygamy male female',
+    '! clone inference',
+    '! scale sibship',
+    '! sibship prior',
+    '! known allele freq',
+    '! num runs',
+    '! run length',
+    '! monitor method',
+    '! monitor interval',
+    '! windows GUI',
+    '! likelihood',
+    '! precision FL',
+    '',
+    '! Marker Ids',
+    '! Marker types',
+    '! Allelic dropout rate',
+    '! Other typing error rate'
+  )
+  head.values <- list(
+    n.offspring,
+    loci,
+    seed,
+    update.allele.freq,
+    di.mono.ecious,
+    inbreed,
+    haplodiploid,
+    paste(polygamy.male, polygamy.female),
+    clone.inference,
+    scale.shibship,
+    sibship.prior,
+    known.allele.freq,
+    num.runs,
+    length.run,
+    monitor.method,
+    monitor.interval,
+    windows.gui,
+    likelihood,
+    precision.fl,
+    '',
+    marker.id,
+    marker.type,
+    allelic.dropout,
+    other.typ.err
   )
   
-  # Export header to COLONY2 file
-  sink(filename_out)
-  cat(project_name, '\n')
-  cat(output_name, '\n')
-  for(i in 1:length(head.list)) {
-    cat(head.list[[i]], '\t\t', head_comments[[i]], '\n')
+  # WRITE HEADER
+  sink(outfilespec)
+  cat(project.name, '\n')
+  cat(output.name, '\n')
+  for (i in seq_along(head.values)) {
+    cat(head.values[[i]], '\t', head.comments[i], '\n')
   }
   sink()
   
-  ################# 2. Add offspring genotypes to COLONY2 file
-  write.table(offspring_gen,
-              file = filename_out,
-              append = TRUE,
-              quote = FALSE, 
-              col.names = FALSE)
+  # WRITE OFFSPRING
+  write.table(
+    offspring.gen,
+    file = outfilespec,
+    append = TRUE,
+    quote = FALSE,
+    col.names = FALSE
+  )
   
-  sink(filename_out, append =TRUE)
-  
-  ################ 3. Add parents probabilities to COLONY2 file
-  probabilities <- paste(probability_father, probability_mother, sep=' ')
-  n_indv <- paste(n_dads, n_mums, sep=' ')
+  # WRITE CANDIDATE PROBABILITIES
+  sink(outfilespec, append = TRUE)
   cat('\n')
-  cat(probabilities, '\t\t', 
-      '! Probabilities that the father and mother of an offspring are included in candidates', 
-      '\n')
-  cat(n_indv, '\t\t', '! Numbers of candidate males and females', '\n')
+  cat(
+    paste(probability.father, probability.mother),
+    '\t',
+    '! Parental inclusion probabilities',
+    '\n'
+  )
+  cat(paste(n.dads, n.mums), '\t', '! Number of candidates', '\n')
   cat('\n')
   sink()
   
-  ################# 4. Add dads genotypes to COLONY2 file
-  if(length(dad_ids) > 0){
-    message(sprintf("(%d%%) Working on it...", round(n_offspring*100/n_total,0)))
-    write.table(dad_gen,
-                file = filename_out,
-                append = TRUE,
-                quote = FALSE,
-                col.names = FALSE)
-    
-    sink(filename_out, append = TRUE)
-    cat('\n')
-    sink()
+  # WRITE DADS
+  if (n.dads > 0) {
+    cat(report('Writing paternal genotypes...'), "\n")
+    write.table(
+      dad.gen,
+      file = outfilespec,
+      append = TRUE,
+      quote = FALSE,
+      col.names = FALSE
+    )
   }
   
-  ################# 5. Add mums genotypes to COLONY2 file
-  if(length(mum_ids) > 0){
-    message(sprintf("(%d%%) Almost there...", round((n_offspring + n_dads)*100/n_total,0)))
-    write.table(mum_gen,
-                file = filename_out,
-                append = TRUE,
-                quote = FALSE,
-                col.names = FALSE)
+  # WRITE MUMS
+  if (n.mums > 0) {
+    cat(report('Writing maternal genotypes...'), "\n")
+    write.table(
+      mum.gen,
+      file = outfilespec,
+      append = TRUE,
+      quote = FALSE,
+      col.names = FALSE
+    )
   }
   
-  ################ 6. Add last parameters to COLONY2 file
-  last_comments <- list('! Number of offspring with known paternity, exclusion threshold',
-                        '! Number of offspring with known maternity, exclusion threshold',
-                        '',
-                        '! Number of known paternal sibship',
-                        '! Number of known maternal sibship',
-                        '',
-                        '! Number of offspring with known excluded paternity',
-                        '! Number of offspring with known excluded maternity',
-                        '',
-                        '! Number of offspring with known excluded paternal sibships',
-                        '! Number of offspring with known excluded maternal sibships')
-  
-  last_values <- list(paternity_exclusion_threshold,
-                      maternity_exclusion_threshold,
-                      '',
-                      paternal_sibship,
-                      maternal_sibship,
-                      '',
-                      excluded_paternity,
-                      excluded_maternity,
-                      '',
-                      excluded_paternal_sibships,
-                      excluded_maternity_sibships)
-  
-  sink(filename_out, append =TRUE)  
+  # WRITE EXCLUSION & SIBSHIP PARAMETERS
+  last.comments <- c(
+    '! Offspring known paternity threshold',
+    '! known maternity threshold',
+    '',
+    '! known paternal sibship',
+    '! known maternal sibship',
+    '',
+    '! excluded paternity',
+    '! excluded maternity',
+    '',
+    '! excluded paternal sibships',
+    '! excluded maternal sibships'
+  )
+  last.values <- list(
+    paternity.exclusion.threshold,
+    maternity.exclusion.threshold,
+    '',
+    paternal.sibship,
+    maternal.sibship,
+    '',
+    excluded.paternity,
+    excluded.maternity,
+    '',
+    excluded.paternal.sibships,
+    excluded.maternity.sibships
+  )
+  sink(outfilespec, append = TRUE)
   cat('\n')
-  
-  for(i in 1:length(last_values)) {
-    cat(last_values[[i]],'\t\t',last_comments[[i]],'\n')
+  for (i in seq_along(last.values)) {
+    cat(last.values[[i]], '\t', last.comments[i], '\n')
   }
   sink()
   
-  # Finished
-  cat(crayon::green$bold('(100%) COLONY2 file successfully exported!'))
+  # COMPLETION MESSAGE
+  cat(report('(100%) COLONY2 file successfully exported!'), "\n")
+  
+  if (verbose >= 3) {
+    cat(report(paste(
+      "Records written to", outfilespec, "\n"
+    )))
+  }
+  
+  # FLAG SCRIPT END
+  if (verbose >= 1) {
+    cat(report('\nCompleted:, ', funname, '\n'))
+  }
+  
+  return(invisible(outfilespec))
 }
-################################################################################
 
 
 ######################### Define function parental.ids #########################
-## This function extracts parental information in a list of 3 elements (vectors 
+## This function extracts parental information in a list of 3 elements (vectors
 ## with offspring, dads and mums IDs, respectively)
-parental.ids <- function(gen_data) {
-  
+parental.ids <- function(gen.data) {
   # Read metadata and convert to lowercase
-  indv.metadata <- gen_data@other$ind.metrics
+  indv.metadata <- gen.data@other$ind.metrics
   names(indv.metadata) <- tolower(names(indv.metadata))
   
   # Remove leading/trailing white spaces
@@ -274,37 +409,36 @@ parental.ids <- function(gen_data) {
   indv.metadata$offspring <- tolower(indv.metadata$offspring)
   
   # Subset metadata
-  mum_ids  <- indv.metadata[indv.metadata$mother    %in% c("yes"," yes", "yes "), 'id']
-  dad_ids  <- indv.metadata[indv.metadata$father    %in% c("yes"," yes", "yes "), 'id']
-  offs_ids <- indv.metadata[indv.metadata$offspring %in% c("yes"," yes", "yes "), 'id']
+  mum.ids  <- indv.metadata[indv.metadata$mother    %in% c("yes", " yes", "yes "), 'id']
+  dad.ids  <- indv.metadata[indv.metadata$father    %in% c("yes", " yes", "yes "), 'id']
+  offs.ids <- indv.metadata[indv.metadata$offspring %in% c("yes", " yes", "yes "), 'id']
   
   # Make them vectors
-  mum_ids  <- as.vector(na.omit(mum_ids))
-  dad_ids  <- as.vector(na.omit(dad_ids))
-  offs_ids <- as.vector(na.omit(offs_ids))
+  mum.ids  <- as.vector(na.omit(mum.ids))
+  dad.ids  <- as.vector(na.omit(dad.ids))
+  offs.ids <- as.vector(na.omit(offs.ids))
   
   # Make a list with the 3 vectors
-  x = list(offs = offs_ids, dad = dad_ids, mum = mum_ids)
+  x = list(offs = offs.ids, dad = dad.ids, mum = mum.ids)
   return(x)
 }
 ################################################################################
 
 
 ######################### Define function gl2structure #########################
-## This function converts gl matrix to Structure format and from 2-row-per-ind 
+## This function converts gl matrix to Structure format and from 2-row-per-ind
 ## to 1-row-per-ind
 gl2structure <- function(x,
-                         addtlColumns = NULL, 
+                         addtlColumns = NULL,
                          ploidy = 2,
-                         exportMarkerNames = FALSE) {    
-  
+                         exportMarkerNames = FALSE) {
   genmat <- as.matrix(x)
   indNames <- dimnames(genmat)[[1]]
   nInd <- dim(genmat)[1] # number of individuals
   
   # Make sets of possible genotypes
   G <- list()
-  for(i in 0:ploidy) {
+  for (i in 0:ploidy) {
     G[[i + 1]] <- c(rep(1, ploidy - i), rep(2, i))
   }
   #G[[ploidy + 2]] <- rep(-9, ploidy) # for missing data
@@ -314,10 +448,10 @@ gl2structure <- function(x,
   StructTab <- data.frame(ind = rep(indNames, each = ploidy))
   
   # Add any additional columns
-  if(!is.null(addtlColumns)){
-    for(i in 1:dim(addtlColumns)[2]){
-      StructTab <- data.frame(StructTab, rep(addtlColumns[,i], each = ploidy))
-      if(!is.null(dimnames(addtlColumns)[[2]])){
+  if (!is.null(addtlColumns)) {
+    for (i in 1:dim(addtlColumns)[2]) {
+      StructTab <- data.frame(StructTab, rep(addtlColumns[, i], each = ploidy))
+      if (!is.null(dimnames(addtlColumns)[[2]])) {
         names(StructTab)[i + 1] <- dimnames(addtlColumns)[[2]][i]
       } else {
         names(StructTab)[i + 1] <- paste("X", i, sep = "")
@@ -326,17 +460,17 @@ gl2structure <- function(x,
   }
   
   # Add genetic data
-  for(i in 1:dim(genmat)[2]){
+  for (i in 1:dim(genmat)[2]) {
     thesegen <- genmat[, i] + 1
     thesegen[is.na(thesegen)] <- ploidy + 2
     StructTab[[dimnames(genmat)[[2]][i]]] <- unlist(G[thesegen])
   }
   
-  # return(StructTab)  # Returning the value of gl2struct dartR function 
+  # return(StructTab)  # Returning the value of gl2struct dartR function
   
   data <- StructTab
   # Define dimensions of the matrix (only genotypes, not Ids)
-  out <- matrix(NA, nrow = (nrow(data) / 2),        # no. of rows divided by 2
+  out <- matrix(NA, nrow = (nrow(data) / 2), # no. of rows divided by 2
                 ncol = (2 * (ncol(data) - 1)))  # no. of columns minus Ids column times 2
   
   # Select first row per ind, leaving behind first column (Ids), then assign as first column per ind
@@ -345,20 +479,6 @@ gl2structure <- function(x,
   out[, seq(2, ncol(out), by = 2)] <- as.matrix(data[seq(2, nrow(data), by = 2), -1])
   
   # Select Id column (only first row per ind) and make it rownames for matrix
-  rownames(out) <- data[seq(1, nrow(data), by = 2), 1]  
-  return(out) 
+  rownames(out) <- data[seq(1, nrow(data), by = 2), 1]
+  return(out)
 }
-################################################################################
-
-################################ Example of use ################################
-##  gl2colony(gl = my.genlight,                                               ##
-##            filename_out = "colony2.dat",                                   ##  
-##            project_name = "parentage_fish_2022",                           ##  
-##            output_name =  "parentage_fish_jul_2022",                       ##
-##            seed = 1234,                                                    ##
-##            probability_father = 0.6,                                       ##
-##            probability_mother = 0.4,                                       ##
-##            update_allele_freq = 1,                                         ##
-##            allelic_dropout = '0.01@',                                      ##
-##            other_typ_err = '0.001@')                                       ##
-################################################################################
