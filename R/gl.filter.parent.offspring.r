@@ -11,7 +11,6 @@
 #' The pedigree inconsistent loci are counted as an indication of whether or not
 #' it is reasonable to propose the two individuals are in a parent-offspring
 #' relationship.
-
 #' @param x Name of the genlight object containing the SNP genotypes [required].
 #' @param min.rdepth Minimum read depth to include in analysis [default 12].
 #' @param min.reproducibility Minimum reproducibility to include in analysis
@@ -33,7 +32,6 @@
 #' @param verbose Verbosity: 0, silent or fatal errors; 1, begin and end; 2,
 #'  progress log ; 3, progress and results summary; 5, full report
 #'  [default 2, unless specified using gl.set.verbosity].
-
 #' @details
 #' If two individuals are in a parent offspring relationship, the true number of
 #' pedigree inconsistent loci should be zero, but SNP calling is not infallible.
@@ -42,7 +40,7 @@
 #' than would be expected of typical unrelated individuals. There are some quite
 #' sophisticated software packages available to formally apply likelihoods to
 #' the decision, but we use a simple outlier comparison.
-
+#' 
 #' To reduce the frequency of miss-calls, and so emphasize the difference
 #' between true parent-offspring pairs and unrelated pairs, the data can be
 #' filtered on read depth. Typically minimum read depth is set to 5x, but you
@@ -55,47 +53,39 @@
 #'  technical replicate assay pairs for which the marker score is consistent.
 #' You can examine the distribution of reproducibility with the function
 #' \code{\link[dartR.base]{gl.report.reproducibility}}.
-
+#' 
 #' Note that the null expectation is not well defined, and the power reduced, if
 #' the population from which the putative parent-offspring pairs are drawn
 #' contains many sibs. Note also that if an individual has been genotyped twice
 #' in the dataset, the replicate pair will be assessed by this script as being
 #' in a parent-offspring relationship.
-
+#' 
 #' You should run \code{\link{gl.report.parent.offspring}} before filtering. Use
 #' this report to decide min.rdepth and min.reproducibility and assess impact on
 #' your dataset.
-
+#' 
 #' Note that if your dataset does not contain RepAvg or rdepth among the locus
 #' metrics, the filters for reproducibility and read depth are no used.
-
-
+#' 
 #'  Examples of other themes that can be used can be consulted in \itemize{
 #'  \item \url{https://ggplot2.tidyverse.org/reference/ggtheme.html} and \item
 #'  \url{https://yutannihilation.github.io/allYourFigureAreBelongToUs/ggthemes/}
 #'  }
-
 #' @return the filtered genlight object without A set of individuals in
 #' parent-offspring relationship. NULL if no parent-offspring relationships were
 #' found.
-
 #' @author Custodian: Arthur Georges -- Post to
 #'  \url{https://groups.google.com/d/forum/dartr}
-
 #' @examples
+#' if (isTRUE(getOption("dartR_fbm"))) testset.gl <- gl.gen2fbm(testset.gl)
 #' out <- gl.filter.parent.offspring(testset.gl[1:10, 1:50])
-
 #' @seealso  \code{\link[dartR.base]{gl.report.rdepth}} , \code{\link[dartR.base]{gl.report.reproducibility}},
 #' \code{\link{gl.report.parent.offspring}}
-
 #' @family filter functions
-
 #' @importFrom stats median IQR setNames
 #' @importFrom utils combn
 #' @import patchwork
-
 #' @export
-
 
 gl.filter.parent.offspring <- function(x,
                                        min.rdepth = 12,
@@ -110,8 +100,7 @@ gl.filter.parent.offspring <- function(x,
                                        verbose = NULL) {
   # SET VERBOSITY
   verbose <- gl.check.verbosity(verbose)
-
-
+  
   # SET WORKING DIRECTORY
   plot.dir <- gl.check.wd(plot.dir, verbose = 0)
 
@@ -295,7 +284,7 @@ gl.filter.parent.offspring <- function(x,
                    fill = plot_colors[2]) +
     geom_vline(xintercept = cutoff,
                color = "red",
-               size = 1) +
+               linewidth = 1) +
     coord_cartesian(xlim = c(min(count), max(count))) +
     xlab("No. Pedigree incompatible") +
     ylab("Count") +
@@ -317,18 +306,29 @@ gl.filter.parent.offspring <- function(x,
       ind_to_remove <- vector()
       for (i in 1:nrow(ind_to_remove_temp)) {
         ind_to_remove_temp_2 <- unname(unlist(ind_to_remove_temp[i, ]))
+        fbm <- .fbm_or_null(hold) 
+        if(is.null(fbm)){
         ind_1 <-
           sum(glNA(
             hold[which(indNames(hold) ==
-              ind_to_remove_temp_2[1])],
+              ind_to_remove_temp_2[1]),],
             alleleAsUnit = FALSE
           ))
+        }else{
+          ind_1 <- sum(is.na(hold@fbm[which(indNames(hold) ==
+                                     ind_to_remove_temp_2[1]),]))
+        }
+        if(is.null(fbm)){
         ind_2 <-
           sum(glNA(
             hold[which(indNames(hold) ==
-              ind_to_remove_temp_2[2])],
+              ind_to_remove_temp_2[2]),],
             alleleAsUnit = FALSE
           ))
+        }else{
+          ind_2 <- sum(is.na(hold@fbm[which(indNames(hold) ==
+                                              ind_to_remove_temp_2[2]),]))
+        }
         ind_to_remove_temp_3 <-
           as.data.frame(cbind(ind_to_remove_temp_2, c(ind_1, ind_2)))
         colnames(ind_to_remove_temp_3) <-

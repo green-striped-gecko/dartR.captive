@@ -2,9 +2,17 @@
 % Please edit documentation in R/gl.assign.pca.r
 \name{gl.assign.pca}
 \alias{gl.assign.pca}
-\title{Assign an individual of unknown provenance to population based on PCA}
+\title{Eliminate from consideration putative source populations for a specified 
+individual of unknown provenance using PCA}
 \usage{
-gl.assign.pca(x, unknown, plevel = 0.999, plot.out = TRUE, verbose = NULL)
+gl.assign.pca(
+  x,
+  unknown,
+  nmin = 10,
+  plevel = 0.001,
+  plot.out = TRUE,
+  verbose = NULL
+)
 }
 \arguments{
 \item{x}{Name of the input genlight object [required].}
@@ -12,10 +20,13 @@ gl.assign.pca(x, unknown, plevel = 0.999, plot.out = TRUE, verbose = NULL)
 \item{unknown}{Identity label of the focal individual whose provenance is
 unknown [required].}
 
+\item{nmin}{Minimum sample size for a target population to be included in the
+analysis [default 10].}
+
 \item{plevel}{Probability level for bounding ellipses in the PCoA plot
 [default 0.999].}
 
-\item{plot.out}{If TRUE, plot the 2D PCA showing the position
+\item{plot.out}{If TRUE, plot the 2D PCA showing the position 
 of the unknown [default TRUE]}
 
 \item{verbose}{Verbosity: 0, silent or fatal errors; 1, begin and end; 2,
@@ -27,61 +38,54 @@ A genlight object containing only those populations that are
 putative source populations for the unknown individual.
 }
 \description{
-This script assigns an individual of unknown provenance to one or more target
- populations based on its proximity to each population defined by a
- confidence ellipse in ordinated space of two dimensions.
+This script eliminates from consideration putative source populations for a specified
+individual of unknown provinence based on its proximity to each putative source
+population defined by a confidence ellipse in ordinated space of two dimensions.
 
 The following process is followed:
 \enumerate{
 \item The space defined by the loci is ordinated to yield a series of
-orthogonal axes (independent), and the top two dimensions are considered.
-Populations for which the unknown lies outside the specified confidence
-limits are no longer removed from the dataset.
+orthogonal axes (independent) and the top two dimensions are considered.
+Populations for which the unknown individual lies outside the specified confidence
+limits are set aside to allow further examination.
 }
 }
 \details{
 There are three considerations to assignment. First, consider only those
-populations for which the unknown has no private alleles. Private alleles are
-an indication that the unknown does not belong to a target population
+populations for which the unknown has no private alleles. Substanial numbers of
+private alleles are an indication that the unknown does not belong to a target population
 (provided that the sample size is adequate, say >=10). This can be evaluated
  with gl.assign.pa().
 
-A next step is to consider the PCoA plot for populations where no private
-alleles have been detected and the position of the unknown in relation to the
-confidence ellipses as is plotted by this script. Note, this plot is
-considering only the top two dimensions of the ordination, and so an unknown
-lying outside the confidence ellipse can be unambiguously interpreted as it
-lying outside the confidence envelope. However, if the unknown lies inside
-the confidence ellipse in two dimensions, then it may still lie outside the
-confidence envelope in deeper dimensions. This second step is good for
-eliminating populations from consideration, but does not provide confidence
+A next step is to consider the PCA plot for populations where no private
+alleles have been detected and the position of the unknown in relation to 
+confidence ellipses as produced by this script. Note, this plot is
+considering only the top two dimensions of the ordination. This is justified because
+an unknown lying outside the confidence ellipse in two dimensions cannot lie
+within the confidence envelope incorporating deeper dimensions. It can be 
+unambiguously interpreted as it lying outside the confidence envelope. 
+However, if the unknown lies inside the confidence ellipse in two dimensions, 
+then it may still lie outside the confidence envelope in deeper dimensions. 
+
+As with the first step using gl.assign.pa(), this second step is good for 
+eliminating populations from consideration, but does not provide confidence 
 in assignment.
 
 The third step is to consider the assignment probabilities, using the script
-gl.assign.mahalanobis(). This approach calculates the squared Generalised
-Linear Distance (Mahalanobis distance) of the unknown from the centroid
-for each population, and calculates the probability associated with its
-quantile under the zero truncated normal distribution. This index takes
-into account position of the unknown in relation to the confidence envelope
-in all selected dimensions of the ordination.
+gl.assign.mahalanobis(). This approach calculates the squared Generalised 
+Linear Distance (Mahalanobis distance) of the unknown from the centroid 
+for each remaining putative source population, and calculates the probability 
+associated with its quantile under the zero truncated normal distribution. 
+This index takes into account position of the unknown in relation to the 
+confidence envelope in all selected dimensions of the ordination. 
 
 Each of these approaches provides evidence, none are 100% definitive. They
  need to be interpreted cautiously. They are best applied sequentially.
-
+ 
 In deciding the assignment, the script considers an individual to be an
 outlier with respect to a particular population at alpha = 0.001 as default.
 }
-\examples{
-\donttest{
-# Test run with a focal individual from the Macleay River (EmmacMaclGeor)
-test <- gl.assign.pa(testset.gl,
-  unknown = "UC_00146", nmin = 10, threshold = 1,
-  verbose = 3
-)
-test_2 <- gl.assign.pca(test, unknown = "UC_00146", plevel = 0.95, verbose = 3)
-}
-}
 \author{
-Custodian: Arthur Georges -- Post to
+Script: Arthur Georges. Custodian: Arthur Georges -- Post to 
 \url{https://groups.google.com/d/forum/dartr}
 }

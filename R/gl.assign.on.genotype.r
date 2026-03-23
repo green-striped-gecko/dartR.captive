@@ -1,21 +1,19 @@
-#' @name gl.assign.pa
-#' @title Use private alleles to identify populations as possible source populations for an 
+#' @name gl.assign.on.genotype
+#' @title Use genotype to identify populations as possible source populations for an 
 #' individual of unknown provenance.
 #' @description
-#' This script identifies as putative source populations,
-#' those for which the individual has an expected number of private alleles. The
-#' putative source populations are retained and returned in a genlight object.
+#' This script identifies populations
+#' for which the unknown individual has a reasonable expectation of having been drawn
+#' from those populations given its genotype and the allele frequencies in the 
+#' putative source populations. The putative source populations that survive
+#' are retained and returned in a genlight object.
 #'
-#' The algorithm calculates an expectation based on the number of private alleles each individual
-#' in the putative source population has in comparison with the other members of that population. 
-#' From the distribution of these values, an expectation
-#' is established as a mean and standard deviation. The private alleles possessed by the unknown
-#' individual in comparison with the putative source population is compared to this expectation.
-#' Significant departures from expectation renders a population unlikely to be the source 
-#' for the focal unknown individual.
+#' The algorithm computes the log-likelihood of the focal genotype under Hardy-Weinberg (HWE), then computes
+#' a Z-score and one-tailed p-value by comparing the unknown individual’s log-likelihood to those from 
+#' individuals in each putative source population. Significant departures from expectation renders 
+#' a population unlikely to be the source for the focal unknown individual.
 #' 
-#' An excessive count of private alleles is an indication that the unknown does
-#' not belong to a target population (provided that the sample size is
+#' A suitable estimate of the expectation for the log likelihoods requires that the sample size is
 #' adequate, say >=10).
 #'  
 #' WARNING: If a putative population is not in Hardy-Weinberg equilibrium, as might occur if it
@@ -30,40 +28,40 @@
 #' provenance is unknown [required].
 #' @param nmin Minimum sample size for a target population to be included in the
 #' analysis [default 10].
-#' @param alpha The critical value used to select populations for which the unknown individual
-#' has a count of private alleles within expectation [default 0.001]
+#' @param aic.threshold The critical value used to select populations for which their is considered
+#' some support as a putative source based on AIC weights [default 0.05]
 #' @param n.best If given a value, dictates the best n=n.best populations to
-#' retain for consideration (or more if their are ties) based on private alleles. If not
-#' specified, then the putative source populations identified as significant (p < alpha)
+#' retain for consideration (or more if their are ties) based on AIC weight. If not
+#' specified, then the putative source populations identified as possibilities (AIC.wt >= aic.threshold)
 #' are retained. [default NULL].
 #' @param verbose Verbosity: 0, silent or fatal errors; 1, begin and end; 2,
 #' progress log; 3, progress and results summary; 5, full report
 #'  [default 2 or as specified using gl.set.verbosity].
+#'  
 #' @return A genlight object containing the focal individual (assigned to
-#' population 'unknown') and populations for which the focal individual is not
-#' distinctive. If no such populations, the genlight object contains only data
+#' population 'unknown') and putative source populations based on AIC weights
+#' If no such populations, the genlight object contains only data
 #' for the unknown individual with a warning.
 #'
-#' @importFrom stats dnorm qnorm
 #' @export
 #'
 #' @author Script: Arthur Georges. Custodian: Arthur Georges -- Post to
 #'   \url{https://groups.google.com/d/forum/dartr}
 #'   
 #' @examples
+#' \dontrun{
 #' # Test run with a focal individual from the Macleay River (EmmacMaclGeor)
-#' if (isTRUE(getOption("dartR_fbm"))) testset.gl <- gl.gen2fbm(testset.gl)
-#' #test <- gl.assign.pa(testset.gl,unknown='UC_00146',nmin=10,verbose=3)
-#'
-#' @seealso \code{\link{gl.assign.pca}}
+#' # if (isTRUE(getOption("dartR_fbm"))) testset.gl <- gl.gen2fbm(testset.gl)
+#' test <- gl.assign.on.genotype(testset.gl,unknown='UC_00146',nmin=10,verbose=3)
+#' }
+#' @seealso \code{\link{gl.assign.pca}}, \code{\link{gl.assign.pa}}, \code{\link{gl.assign.mahalanobis}}
 
-gl.assign.pa <- function(x,
-                         unknown,
-                         nmin = 10,
-                         #                         threshold = 0,
-                         n.best = NULL,
-                         alpha=0.01,
-                         verbose = NULL) {
+gl.assign.on.genotype <- function(x,
+                                  unknown,
+                                  nmin = 10,
+                                  n.best = NULL,
+                                  aic.threshold=0.05,
+                                  verbose = NULL) {
   
   # SET VERBOSITY
   verbose <- gl.check.verbosity(verbose)
@@ -115,7 +113,7 @@ gl.assign.pa <- function(x,
   }
   
   if (nmin <= 0) {
-    if(verbose >= 1){cat(
+    if(verbose >=1){cat(
       warn(
         "  Warning: the minimum size of the target population must be 
                 greater than zero, set to 10\n"
@@ -126,7 +124,7 @@ gl.assign.pa <- function(x,
   
   if (!is.null(n.best)) {
     if (n.best < 1) {
-      if(verbose >= 1){cat(
+      if(verbose >=1){cat(
         warn(
           "  Warning: the n.best parameter for retention of best 
                     match populations must be a positive integer, set to NULL\n"
@@ -134,6 +132,16 @@ gl.assign.pa <- function(x,
       )}
       n.best <- NULL
     }
+  }
+  
+  if (aic.threshold < 0 || aic.threshold > 1) {
+    if(verbose >= 1){cat(
+      warn(
+        "  Warning: the aic.threshold must be 
+                greater than zero and less than 1, set to default 0.05\n"
+      )
+    )}
+    aic.threshold <- 0.05
   }
   
   # DO THE JOB
@@ -145,17 +153,20 @@ gl.assign.pa <- function(x,
       "  Warning: The specified minimum sample size is less than",hard.min, 
       "individuals\n"
     ))
-      cat(warn(
-        
-        "    Risk of alleles present in the unknown being missed during
-                sampling of populations with sample sizes less than 10\n"
-        
+      cat(warn("    Risk of the allele profile of the putative source populations
+                lacking sufficient representation of the populations from which they
+                are drawn is quite high.\n"
       ))}
   }
   
   # Separate unknown individual from x
   unknown.ind <- gl.keep.ind(x,ind.list=unknown,verbose=0)
   pop(unknown.ind) <- "unknown"
+  
+  # Convert unknown to a vector
+  unknown.vec <- as.vector(as.matrix(unknown.ind))
+  
+  # Knowns
   knowns <- gl.drop.ind(x,ind.list=unknown,verbose=0)
   if(any(popNames(knowns)=="unknowns")){
     knowns <- gl.drop.pop(x,pop.list="unknowns",verbose=0)
@@ -164,24 +175,14 @@ gl.assign.pa <- function(x,
   # Remove all known populations with less than nmin individuals
   pop.keep <- levels(pop(knowns))[table(pop(knowns)) >= nmin]
   pop.toss <- levels(pop(knowns))[table(pop(knowns)) < nmin]
-  if (verbose >= 2) {
+  if (verbose >= 3) {
     cat("  Discarding",length(pop.toss),"populations with sample size <",nmin,":\n")
-    if (verbose >= 3) {
-      cat(paste(pop.toss, collapse = ", "), "\n")
-      knowns <- gl.keep.pop(knowns, pop.list = pop.keep, verbose = 0)      }
+    cat(paste(pop.toss, collapse = ", "), "\n")
   }
   if (length(pop.keep) == 0) {
     stop(error("Fatal Error: All target populations excluded based on minimum sample size.\n"))
   }
-  
-  # Remove loci scored as NA for the unknown
-  # Fuck, it changed the locus names, replaced hyphens with periods, use check.names=FALSE
-  b <- data.frame(as.matrix(unknown.ind),check.names=FALSE)  
-  c <- names(b)[is.na(b)]
-  if (length(c) > 0) {
-    knowns <- gl.drop.loc(knowns, loc.list = c, verbose = 0)
-    unknown.ind <- gl.drop.loc(unknown.ind, loc.list=c,verbose=0)
-  }
+  knowns <- gl.keep.pop(knowns, pop.list = pop.keep, verbose = 0) 
   
   # Split the genlight object into a list of matricies
   
@@ -203,27 +204,51 @@ gl.assign.pa <- function(x,
   # represented by a Poisson distribution (or a Negative Bionomial) whereby
   # a log10 transformation will render it approximately normal.
   
-  # Function to count private alleles in a focal genotype vs a population matrix
+  # Function to calculate log liklihood for a focal genotype vector vs a population matrix
   
-  count.pa <- function(focal, genmat) {
-    # Ensure focal is a vector
-    focal <- as.vector(focal)
-    # Identify loci where the focal individual has a non-zero genotype
-    nonzero <- which(focal != 0 & !is.na(focal))
-    # At each of those loci, check if all others are zero or NA
-    private <- sapply(nonzero, function(i) {
-      all(genmat[, i] == 0 | is.na(genmat[, i]))
+  utils.gen.prob <- function(focal, popmat) {
+    
+    # Ensure dimensions are compatible
+    stopifnot(length(focal) == ncol(popmat))
+    
+    # Calculate allele frequencies (0/1/2 encoding) and HWE genotype probabilities
+    p <- colMeans(popmat, na.rm = TRUE) / 2  # frequency of 'B' allele
+    pAA <- (1 - p)^2
+    pAB <- 2 * p * (1 - p)
+    pBB <- p^2
+    
+    # Likelihood of focal genotype under HWE
+    logL_focal <- mapply(function(g, pa, pb, pc) {
+      if (is.na(g)) return(NA)
+      if (g == 0) return(log(pa + 1e-10))
+      if (g == 1) return(log(pb + 1e-10))
+      if (g == 2) return(log(pc + 1e-10))
+      return(NA)
+    }, focal, pAA, pAB, pBB)
+    
+    logL_focal_total <- sum(logL_focal, na.rm = TRUE)
+    
+    # Likelihoods for each individual in the population
+    logLs_pop <- apply(popmat, 1, function(ind) {
+      mapply(function(g, pa, pb, pc) {
+        if (is.na(g)) return(NA)
+        if (g == 0) return(log(pa + 1e-10))
+        if (g == 1) return(log(pb + 1e-10))
+        if (g == 2) return(log(pc + 1e-10))
+        return(NA)
+      }, ind, pAA, pAB, pBB)
     })
-    return(sum(private))
+    
+    logL_pop_totals <- colSums(logLs_pop, na.rm = TRUE)
+    logL = logL_focal_total
+    
+    return(logL)
   }
   
   # Prepare results container
   result <- data.frame(
     population = names(matrix.list),
-    logmean = NA_real_,
-    logsd = NA_real_,
-    z = NA_real_,
-    p = NA_real_,
+    logL = NA_real_,
     flag = ""
   )
   
@@ -233,41 +258,34 @@ gl.assign.pa <- function(x,
     pop.mat <- matrix.list[[i]]
     n <- nrow(pop.mat)
     
-    # Calculate private allele counts for all individuals in the population i against the others
-    n.pa <- sapply(1:n, function(i) count.pa(pop.mat[i, ], pop.mat[-i, , drop = FALSE]))
-    log.n.pa <- log10(n.pa + 1)
+    # Calculate the stats
     
-    # Mean and SD
-    mu <- mean(log.n.pa)
-    sigma <- sd(log.n.pa)
-    
+    logL <- utils.gen.prob(unknown.vec,pop.mat)
     # Store results
-    result$logmean[i] <- mu
-    result$logsd[i] <- sigma
+    result$logL[i] <- logL
     
-    # Calculate private allele counts for the focal individual against the others in each population i
-    n.pa <- numeric(n)
-    #names(n.pa) <- names(matrix.list[[i]])
-    
-    result$counts[i] <- count.pa(focal = as.matrix(unknown.ind), genmat = pop.mat)
-    result$counts.log[i] <- log10(result$counts[i] +1)
-    # Z-score and upper-tail probability of unknown count
-    z.score <- (result$counts.log[i] - mu) / sigma
-    p.value <- 1 - pnorm(z.score)
-    result$z[i] <- z.score
-    result$p[i] <- round(p.value,6)
-  }
+  } # End loop
+  
+  #results$population <- names(matrix.list)
+  # Calculate AIC values
+  result$aic <- -2*result$logL
+  result$delta.aic <- result$aic - min(result$aic)
+  result$aic.wt <- exp(-0.5*result$delta.aic)/sum(exp(-0.5*result$delta.aic)) 
   
   # Apply significance
-  result$flag[result$p < alpha] <- "no"
-  result$flag[result$p >= alpha] <- "yes"
+  result$flag[result$aic.wt < aic.threshold] <- "no"
+  result$flag[result$aic.wt >= aic.threshold] <- "yes"
   
-  result <- result[order(result$p,decreasing=TRUE),]
+  result <- result[order(result$aic.wt,decreasing=TRUE),]
   
   # View result
-  result <- result[, c("population", "counts", "z", "p", "flag")]
-  names(result) <- c("pop","count","Z-score","p-value","assign")
+  result <- result[, c("population", "logL", "aic", "delta.aic", "aic.wt", "flag")]
+  names(result) <- c("population","Log Likelihood","AIC","dAIC","AIC.wt","assign")
   print(result)
+  
+  if(verbose >=3){
+    cat("\n  Best prospect for source population is",result$population[1],"\n\n")
+  }
   
   # Retain only those n.best populations, or if n.best not set, the non-significant
   # populations

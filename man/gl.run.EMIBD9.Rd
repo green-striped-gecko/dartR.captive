@@ -9,6 +9,8 @@ gl.run.EMIBD9(
   outfile = "EMIBD9_Res.ibd9",
   outpath = tempdir(),
   emibd9.path = getwd(),
+  OutAlleleFre = 0,
+  EM_Method = 1,
   Inbreed = FALSE,
   palette_convergent = NULL,
   parallel = FALSE,
@@ -36,21 +38,29 @@ EM_IBD_P.exe (=Windows) EM_IBD_P (=Mac, Linux).
 You only need to point to the folder (the function will recognise which OS 
 you are running) [default getwd()].}
 
-\item{Inbreed}{A Boolean, taking values TRUE or FALSE to indicate inbreeding 
-is not and is allowed in estimating IBD coefficients [default FALSE].}
+\item{OutAlleleFre}{A boolean that indicates whether to output allele frequencies
+[default FALSE].}
 
-\item{palette_convergent}{A continuous palette function for the relatedness 
-values [default NULL].}
+\item{EM_Method}{An integer that indicates the method to use for the expectation
+maximization (EM) algorithm. 1, the standard EM method;
+2, the EM method with a quasi-Newton acceleration; 3, the EM method with a
+SQUAREM acceleration [default 1].}
 
-\item{parallel}{Use parallelisation[default FALSE].}
+\item{Inbreed}{A boolean that indicates whether to compute inbreeding (i.e. delta1 to delta6) [default FALSE].}
 
-\item{ncores}{How many cores should be used [default 1].}
+\item{palette_convergent}{A character vector of colours to use for the heatmap plot.
+If NULL, the default palette from gl.colors("div") will be used [default NULL].}
 
-\item{ISeed}{An integer used to seed the random number generator 
+\item{parallel}{A boolean that indicates whether to run the parallel version of EM
+IBD9 (EM_IBD_P_mpi) [default FALSE].}
+
+\item{ncores}{An integer specifying the number of cores to use when parallel is TRUE
+[default 1].}
+
+\item{ISeed}{An integer specifying the random seed to use for the EM algorithm
 [default 42].}
 
-\item{plot.out}{A boolean that indicates whether to plot the results 
-[default TRUE].}
+\item{plot.out}{A boolean that indicates whether to plot the results [default TRUE].}
 
 \item{plot.dir}{Directory to save the plot RDS files [default as specified
 by the global working directory or tempdir()]}
@@ -63,21 +73,26 @@ progress log; 3, progress and results summary; 5, full report
  [default NULL, unless specified using gl.set.verbosity]}
 }
 \value{
-A matrix with pairwise relatedness
+A list with three or four elements depending on whether inbreeding was
+selected. The first element (rel) is a matrix with pairwise relatedness. 
+The second (raw) is the raw output table from the program. The third (processed) 
+is the 'processed' output from the table (self-comparisons - an individuals with 
+itself - and redundant pairs - e.g. the second individuals with the first, when the first 
+vs the second is already present in the results - are removed). The last (inbreeding)
+ is a table of individual inbreeding values (if requested).
 }
 \description{
 Run program EMIBD9
 }
 \details{
-The results of EMIBD9 include the identical in state (IIS) values for each
- mode (S1 - 9) and nine condensed identical by descent (IBD) modes (\eqn{\delta}1 - \eqn{\delta}9) 
- as well as the relatedness coefficient (r). Alleles are IIS if they are the
-  same. Similarly, IBD describes a matching allele between two individuals 
-  that has been inherited from a common ancestor or common gene. In a 
-  pairwise comparison, \eqn{\delta} 1 to \eqn{\delta} 9 are the probabilities associated with each 
-  IBD mode. In inbreeding populations, only  \eqn{\delta} 1 to  \eqn{\delta} 6 can can occur. In
-   contrast, \eqn{\delta} 7 to \eqn{\delta} 9 can only occur in large, panmictic outbred populations.
-
+The results of EMIBD9 include the identical in state (IIS) values for each mode 
+(S1 - 9) and nine condensed identical by descent (IBD) modes (∆1 - ∆9) as well as 
+the relatedness coefficient (r). Alleles are IIS if they are the same. Similarly,
+IBD describes a matching allele between two individuals that has been inherited 
+from a common ancestor or common gene. In a pairwise comparison, ∆1 to ∆9 are the
+ probabilities associated with each IBD mode. ∆1 to ∆6 take vakue > 0 in presence
+ of inbreeding and hence are only computed when this option is selected. 
+ 
 EMIBD9 uses an expectation maximization (EM) algorithm based on the maximum
 likelihood expectations (MLE) of \eqn{\delta} to estimate both allele frequencies (p) 
 and \eqn{\delta} jointly from genotype data. By iteratively calculating p and \eqn{\delta}, 
@@ -89,28 +104,20 @@ The kinship coefficient is the probability that two alleles at a random locus
  drawn from two individuals are IBD.
 
 Below is a table modified from Speed & Balding (2015) showing kinship values,
-and their confidence intervals (CI), for different relationships that could
-be used to guide the choosing of the relatedness threshold in the function.
+and their confidence intervals (CI), for different relationships.
 
-|Relationship                               |Kinship  |     95% CI       |
-
-|Identical twins/clones/same individual     | 0.5     |        -         |
-
-|Sibling/Parent-Offspring                   | 0.25    |    (0.204, 0.296)|
-
-|Half-sibling                               | 0.125   |    (0.092, 0.158)|
-
-|First cousin                               | 0.062   |    (0.038, 0.089)|
-
-|Half-cousin                                | 0.031   |    (0.012, 0.055)|
-
-|Second cousin                              | 0.016   |    (0.004, 0.031)|
-
-|Half-second cousin                         | 0.008   |    (0.001, 0.020)|
-
-|Third cousin                               | 0.004   |    (0.000, 0.012)|
-
-|Unrelated                                  | 0       |        -         |
+\tabular{lll}{
+  \strong{Relationship} \tab \strong{Kinship} \tab \strong{95\% CI} \cr
+  Identical twins / clones / same individual \tab 0.5   \tab –              \cr
+  Sibling / Parent–Offspring                \tab 0.25  \tab (0.204, 0.296)\cr
+  Half‑sibling                              \tab 0.125 \tab (0.092, 0.158)\cr
+  First cousin                              \tab 0.062 \tab (0.038, 0.089)\cr
+  Half‑cousin                               \tab 0.031 \tab (0.012, 0.055)\cr
+  Second cousin                             \tab 0.016 \tab (0.004, 0.031)\cr
+  Half‑second cousin                        \tab 0.008 \tab (0.001, 0.020)\cr
+  Third cousin                              \tab 0.004 \tab (0.000, 0.012)\cr
+  Unrelated                                 \tab 0     \tab –              \cr
+}
 
 For greater detail on the methods employed by EMIBD9, we encourage you to 
 read Wang, J. (2022).
@@ -124,10 +131,17 @@ For Windows, Mac and Linux install the program then point to the folder
  running really slow you may want to create the files using the function 
  and then run in parallel using the documentation provided by the authors
   [you need to have mpiexec installed].
+  
+ Please note individual names must have a maximal length of 20 characters. 
+ The IDs must NOT contain blank space and other illegal characters 
+ (such as /), and must be unique among all sampled individuals (i.e. NO 
+ duplications). Any string longer than 20 characters for individual ID will 
+ be truncated to have 20 characters.
 }
 \examples{
 \dontrun{
 #To run this function needs EMIBD9 installed in your computer
+if (isTRUE(getOption("dartR_fbm"))) platypus.gl <- gl.gen2fbm(platypus.gl)
 t1 <- gl.filter.allna(platypus.gl)
 res_rel <- gl.run.EMIBD9(t1)
 }
