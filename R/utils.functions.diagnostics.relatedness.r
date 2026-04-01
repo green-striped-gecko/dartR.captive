@@ -11,7 +11,13 @@ coanct_clean <- function(input, coanctTests = NULL){
   
   test_select[which(tests %in% coanctTests)] <- 1
   
-  x_coancest <- related::coancestry(x_gl2, trioml = test_select[1], wang = test_select[2],
+  if (!exists('coancestry', mode="function")) {coancestry <- function() return (-1);
+  error("You need to load the package related from github via:\n
+          devtools::install_github('timothyfrasier/related\n")}  
+  
+  
+  x_coancest <- coancestry(x_gl2, trioml = test_select[1], wang = test_select[2],
+
                            lynchli = test_select[3], lynchrd = test_select[4], ritland = test_select[5], 
                            quellergt = test_select[6], dyadml = test_select[7])
   

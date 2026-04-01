@@ -13,6 +13,21 @@
 #'  EM_IBD_P.exe (=Windows) EM_IBD_P (=Mac, Linux).
 #'  You only need to point to the folder (the function will recognise which OS 
 #'  you are running) [default getwd()].
+#' @param OutAlleleFre A boolean that indicates whether to output allele frequencies
+#'  [default FALSE].
+#' @param EM_Method An integer that indicates the method to use for the expectation
+#'  maximization (EM) algorithm. 1, the standard EM method;
+#'  2, the EM method with a quasi-Newton acceleration; 3, the EM method with a
+#'  SQUAREM acceleration [default 1].
+#' @param Inbreed A boolean that indicates whether to compute inbreeding (i.e. delta1 to delta6) [default FALSE].
+#' @param palette_convergent A character vector of colours to use for the heatmap plot.
+#'  If NULL, the default palette from gl.colors("div") will be used [default NULL].
+#' @param parallel A boolean that indicates whether to run the parallel version of EM
+#' IBD9 (EM_IBD_P_mpi) [default FALSE].
+#' @param ncores An integer specifying the number of cores to use when parallel is TRUE
+#' [default 1].
+#' @param ISeed An integer specifying the random seed to use for the EM algorithm
+#' [default 42].
 #' @param plot.out A boolean that indicates whether to plot the results [default TRUE].
 #' @param plot.dir Directory to save the plot RDS files [default as specified
 #' by the global working directory or tempdir()]

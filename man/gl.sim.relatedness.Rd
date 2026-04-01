@@ -65,9 +65,6 @@ exclude extension) [default NULL]}
 \item{verbose}{Verbosity: 0, silent or fatal errors; 1, begin and end; 2,
 progress log; 3, progress and results summary; 5, full report
  [default NULL, unless specified using gl.set.verbosity]}
-
-\item{palette_convergent}{A continuous palette function for the relatedness 
-values [default NULL].}
 }
 \value{
 Summary statistics of chosen relatedness relationship and a 

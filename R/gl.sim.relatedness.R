@@ -41,8 +41,6 @@
 #' @param parallel Use parallelisation. Only works for Mac and Linux at the 
 #' moment[default FALSE].
 #' @param ncores How many cores should be used [default 1].
-#' @param palette_convergent A continuous palette function for the relatedness 
-#' values [default NULL].
 #' @param plot.out A boolean that indicates whether to plot the results 
 #' [default TRUE].
 #' @param plot.dir Directory to save the plot RDS files [default as specified 
@@ -119,6 +117,20 @@ gl.sim.relatedness <- function(x,
     ))
     return(-1)
   }
+  pkg <- "related"
+  if (!(requireNamespace(pkg, quietly = TRUE))) {
+    cat(
+      error(
+        "Package",
+        pkg,
+        " needed for this function to work. Please install it using: \n
+    devtools::install_github('timothyfrasier/related')"
+      )
+    )
+    return(-1)
+  }
+  
+  
   
   #Do the job
   
