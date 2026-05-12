@@ -348,10 +348,10 @@ gl.grm.network <- function(G,
   
   if(categorise){
     edges$cat <- NULL
-    edges[edges$size >0.3,"cat"] <- "Same Individual" 
-    edges[edges$size >0.2 & edges$size < 0.3,"cat"] <-"Full Siblings\nParent-Offspring"
-    edges[edges$size >0.1 & edges$size < 0.2,"cat"] <-"Half Siblings"
-    edges[edges$size >0.04 & edges$size < 0.09,"cat"] <-"First Cousins"
+    edges[edges$size >=0.3,"cat"] <- "Same Individual" 
+    edges[edges$size >=0.2 & edges$size < 0.3,"cat"] <-"Full Siblings\nParent-Offspring"
+    edges[edges$size >=0.1 & edges$size < 0.2,"cat"] <-"Half Siblings"
+    edges[edges$size >=0.038 & edges$size < 0.1,"cat"] <-"First Cousins"
 
 p1 <-
   ggplot() + 
