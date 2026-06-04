@@ -342,16 +342,29 @@ gl.grm.network <- function(G,
   # Rebuild the factor
   plotcord$pop <- factor(plotcord$pop, levels = new_levels)
   
-  breaks <- pretty(round(seq(min(edges$size),
-                      max(edges$size),
-                      0.1),1),4)
-  
+  if (nrow(edges) > 0) {
+    breaks <- pretty(round(seq(min(edges$size),
+                        max(edges$size),
+                        0.1),1),4)
+  } else {
+    if (verbose >= 1) {
+      cat(warn(paste0(
+        "  No pairs of individuals have a kinship value at or above the",
+        " kinship.threshold (", kinship.threshold, "); the network is shown",
+        " with nodes only and no links.\n"
+      )))
+    }
+    breaks <- 0
+  }
+
   if(categorise){
-    edges$cat <- NULL
-    edges[edges$size >=0.3,"cat"] <- "Same Individual" 
-    edges[edges$size >=0.2 & edges$size < 0.3,"cat"] <-"Full Siblings\nParent-Offspring"
-    edges[edges$size >=0.1 & edges$size < 0.2,"cat"] <-"Half Siblings"
-    edges[edges$size >=0.038 & edges$size < 0.1,"cat"] <-"First Cousins"
+    edges$cat <- rep(NA_character_, nrow(edges))
+    if (nrow(edges) > 0) {
+      edges[edges$size >=0.3,"cat"] <- "Same Individual"
+      edges[edges$size >=0.2 & edges$size < 0.3,"cat"] <-"Full Siblings\nParent-Offspring"
+      edges[edges$size >=0.1 & edges$size < 0.2,"cat"] <-"Half Siblings"
+      edges[edges$size >=0.038 & edges$size < 0.1,"cat"] <-"First Cousins"
+    }
 
 p1 <-
   ggplot() + 
