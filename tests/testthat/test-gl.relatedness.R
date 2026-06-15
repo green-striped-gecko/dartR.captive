@@ -65,3 +65,25 @@ test_that("gl.relatedness plotting is optional; bad plot.stat errors", {
                    plot.out = TRUE, verbose = 0),
     regexp = "plot.stat")
 })
+
+test_that("gl.relatedness populates and name-maps optional frames", {
+  skip_if_not_installed("dartR.coancestry"); skip_if_not_installed("dartR.data")
+  gl  <- dartR.data::platypus.gl[1:20, 1:300]
+  got <- gl.relatedness(gl, estimators = c("dyadml", "inbreeding"),
+                        allow.inbreeding = TRUE, plot.out = FALSE, verbose = 0)
+  expect_true("dyadml" %in% names(got))
+  expect_false(is.null(got$delta19))
+  expect_false(is.null(got$inbreeding))
+  expect_true(all(got$delta19$ind1 %in% indNames(gl)))   # mapped to names
+  expect_true(all(got$inbreeding$ind %in% indNames(gl)))
+  expect_true(all(c("LH", "LR", "dyadml_F") %in% names(got$inbreeding)))
+})
+
+test_that("gl.relatedness with only 'inbreeding' returns no dyad matrices", {
+  skip_if_not_installed("dartR.coancestry"); skip_if_not_installed("dartR.data")
+  gl  <- dartR.data::platypus.gl[1:20, 1:300]
+  got <- gl.relatedness(gl, estimators = "inbreeding", plot.out = FALSE, verbose = 0)
+  expect_false(is.null(got$inbreeding))
+  expect_true(all(!c("wang","lynchli","lynchrd","ritland","quellergt",
+                     "loiselle","dyadml","trioml") %in% names(got)))
+})

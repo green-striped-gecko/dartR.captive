@@ -124,7 +124,8 @@ gl.relatedness <- function(x,
   if (n.boots > 0) {
     n0.loc <- nLoc(x); n0.ind <- nInd(x)
     x <- gl.filter.monomorphs(x, verbose = 0)
-    keep.ind <- rowSums(!is.na(as.matrix(x))) > 0
+    am <- as.matrix(x)
+    keep.ind <- rowSums(!is.na(am)) > 0
     if (!all(keep.ind)) x <- x[keep.ind, ]
     d.loc <- n0.loc - nLoc(x); d.ind <- n0.ind - nInd(x)
     if (d.loc > 0 || d.ind > 0)
@@ -137,7 +138,10 @@ gl.relatedness <- function(x,
   snp <- as.matrix(x)
   storage.mode(snp) <- "integer"
   nd <- choose(nInd(x), 2)
-  max.dyads <- if (nd > .Machine$integer.max) .Machine$integer.max else as.integer(nd)
+  if (nd > .Machine$integer.max)
+    stop(error("  Too many individuals (", nInd(x), "): ", nd,
+               " dyads exceeds the integer limit for a single run.\n"))
+  max.dyads <- as.integer(nd)
   res <- dartR.coancestry::relatedness_cpp(
     snp, estimators = estimators, max_dyads = max.dyads,
     n_threads = as.integer(n.threads), n_bootstrap = as.integer(n.boots),
@@ -149,17 +153,19 @@ gl.relatedness <- function(x,
   dyad.est <- intersect(estimators,
     c("wang", "lynchli", "lynchrd", "ritland", "quellergt", "loiselle",
       "dyadml", "trioml"))
-  i1 <- res$dyads$ind1; i2 <- res$dyads$ind2
   out <- list()
-  for (e in dyad.est) {
-    M <- matrix(NA_real_, nInd(x), nInd(x), dimnames = list(nm, nm))
-    v <- res$dyads[[e]]
-    M[cbind(i1, i2)] <- v
-    M[cbind(i2, i1)] <- v
-    out[[e]] <- M
+  if (!is.null(res$dyads)) {
+    i1 <- res$dyads$ind1; i2 <- res$dyads$ind2
+    for (e in dyad.est) {
+      M <- matrix(NA_real_, nInd(x), nInd(x), dimnames = list(nm, nm))
+      v <- res$dyads[[e]]
+      M[cbind(i1, i2)] <- v
+      M[cbind(i2, i1)] <- v
+      out[[e]] <- M
+    }
+    dy <- res$dyads; dy$ind1 <- nm[dy$ind1]; dy$ind2 <- nm[dy$ind2]
+    out$dyads <- dy
   }
-  dy <- res$dyads; dy$ind1 <- nm[dy$ind1]; dy$ind2 <- nm[dy$ind2]
-  out$dyads <- dy
   if (!is.null(res$delta19)) {
     d19 <- res$delta19; d19$ind1 <- nm[d19$ind1]; d19$ind2 <- nm[d19$ind2]
     out$delta19 <- d19
