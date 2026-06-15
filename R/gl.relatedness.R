@@ -173,7 +173,19 @@ gl.relatedness <- function(x,
     out$inbreeding <- ib
   }
 
-  # ---- plotting (Task 4) ----
+  # PLOT: one heatmap of the chosen estimator (default the first requested) ----
+  if (plot.out && length(dyad.est) > 0) {
+    stat <- if (is.null(plot.stat)) dyad.est[1] else plot.stat
+    if (!stat %in% dyad.est)
+      stop(error("  plot.stat '", stat,
+                 "' is not among the requested dyad estimators (",
+                 paste(dyad.est, collapse = ", "), ").\n"))
+    pal <- if (is.null(plot.colors)) gl.colors("div") else plot.colors
+    p <- gl.plot.heatmap(out[[stat]], palette.divergent = pal,
+                         plot.out = TRUE, verbose = 0)
+    if (!is.null(plot.file))
+      utils.plot.save(p, dir = plot.dir, file = plot.file, verbose = verbose)
+  }
 
   # FLAG SCRIPT END
   if (verbose >= 1) cat(report("Completed:", funname, "\n"))

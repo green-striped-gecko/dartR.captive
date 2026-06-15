@@ -53,3 +53,15 @@ test_that("gl.relatedness pre-filters and produces CIs when bootstrapping", {
     regexp = "pre-filter|monomorphic")
   expect_true(all(c("wang_lo", "wang_hi") %in% names(got$dyads)))
 })
+
+test_that("gl.relatedness plotting is optional; bad plot.stat errors", {
+  skip_if_not_installed("dartR.coancestry"); skip_if_not_installed("dartR.data")
+  gl  <- dartR.data::platypus.gl[1:40, 1:1000]
+  res <- gl.relatedness(gl, estimators = c("wang", "lynchrd"),
+                        plot.out = FALSE, verbose = 0)
+  expect_true(is.list(res) && "wang" %in% names(res))
+  expect_error(
+    gl.relatedness(gl, estimators = "wang", plot.stat = "trioml",
+                   plot.out = TRUE, verbose = 0),
+    regexp = "plot.stat")
+})
