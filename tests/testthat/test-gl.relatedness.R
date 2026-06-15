@@ -43,3 +43,13 @@ test_that("gl.relatedness default estimators and optional frames", {
   expect_true("dyads" %in% names(got))
   expect_null(got$delta19); expect_null(got$trio_delta); expect_null(got$inbreeding)
 })
+
+test_that("gl.relatedness pre-filters and produces CIs when bootstrapping", {
+  skip_if_not_installed("dartR.coancestry"); skip_if_not_installed("dartR.data")
+  gl <- dartR.data::platypus.gl[1:40, 1:1000]   # contains 405 monomorphic/all-NA loci
+  expect_warning(
+    got <- gl.relatedness(gl, estimators = "wang", n.boots = 20,
+                          plot.out = FALSE, verbose = 1),
+    regexp = "pre-filter|monomorphic")
+  expect_true(all(c("wang_lo", "wang_hi") %in% names(got$dyads)))
+})

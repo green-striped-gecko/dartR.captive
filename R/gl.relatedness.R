@@ -118,7 +118,20 @@ gl.relatedness <- function(x,
       "    install.packages('https://github.com/mijangos81/dartR.coancestry/releases/download/v0.1.0/dartR.coancestry_0.1.0.tgz', repos = NULL, type = 'binary')\n",
       "  (the repository is private; you need access).\n"))
 
-  # ---- bootstrap pre-filter (Task 3) ----
+  # BOOTSTRAP PRE-FILTER: the engine's resample loop (faithful to trior11) does not
+  # terminate on a pair with no usable polymorphic locus, so drop monomorphic /
+  # all-NA loci and all-NA individuals before any bootstrap.
+  if (n.boots > 0) {
+    n0.loc <- nLoc(x); n0.ind <- nInd(x)
+    x <- gl.filter.monomorphs(x, verbose = 0)
+    keep.ind <- rowSums(!is.na(as.matrix(x))) > 0
+    if (!all(keep.ind)) x <- x[keep.ind, ]
+    d.loc <- n0.loc - nLoc(x); d.ind <- n0.ind - nInd(x)
+    if (d.loc > 0 || d.ind > 0)
+      warning(sprintf(
+        "Bootstrap pre-filter: dropped %d monomorphic/all-NA loci and %d all-NA individuals (prevents the rejection-loop hang).",
+        d.loc, d.ind))
+  }
 
   # PREPARE DOSAGE + RUN ENGINE --------------------------------------
   snp <- as.matrix(x)
