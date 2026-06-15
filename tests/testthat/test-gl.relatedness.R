@@ -17,3 +17,29 @@ test_that("gl.relatedness rejects an unknown estimator", {
   expect_error(gl.relatedness(gl, estimators = "bogus", verbose = 0),
                regexp = "Unknown estimator")
 })
+
+test_that("gl.relatedness returns symmetric per-estimator matrices keyed by name", {
+  skip_if_not_installed("dartR.coancestry"); skip_if_not_installed("dartR.data")
+  gl  <- dartR.data::platypus.gl[1:40, 1:1000]
+  got <- gl.relatedness(gl, estimators = "wang", plot.out = FALSE, verbose = 0)
+  M <- got$wang
+  expect_equal(dim(M), c(40L, 40L))
+  expect_identical(rownames(M), indNames(gl))
+  expect_identical(colnames(M), indNames(gl))
+  expect_true(all(is.na(diag(M))))
+  expect_equal(M[lower.tri(M)], t(M)[lower.tri(M)])          # symmetric
+  d <- got$dyads
+  i <- match(d$ind1[1], indNames(gl)); j <- match(d$ind2[1], indNames(gl))
+  expect_equal(M[i, j], d$wang[1])                            # matrix matches long table
+  expect_true(all(d$ind1 %in% indNames(gl)))                 # ind cols are names now
+})
+
+test_that("gl.relatedness default estimators and optional frames", {
+  skip_if_not_installed("dartR.coancestry"); skip_if_not_installed("dartR.data")
+  gl  <- dartR.data::platypus.gl[1:40, 1:1000]
+  got <- gl.relatedness(gl, plot.out = FALSE, verbose = 0)
+  expect_true(all(c("wang","lynchli","lynchrd","ritland","quellergt","loiselle")
+                  %in% names(got)))
+  expect_true("dyads" %in% names(got))
+  expect_null(got$delta19); expect_null(got$trio_delta); expect_null(got$inbreeding)
+})

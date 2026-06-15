@@ -131,8 +131,34 @@ gl.relatedness <- function(x,
     rng_seed = as.integer(rng.seed), allow_inbreeding = allow.inbreeding,
     num_trios = as.integer(num.trios))
 
-  # ---- post-process: map indices + build matrices (Task 2) ----
-  out <- res   # raw passthrough until Task 2
+  # POST-PROCESS: map 1-based indices to names; build symmetric matrices ----
+  nm <- indNames(x)
+  dyad.est <- intersect(estimators,
+    c("wang", "lynchli", "lynchrd", "ritland", "quellergt", "loiselle",
+      "dyadml", "trioml"))
+  i1 <- res$dyads$ind1; i2 <- res$dyads$ind2
+  out <- list()
+  for (e in dyad.est) {
+    M <- matrix(NA_real_, nInd(x), nInd(x), dimnames = list(nm, nm))
+    v <- res$dyads[[e]]
+    M[cbind(i1, i2)] <- v
+    M[cbind(i2, i1)] <- v
+    out[[e]] <- M
+  }
+  dy <- res$dyads; dy$ind1 <- nm[dy$ind1]; dy$ind2 <- nm[dy$ind2]
+  out$dyads <- dy
+  if (!is.null(res$delta19)) {
+    d19 <- res$delta19; d19$ind1 <- nm[d19$ind1]; d19$ind2 <- nm[d19$ind2]
+    out$delta19 <- d19
+  }
+  if (!is.null(res$trio_delta)) {
+    td <- res$trio_delta; td$ind1 <- nm[td$ind1]; td$ind2 <- nm[td$ind2]
+    out$trio_delta <- td
+  }
+  if (!is.null(res$inbreeding)) {
+    ib <- res$inbreeding; ib$ind <- nm[ib$ind]
+    out$inbreeding <- ib
+  }
 
   # ---- plotting (Task 4) ----
 
