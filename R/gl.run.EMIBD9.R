@@ -210,8 +210,24 @@ gl.run.EMIBD9 <- function(x,
   # than 20 characters for individual ID will be truncated to have 20 characters.
 
   x2 <- x  #copy to work only on the copied data set
-  # indNames(x2) <- 1:nInd(x2)
-  
+
+  # EMIBD9 requires individual IDs to be unique, to contain no spaces or
+  # other illegal characters, and truncates IDs longer than 20 characters
+  # (which can create duplicates). Sanitise a copy of the names for the
+  # EMIBD9 input files and map results back to the original names afterwards.
+  hold_names <- indNames(x)
+  safe_names <- gsub("[^A-Za-z0-9_.-]", "_", hold_names)
+  safe_names[is.na(safe_names) | safe_names == ""] <- "ind"
+  safe_names <- make.unique(strtrim(safe_names, 15), sep = "_")
+  indNames(x2) <- safe_names
+  if (!identical(safe_names, hold_names) && verbose > 0) {
+    cat(warn(
+      "  Individual names were adjusted to meet EMIBD9 requirements (unique,",
+      "no spaces or special characters, maximum 20 characters). Original",
+      "names are restored in the results.\n"
+    ))
+  }
+
   NumIndiv <- nInd(x2)
   NumLoci <- nLoc(x2)
   DataForm <- 2
@@ -287,9 +303,9 @@ gl.run.EMIBD9 <- function(x,
   colnames(tmp_data_raw_3) <- tmp_headings[2:22]
   
   # Kick out self & redundant comparisons
-  # unq_pairs <- data.table(t(combn(nInd(x), 2)))
-  unq_pairs <- data.table(t(combn(indNames(x), 2)))
-  # unq_pairs <- data.table(t(combn(nInd(x), 2)))
+  # the parsed Indiv1/Indiv2 columns hold the sanitised names, so the pairs
+  # to keep are built from safe_names (unique by construction)
+  unq_pairs <- data.table(t(combn(safe_names, 2)))
   setnames(unq_pairs, new = c("Indiv1", "Indiv2"))
   
   # table_output <- data.table(apply(tmp_data_raw_3, 2, as.numeric))
@@ -302,21 +318,20 @@ gl.run.EMIBD9 <- function(x,
   table_output <- table_output[J(unq_pairs), c(1, 2, 14:23), with=FALSE]
   
   #Relatedness
-  df <- data.frame(ind1=tmp_data_raw_3$Indiv1, ind2=tmp_data_raw_3$Indiv2,rel= tmp_data_raw_3$`r(1,2)`)
-  # df <- apply(df, 2, as.numeric)
+  # work on individual indices (unique by construction) and restore the
+  # original names on the finished matrix
+  df <- data.frame(ind1 = match(tmp_data_raw_3$Indiv1, safe_names),
+                   ind2 = match(tmp_data_raw_3$Indiv2, safe_names),
+                   rel = as.numeric(unlist(tmp_data_raw_3$`r(1,2)`)))
 
-  # res <- matrix(NA, nrow = nInd(x), ncol = nInd(x))
-  # 
-  # for (i in 1:nrow(df)) {
-  #   res[df[i, 1], df[i, 2]] <- df[i, 3]
-  # }
-  
   res <- reshape2::acast(df, ind1 ~ ind2, value.var = "rel")
-  res <- apply(res, 2, as.numeric)
+  res <- res[order(as.integer(rownames(res))),
+             order(as.integer(colnames(res))), drop = FALSE]
+  dimnames(res) <- list(hold_names, hold_names)
 
-  # colnames(res) <- indNames(x)
-  # rownames(res) <- indNames(x)
-  rownames(res) <- colnames(res)
+  # restore original individual names in the raw table
+  tmp_data_raw_3$Indiv1 <- hold_names[match(tmp_data_raw_3$Indiv1, safe_names)]
+  tmp_data_raw_3$Indiv2 <- hold_names[match(tmp_data_raw_3$Indiv2, safe_names)]
 
 # Inbreeding 
  inbreedStart <- which(grepl("^Indiv genotypes at polymorphic loci", x_lines)) + 1
@@ -327,6 +342,10 @@ gl.run.EMIBD9 <- function(x,
    }
    
    inbTable <- fread(file = OutFileName, nrows = nInd(x), skip = inbreedStart)
+   # restore original individual names
+   if ("Indiv" %in% colnames(inbTable)) {
+     inbTable$Indiv <- hold_names[match(inbTable$Indiv, safe_names)]
+   }
  }
  
   #return to old path
