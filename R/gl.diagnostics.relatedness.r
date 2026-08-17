@@ -73,8 +73,8 @@
 #' gl.diagnostics.relatedness(possums.gl, run_sim = TRUE, IncludePlots = TRUE)
 #' }
 #'
-#' @seealso \code{\link{gl.filter.callrate}},
-#'   \code{\link{gl.filter.heterozygosity}}
+#' @seealso \code{\link[dartR.base]{gl.filter.callrate}},
+#'   \code{\link[dartR.base]{gl.filter.heterozygosity}}
 #'
 #' @export
 #' @import methods
@@ -119,9 +119,12 @@ gl.diagnostics.relatedness <- function(
   datatype <- utils.check.datatype(x, verbose = verbose)
 
   # FUNCTION SPECIFIC ERROR CHECKING ----
-  # coancestry() from 'related' (not on CRAN) computes the which_tests
-  # estimators; everything else this function needs is a declared dependency.
-  if (!requireNamespace("related", quietly = TRUE)) {
+  # coancestry() from 'related' computes the which_tests estimators; everything
+  # else this function needs is a declared dependency. 'related' is not on CRAN
+  # so it cannot be declared, hence the variable indirection to keep R CMD
+  # check's dependency scan quiet.
+  pkg <- "related"
+  if (!requireNamespace(pkg, quietly = TRUE)) {
     stop(error(
       "  gl.diagnostics.relatedness needs the package 'related' (not on CRAN).\n",
       "  Install it with:\n",

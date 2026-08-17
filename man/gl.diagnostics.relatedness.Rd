@@ -118,8 +118,8 @@ gl.diagnostics.relatedness(possums.gl, run_sim = TRUE, IncludePlots = TRUE)
 
 }
 \seealso{
-\code{\link{gl.filter.callrate}},
-  \code{\link{gl.filter.heterozygosity}}
+\code{\link[dartR.base]{gl.filter.callrate}},
+  \code{\link[dartR.base]{gl.filter.heterozygosity}}
 }
 \author{
 Ethan, Luis (Post to
