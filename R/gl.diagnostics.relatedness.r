@@ -73,8 +73,8 @@
 #' gl.diagnostics.relatedness(possums.gl, run_sim = TRUE, IncludePlots = TRUE)
 #' }
 #'
-#' @seealso \code{\link{gl.filter.callrate}},
-#'   \code{\link{gl.filter.heterozygosity}}
+#' @seealso \code{\link[dartR.base]{gl.filter.callrate}},
+#'   \code{\link[dartR.base]{gl.filter.heterozygosity}}
 #'
 #' @export
 #' @import methods
@@ -119,9 +119,12 @@ gl.diagnostics.relatedness <- function(
   datatype <- utils.check.datatype(x, verbose = verbose)
 
   # FUNCTION SPECIFIC ERROR CHECKING ----
-  # coancestry() from 'related' (not on CRAN) computes the which_tests
-  # estimators; everything else this function needs is a declared dependency.
-  if (!requireNamespace("related", quietly = TRUE)) {
+  # coancestry() from 'related' computes the which_tests estimators; everything
+  # else this function needs is a declared dependency. 'related' is not on CRAN
+  # so it cannot be declared, hence the variable indirection to keep R CMD
+  # check's dependency scan quiet.
+  pkg <- "related"
+  if (!requireNamespace(pkg, quietly = TRUE)) {
     stop(error(
       "  gl.diagnostics.relatedness needs the package 'related' (not on CRAN).\n",
       "  Install it with:\n",
@@ -199,6 +202,50 @@ gl.diagnostics.relatedness <- function(
   pedOrSim <- run_sim || includedPed
 
   finalClassValues <- list(InputDf = x)
+
+  # GUARD AGAINST related's FORTRAN ABORTS ----
+  # coancestry()'s Fortran reads a space-delimited genotype file and calls STOP
+  # on malformed input; on Windows that kills the whole R session rather than
+  # raising an R error. Two known triggers are guarded here: whitespace in
+  # individual names (breaks the file parsing) and loci scored NA across all
+  # retained individuals (a common state after subsetting a filtered object by
+  # population).
+  orig.names <- indNames(x)
+  safe.names <- gsub("[[:space:]]+", "_", orig.names)
+  names.changed <- !identical(safe.names, orig.names)
+  if (names.changed) {
+    if (anyDuplicated(safe.names)) {
+      stop(error(
+        "Individual names differ only by whitespace and collide once spaces",
+        "are replaced; please make individual names unique\n"))
+    }
+    indNames(x) <- safe.names
+    if (includedPed) {
+      for (cn in intersect(c("id", "dad", "mom"),
+                           colnames(x@other$ind.metrics))) {
+        x@other$ind.metrics[[cn]] <-
+          gsub("[[:space:]]+", "_", as.character(x@other$ind.metrics[[cn]]))
+      }
+    }
+    if (verbose >= 1) {
+      cat(warn(
+        "  Individual names contain spaces; sanitised names are used",
+        "internally and the original names restored in the output\n"))
+    }
+  }
+  name.map <- stats::setNames(orig.names, safe.names)
+
+  am <- as.matrix(x)
+  keep.loc <- colSums(!is.na(am)) > 0
+  keep.ind <- rowSums(!is.na(am)) > 0
+  if (!all(keep.loc)) x <- x[, keep.loc]
+  if (!all(keep.ind)) x <- x[keep.ind, ]
+  if ((!all(keep.loc) || !all(keep.ind)) && verbose >= 1) {
+    cat(warn(sprintf(
+      "  Dropped %d all-NA loci and %d all-NA individuals before the relatedness analysis\n",
+      sum(!keep.loc), sum(!keep.ind))))
+  }
+
   defaultAnalysisDf <- list(x)
 
   pedigreeDfFinal <- NULL
@@ -284,6 +331,23 @@ gl.diagnostics.relatedness <- function(
     finalClassValues[["MergedDf"]] <- pedigreeDfFinal
   }
 
+  # Restore original individual names in the output tables
+  if (names.changed) {
+    finalClassValues[["MergedDf"]] <- lapply(
+      finalClassValues[["MergedDf"]], function(df) {
+        for (cn in intersect(c("ind1", "ind2", "id1", "id2"), colnames(df))) {
+          v <- as.character(df[[cn]])
+          hit <- v %in% names(name.map)
+          v[hit] <- name.map[v[hit]]
+          df[[cn]] <- v
+        }
+        df
+      })
+    if (!is.null(pedigreeDfFinal)) {
+      pedigreeDfFinal <- finalClassValues[["MergedDf"]]
+    }
+  }
+
   # 4. Construct correlation values
   if (rmseOut || varOut) {
     if (rmseOut) {
@@ -333,7 +397,7 @@ gl.diagnostics.relatedness <- function(
 
   # 6. Construct final class to store everything
   templateClass <- new("finalOutputClass")
-  templateClass@InputDf <- x
+  templateClass@InputDf <- finalClassValues[["InputDf"]]
   templateClass@SimOutput <- finalClassValues[["SimOutput"]]
   templateClass@MergedDf <- finalClassValues[["MergedDf"]]
   templateClass@corVals <- finalClassValues[["corVals"]]
