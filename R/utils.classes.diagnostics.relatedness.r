@@ -64,9 +64,10 @@ setMethod("do_sim", "DartSim", function(object) {
 
 setClass("finalOutputClass", 
          slots = c(
-           "InputDf" = "ANY", 
-           "SimOutput" = "ANY", 
-           "corOutList" = "ANY", 
+           "InputDf" = "ANY",
+           "SimOutput" = "ANY",
+           "MergedDf" = "ANY",
+           "corOutList" = "ANY",
            "corVals" = "ANY", 
            "plotList" = "ANY"
          ))
