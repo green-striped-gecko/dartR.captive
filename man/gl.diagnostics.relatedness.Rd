@@ -18,7 +18,7 @@ gl.diagnostics.relatedness(
   numberIterations = 1,
   numberGenerations = 3,
   genToSave = "all",
-  runE9 = FALSE,
+  run.e9 = FALSE,
   E9Inbreed = FALSE,
   e9Path = NULL,
   verbose = NULL,
@@ -45,7 +45,8 @@ before simulation [default = FALSE].}
 \item{IncludePlots}{Logical. If TRUE, generate and return plots
 [default = FALSE].}
 
-\item{plotOut}{Logical. If TRUE, prints plots [default = FALSE].}
+\item{plotOut}{Logical. If TRUE, prints the generated plots to the graphics
+device (requires \code{IncludePlots = TRUE}) [default = FALSE].}
 
 \item{varOut}{Logical. If TRUE, return variance results [default = FALSE].}
 
@@ -54,36 +55,39 @@ before simulation [default = FALSE].}
 \item{numberIterations}{Integer. Number of simulation iterations
 [default = 1].}
 
-\item{numberGenerations}{Integer. Number of generations to simulate
-[default = 3].}
+\item{numberGenerations}{Integer. Number of generations to simulate;
+minimum 3 [default = 3].}
 
 \item{genToSave}{Either "all" or a numeric vector of generations to save
 [default = "all"].}
 
-\item{runE9}{Logical. If TRUE, include E9 analysis [default = FALSE].}
+\item{run.e9}{Logical. If TRUE, include EMIBD9 analysis [default = FALSE].}
 
-\item{E9Inbreed}{Logical. If TRUE, then runs EMIBD9 twice - once with inbreeding once w/out 
+\item{E9Inbreed}{Logical. If TRUE, then runs EMIBD9 twice - once with inbreeding once w/out
 [default = FALSE].}
 
-\item{e9Path}{Path to external E9 binary [optional].}
+\item{e9Path}{Path to external EMIBD9 binary [optional].}
 
 \item{verbose}{Verbosity level: 0–5. If NULL, set by
 \code{gl.set.verbosity()} [default = NULL].}
 
-\item{e9parallel}{Logical. Run E9 in parallel [default = FALSE].}
+\item{e9parallel}{Logical. Run EMIBD9 in parallel [default = FALSE].}
 
-\item{nCores}{Integer. Number of cores if running E9 in parallel
+\item{nCores}{Integer. Number of cores if running EMIBD9 in parallel
 [default = 1].}
 
-\item{includedPed}{Logical. If TRUE then input file has attache pedigree 
+\item{includedPed}{Logical. If TRUE then input file has attache pedigree
 [default = FALSE]}
 }
 \value{
 Returns an S4 object containing simulation and/or relatedness
-  outputs. The slots for the output class are as follows: 
+  outputs. The slots for the output class are as follows:
   \itemize{
-    \item @InputDf: Original genlight input
+    \item @InputDf: The genlight input (after filtering when
+      \code{cleanup = TRUE})
     \item @SimOutput: Genlight object of simulation outputs
+    \item @MergedDf: Relatedness estimates per iteration (with pedigree
+      relationship classes when a pedigree is available)
     \item @corOutList: Results of correlation analysis
     \item @corVals: Output of correlation results between methods
     \item @plotList: List of plots
@@ -91,9 +95,9 @@ Returns an S4 object containing simulation and/or relatedness
 }
 \description{
 This function wraps a variety of methods for estimating relatedness, such
-that they can be directly compared for accuracy and precision. It also 
-provides the ability to run the gl.sim function for a minimum of 3 generations, 
-providing further functionality with regards to estimating gene flow and population 
+that they can be directly compared for accuracy and precision. It also
+provides the ability to run the gl.sim function for a minimum of 3 generations,
+providing further functionality with regards to estimating gene flow and population
 dynamics. It supports multiple simulation back ends, correlation
 output, error checking, RMSE/variance summaries, and optional plotting.
 }
@@ -101,11 +105,15 @@ output, error checking, RMSE/variance summaries, and optional plotting.
 The function manages filtering, simulation setup, correlation
 and relatedness outputs, and optional plotting. It handles quality
 control checks on input objects and file paths before analysis.
+
+The relatedness estimators in \code{which_tests} are computed by
+\code{coancestry()} from the package \code{related}, which is not on CRAN;
+install it with
+\code{devtools::install_github("timothyfrasier/related")}.
 }
 \examples{
 \dontrun{
-if (isTRUE(getOption("dartR_fbm"))) testset.gl <- gl.gen2fbm(testset.gl)
-gl.diagnostics.relatedness(testset.gl, run_sim = TRUE, IncludePlots = TRUE)
+gl.diagnostics.relatedness(possums.gl, run_sim = TRUE, IncludePlots = TRUE)
 }
 
 }
