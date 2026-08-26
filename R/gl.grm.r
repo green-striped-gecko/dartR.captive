@@ -13,10 +13,12 @@
 #' @param palette_convergent A convergent palette for the IBD values
 #'  [default convergent_palette].
 #' @param legendx x coordinates for the legend[default 0].
-#' @param legendy y coordinates for the legend[default 1].
+#' @param legendy y coordinates for the legend[default 0.5].
 #' @param label.size Specify the size of the population labels [default 0.75].
 #' @param legend.title Legend title [default "Populations"].
-#' @param plot.file Name for the RDS binary file to save (base name only, exclude extension) [default NULL]
+#' @param plot.file Name for the RDS binary file to save (base name only,
+#'  exclude extension); saved only when \code{plotheatmap = TRUE}
+#'  [default NULL]
 #' @param plot.dir Directory in which to save files [default = working directory]
 #' @param verbose Verbosity: 0, silent or fatal errors; 1, begin and end; 2,
 #'  progress log ; 3, progress and results summary; 5, full report
@@ -43,8 +45,13 @@
 #'  Individual names are shown in the margins of the heatmap and colors
 #'  represent different populations.
 #'
+#'  This function densifies the genotype matrix (\code{as.matrix(x)}) before
+#'  calling \link[rrBLUP]{A.mat}, which requires a dense matrix. It is not
+#'  suited to full-size FBM-backed objects, where densification defeats the
+#'  memory savings FBM backing is meant to provide.
+#'
 #' @return An identity by descent matrix
-#' @author Custodian: Arthur Georges -- Post to
+#' @author Author(s): Arthur Georges. Custodian: Arthur Georges -- Post to
 #' \url{https://groups.google.com/d/forum/dartr}
 #' @references \itemize{
 #' \item Endelman, J. B. (2011). Ridge regression and other kernels for genomic
@@ -75,6 +82,9 @@ gl.grm <- function(x,
   # SET VERBOSITY
   verbose <- gl.check.verbosity(verbose)
 
+  # SET WORKING DIRECTORY
+  plot.dir <- gl.check.wd(plot.dir, verbose = 0)
+
   # FLAG SCRIPT START
   funname <- match.call()[[1]]
   utils.flag.start(
@@ -99,14 +109,15 @@ gl.grm <- function(x,
     return(-1)
   }
 
-  pkg <- "gplots"
-  if (!(requireNamespace(pkg, quietly = TRUE))) {
-    cat(error(
-      "Package",
-      pkg,
-      " needed for this function to work. Please install it.\n"
+  # gl.grm computes an additive relationship matrix intended for SNP
+  # (diploid, 0/1/2) dosage; it is not valid for SilicoDArT (presence/
+  # absence, ploidy 1) data
+  if (datatype == "SilicoDArT") {
+    stop(error(
+      "Fatal Error: gl.grm computes an additive relationship matrix for",
+      "SNP (diploid) data; it is not valid for SilicoDArT",
+      "(presence/absence) data.\n"
     ))
-    return(-1)
   }
 
   # Set a population if none is specified (such as if the genlight object has been generated manually)
@@ -125,47 +136,58 @@ gl.grm <- function(x,
 
   # DO THE JOB
 
-  # assigning colors to populations
-  if(!is.null(palette_discrete)){
-  # if pop colors is a palette
-  if (is(palette_discrete, "function")) {
-    colors_pops <- palette_discrete(length(levels(pop(x))))
-  }
-  # if pop colors is a vector
-  if (!is(palette_discrete, "function")) {
-    colors_pops <- palette_discrete
-  }
-  }else{
-    colors_pops <- gl.select.colors(x, verbose = 0)
-  }
-  
-  names(colors_pops) <- as.character(levels(x$pop))
-
   # calculating the realized additive relationship matrix
 
   G <- rrBLUP::A.mat(as.matrix(x) - 1, ...)
 
-  df_colors_temp_1 <-
-    as.data.frame(cbind(indNames(x), as.character(pop(x)), 1:nInd(x)))
-  colnames(df_colors_temp_1) <- c("ind", "pop", "order")
-  df_colors_temp_2 <-
-    as.data.frame(cbind(names(colors_pops), colors_pops))
-  colnames(df_colors_temp_2) <- c("pop", "color")
-  df_colors <-
-    merge(df_colors_temp_1, df_colors_temp_2, by = "pop")
-  df_colors$order <- as.numeric(df_colors$order)
-  df_colors <- df_colors[order(df_colors$order), ]
-  df_colors_2 <- df_colors[, c("pop", "color")]
-  df_colors_2 <- unique(df_colors_2)
-
   if (plotheatmap == TRUE) {
+    # check if package is installed
+    pkg <- "gplots"
+    if (!(requireNamespace(pkg, quietly = TRUE))) {
+      cat(error(
+        "Package",
+        pkg,
+        " needed for this function to work. Please install it.\n"
+      ))
+      return(-1)
+    }
+
+    # assigning colors to populations
+    if (!is.null(palette_discrete)) {
+      # if pop colors is a palette
+      if (is(palette_discrete, "function")) {
+        colors_pops <- palette_discrete(length(levels(pop(x))))
+      }
+      # if pop colors is a vector
+      if (!is(palette_discrete, "function")) {
+        colors_pops <- palette_discrete
+      }
+    } else {
+      colors_pops <- gl.select.colors(x, verbose = 0)
+    }
+
+    names(colors_pops) <- as.character(levels(x$pop))
+
+    df_colors_temp_1 <-
+      as.data.frame(cbind(indNames(x), as.character(pop(x)), 1:nInd(x)))
+    colnames(df_colors_temp_1) <- c("ind", "pop", "order")
+    df_colors_temp_2 <-
+      as.data.frame(cbind(names(colors_pops), colors_pops))
+    colnames(df_colors_temp_2) <- c("pop", "color")
+    df_colors <-
+      merge(df_colors_temp_1, df_colors_temp_2, by = "pop")
+    df_colors$order <- as.numeric(df_colors$order)
+    df_colors <- df_colors[order(df_colors$order), ]
+    df_colors_2 <- df_colors[, c("pop", "color")]
+    df_colors_2 <- unique(df_colors_2)
+
     if (is.null(palette_convergent)) {
       cols <- gl.select.colors(library = "baseR", palette = "cm.colors", ncolors = 255, verbose = 0)
     } else {
       cols <- palette_convergent(255)
     }
     # plotting heatmap
-    
+
     oldpar <- par(no.readonly = TRUE)
     on.exit(par(oldpar))
     par(mar = c(1, 1, 1, 1))
@@ -188,16 +210,23 @@ gl.grm <- function(x,
       cex = label.size,
       title = legend.title
     )
-  }
 
-  # Optionally save the plot ---------------------
+    # Optionally save the plot ---------------------
 
-  if (!is.null(plot.file)) {
-    tmp <- utils.plot.save(p3,
-      dir = plot.dir,
-      file = plot.file,
-      verbose = verbose
-    )
+    if (!is.null(plot.file)) {
+      tmp <- utils.plot.save(p3,
+        dir = plot.dir,
+        file = plot.file,
+        verbose = verbose
+      )
+    }
+  } else if (!is.null(plot.file)) {
+    if (verbose >= 1) {
+      cat(warn(
+        "  plot.file was set but plotheatmap = FALSE; no plot is",
+        "generated, so nothing was saved.\n"
+      ))
+    }
   }
 
   # FLAG SCRIPT END
