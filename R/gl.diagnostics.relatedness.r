@@ -65,8 +65,8 @@
 #' gl.diagnostics.relatedness(testset.gl, run_sim = TRUE, IncludePlots = TRUE)
 #' }
 #'
-#' @seealso \code{\link{gl.filter.callrate}},
-#'   \code{\link{gl.filter.heterozygosity}}
+#' @seealso \code{\link[dartR.base]{gl.filter.callrate}},
+#'   \code{\link[dartR.base]{gl.filter.heterozygosity}}
 #'
 #' @export
 #' @import methods

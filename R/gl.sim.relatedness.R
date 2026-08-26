@@ -10,15 +10,15 @@
 #'be used to guide the choosing of the relatedness threshold in the function.
 #'
 #' \tabular{lll}{
-#'   \strong{Relationship} \tab \strong{Kinship} \tab \strong{95\% CI} \cr
+#'   \strong{Relationship} \tab \strong{Kinship} \tab \strong{95\% CI} \cr
 #'   Identical twins / clones / same individual \tab 0.5   \tab –              \cr
-#'   Sibling / Parent–Offspring                \tab 0.25  \tab (0.204, 0.296)\cr
-#'   Half‑sibling                              \tab 0.125 \tab (0.092, 0.158)\cr
-#'   First cousin                              \tab 0.062 \tab (0.038, 0.089)\cr
-#'   Half‑cousin                               \tab 0.031 \tab (0.012, 0.055)\cr
-#'   Second cousin                             \tab 0.016 \tab (0.004, 0.031)\cr
-#'   Half‑second cousin                        \tab 0.008 \tab (0.001, 0.020)\cr
-#'   Third cousin                              \tab 0.004 \tab (0.000, 0.012)\cr
+#'   Sibling / Parent–Offspring                \tab 0.25  \tab (0.204, 0.296)\cr
+#'   Half‑sibling                              \tab 0.125 \tab (0.092, 0.158)\cr
+#'   First cousin                              \tab 0.062 \tab (0.038, 0.089)\cr
+#'   Half‑cousin                               \tab 0.031 \tab (0.012, 0.055)\cr
+#'   Second cousin                             \tab 0.016 \tab (0.004, 0.031)\cr
+#'   Half‑second cousin                        \tab 0.008 \tab (0.001, 0.020)\cr
+#'   Third cousin                              \tab 0.004 \tab (0.000, 0.012)\cr
 #'   Unrelated                                 \tab 0     \tab –              \cr
 #' }
 #' 
@@ -33,7 +33,7 @@
 #' from simulated relatedness values [default 0.95].
 #' @param OutAlleleFre Whether to write , 1, or not, 0, the allele frequency 
 #' file [default 0].
-#' @param EM_Method Whether to estimate Δ only (EM_Method=0) or to estimate Δ 
+#' @param EM_Method Whether to estimate delta only (EM_Method=0) or to estimate delta
 #' and p jointly (EM_Method=1) [default 1].
 #' @param Inbreed A Boolean, taking values TRUE or FALSE to indicate inbreeding 
 #' is not and is allowed in estimating IBD coefficients [default FALSE].
