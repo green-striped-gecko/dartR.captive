@@ -26,14 +26,15 @@ Description: Functions are provided that facilitate the analysis of SNP
 Encoding: UTF-8
 Depends: R (>= 3.5),  dartR.base, dartR.data, dartR.sim
 Imports: adegenet (>= 2.0.0), methods, utils,  crayon, ggplot2, patchwork, stringr, data.table, gridExtra, magrittr,reshape2,tidyr
-Suggests: 
+Suggests:
     SIBER,
     gplots,
     fields,
     igraph,
     rrBLUP,
     scales,
-    spelling, 
+    spelling,
+    testthat (>= 3.0.0),
     tidyverse
 License: GPL (>= 3)
 RoxygenNote: 7.3.3
