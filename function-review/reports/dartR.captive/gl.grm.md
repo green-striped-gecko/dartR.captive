@@ -233,7 +233,7 @@ PR: not yet opened.
     {"id": "F8", "severity": "INFO", "confidence": "medium", "rule": "DAT6 (proposed)", "status": "approved", "change": 8}
   ],
   "coverage_skipped": ["DAT6 full-scale FBM run: no large FBM fixture available"],
-  "status": "applied",
-  "pr": null
+  "status": "pr-open",
+  "pr": 85
 }
 ```
