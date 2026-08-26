@@ -197,19 +197,43 @@ gl.run.colony <- function(x,
   )
   
   os <- Sys.info()["sysname"]
-  
+
+  # system() does not raise an R error when the executable is missing,
+  # not executable or crashes, so a failed run previously went unnoticed and
+  # callers reported success while COLONY had produced no output (OP 8821).
+  # Capture the exit status and gate completion on it and on the output
+  # artifacts COLONY writes (named after output.name, in its working
+  # directory, i.e. the R working directory).
+  status <- NA_integer_
+
   if (Sys.info()["sysname"] == "Windows") {
-    system(paste0(colony.path,"/Colony2p.exe IFN:",outfilespec))
+    status <- system(paste0(colony.path,"/Colony2p.exe IFN:",outfilespec))
   }
-  
+
   if (Sys.info()["sysname"] == "Linux") {
-    system(paste0(colony.path,"/colony2s.ifort.out IFN:",outfilespec))
+    status <- system(paste0(colony.path,"/colony2s.ifort.out IFN:",outfilespec))
   }
-  
+
   if (Sys.info()["sysname"] == "Darwin") {
-    system(paste0(colony.path,"/colony2s.out IFN:",outfilespec))
+    status <- system(paste0(colony.path,"/colony2s.out IFN:",outfilespec))
   }
-  
+
+  if (is.na(status) || status != 0) {
+    stop(error(paste0(
+      "COLONY failed to run (exit status ", status, "). Check that the ",
+      "COLONY executable exists at '", colony.path, "' and is executable."
+    )))
+  }
+
+  out.files <- list.files(getwd())
+  out.files <- out.files[startsWith(out.files, output.name)]
+  if (length(out.files) == 0) {
+    stop(error(paste0(
+      "COLONY finished without writing any output files named '",
+      output.name, ".*'. Check the COLONY console output above for the cause."
+    )))
+  }
+
   
   if (verbose >= 3) {
     cat(report(paste(
