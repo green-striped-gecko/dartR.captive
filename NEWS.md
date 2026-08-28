@@ -13,3 +13,20 @@
   was saved, since no plot is generated.
 * `gl.grm()`: corrected the documented default for `legendy` (was `1`,
   actual default is `0.5`).
+* `gl.grm.network()`: fixed a crash (`` `breaks` and `labels` have
+  different lengths``) whenever exactly one pair of individuals cleared
+  `kinship.threshold` — previously the common case of confirming a single
+  suspected relationship never returned a plot.
+* `gl.grm.network()`: fixed a crash (`Insufficient values in manual
+  scale`) when `categorise = TRUE` was combined with a
+  `kinship.threshold` below `0.1`. The undocumented "First Cousins"
+  bucket this produced has been removed; `categorise = TRUE` now always
+  shows the 3 documented kinship categories, and pairs below `0.1` are
+  left uncategorised.
+* `gl.grm.network()`: an individual related (above `kinship.threshold`)
+  to 2 or more other individuals was plotted as a duplicate, overlapping
+  node; each individual is now plotted once.
+* `gl.grm.network()`: corrected the documented defaults for
+  `node.label.size` (was `3`, actual default is `2`) and `title` (was
+  `'Network of similarity matrix'`, actual default is `'Network of a
+  similarity matrix'`).
