@@ -16,7 +16,7 @@
 #' @param method One of 'fr', 'kk', 'gh' or 'mds' [default 'fr'].
 #' @param node.size Size of the symbols for the network nodes [default 8].
 #' @param node.label TRUE to display node labels [default TRUE].
-#' @param node.label.size Size of the node labels [default 3].
+#' @param node.label.size Size of the node labels [default 2].
 #' @param node.label.color Color of the text of the node labels
 #' [default 'black'].
 #' @param link.color Colors for links, either a vector of colors or a color 
@@ -24,7 +24,7 @@
 #' @param link.size Size of the links [default 2].
 #' @param kinship.threshold Threshold of kinship value to display in the 
 #' network diagram [default 0.125].
-#' @param title Title for the plot [default 'Network of similarity matrix'].
+#' @param title Title for the plot [default 'Network of a similarity matrix'].
 #' @param legend.title Title for the legend [default "Populations"].
 #' @param title.size Font size of the title [default 16].
 #' @param legend.size Font size of the legend [default 14].
@@ -100,7 +100,7 @@
 #' 
 #'
 #' @return A network plot showing kinship between individuals
-#' @author Custodian: Arthur Georges -- Post to
+#' @author Author(s): Arthur Georges. Custodian: Arthur Georges -- Post to
 #' \url{https://groups.google.com/d/forum/dartr}
 #' @examples
 #' if (requireNamespace("igraph", quietly = TRUE) & requireNamespace("rrBLUP",
@@ -225,15 +225,14 @@ gl.grm.network <- function(G,
   }
   
   if(isFALSE(standardise)){
-    links_tmp <- links
-    colnames(links_tmp) <- c("from","to","kinship")
-    links_tmp$kinship <- as.character(links_tmp$kinship)
     colnames(links) <- c("from","to","kinship")
     links_tmp <- links
   }
-  
-  links_tmp <- rbind(links_tmp,cbind(from=indNames(x),
-                                     to=indNames(x),kinship=0))
+
+  links_tmp <- rbind(links_tmp,
+                     data.frame(from = indNames(x),
+                               to = indNames(x),
+                               kinship = 0))
   
   links_matrix <- as.matrix(reshape2::acast(links_tmp, 
                                             from~to, value.var="kinship"))
@@ -246,8 +245,11 @@ gl.grm.network <- function(G,
   links_plot_3 <- links_plot_tmp[,c("to","kinship")]
   colnames(links_plot_3) <- c("label.node","kinship")
   links_plot <- rbind(links_plot_2,links_plot_3)
+  # one row per individual: keep the strongest relationship so the merge
+  # below doesn't duplicate a node with 2+ above-threshold relationships
+  links_plot <- aggregate(kinship ~ label.node, data = links_plot, FUN = max)
   
-  nodes <- data.frame(cbind(x$ind.names, as.character(pop(x))))
+  nodes <- data.frame(cbind(indNames(x), as.character(pop(x))))
   colnames(nodes) <- c("name", "pop")
   
   network <- igraph::graph_from_data_frame(d = links,
@@ -337,90 +339,61 @@ gl.grm.network <- function(G,
     link.color <- link.color(255)
   }
   
-  names(colors_pops) <- as.character(levels(x$pop))
+  names(colors_pops) <- as.character(levels(pop(x)))
   new_levels <- unique(plotcord$pop[order(as.character(plotcord$pop))])
   # Rebuild the factor
   plotcord$pop <- factor(plotcord$pop, levels = new_levels)
   
-  if (nrow(edges) > 0) {
-    breaks <- pretty(round(seq(min(edges$size),
-                        max(edges$size),
-                        0.1),1),4)
-  } else {
-    if (verbose >= 1) {
-      cat(warn(paste0(
-        "  No pairs of individuals have a kinship value at or above the",
-        " kinship.threshold (", kinship.threshold, "); the network is shown",
-        " with nodes only and no links.\n"
-      )))
-    }
-    breaks <- 0
+  if (nrow(edges) == 0 && verbose >= 1) {
+    cat(warn(paste0(
+      "  No pairs of individuals have a kinship value at or above the",
+      " kinship.threshold (", kinship.threshold, "); the network is shown",
+      " with nodes only and no links.\n"
+    )))
   }
 
-  if(categorise){
+  if (categorise) {
     edges$cat <- rep(NA_character_, nrow(edges))
     if (nrow(edges) > 0) {
-      edges[edges$size >=0.3,"cat"] <- "Same Individual"
-      edges[edges$size >=0.2 & edges$size < 0.3,"cat"] <-"Full Siblings\nParent-Offspring"
-      edges[edges$size >=0.1 & edges$size < 0.2,"cat"] <-"Half Siblings"
-      edges[edges$size >=0.038 & edges$size < 0.1,"cat"] <-"First Cousins"
+      edges[edges$size >= 0.3, "cat"] <- "Same Individual"
+      edges[edges$size >= 0.2 & edges$size < 0.3, "cat"] <-
+        "Full Siblings\nParent-Offspring"
+      edges[edges$size >= 0.1 & edges$size < 0.2, "cat"] <- "Half Siblings"
     }
-
-p1 <-
-  ggplot() + 
-  geom_segment(data = edges,
-               aes( x = X1, 
-                    y = Y1, 
-                    xend = X2,
-                    yend = Y2,
-                    color = cat),
-               linewidth = link.size) +
-  scale_color_manual(
-    name = "Kinship",
-    values = color.categories
-  ) +
-  geom_point(data = plotcord,aes(x = X1,y = X2, fill = pop), 
-             pch = 21,
-             alpha=plotcord$kinship,
-             size = node.size) +
-  scale_fill_manual(name = legend.title, values = colors_pops)+
-  coord_fixed(ratio = 1) + 
-  theme_void() +
-  ggtitle(paste(title, "\n[", layout.name, "]")) + 
-  theme(legend.position = "bottom",
-        plot.title = element_text( hjust = 0.5, face = "bold",size = title.size),
-        legend.title = element_text(size = legend.size),
-        legend.text = element_text(size = 8)) 
-    
-  }else{
-    
-    p1 <-
-      ggplot() + 
-      geom_segment(data = edges,
-                   aes( x = X1, y = Y1, xend = X2,yend = Y2,color = size),
-                   linewidth = link.size) +
-      scale_colour_gradientn(
-        name = "Kinship",
-        colours = link.color,
-        breaks = breaks,
-        labels = as.character(breaks)
-      ) +
-      geom_point(data = plotcord,aes(x = X1,y = X2, fill = pop), 
-                 pch = 21,
-                 alpha=plotcord$kinship,
-                 size = node.size) +
-      scale_fill_manual(name = legend.title, values = colors_pops)+
-      coord_fixed(ratio = 1) + 
-      theme_void() +
-      ggtitle(paste(title, "\n[", layout.name, "]")) + 
-      theme(legend.position = "bottom",
-            plot.title = element_text( hjust = 0.5, face = "bold",size = title.size),
-            legend.title = element_text(size = legend.size),
-            legend.text = element_text(size = 8))  
-    
+    color_layer <- list(
+      aes(color = cat),
+      scale_color_manual(name = "Kinship", values = color.categories)
+    )
+  } else {
+    color_layer <- list(
+      aes(color = size),
+      scale_colour_gradientn(name = "Kinship", colours = link.color)
+    )
   }
-  
-  if (node.label == T) {
+
+  p1 <-
+    ggplot() +
+    geom_segment(data = edges,
+                 mapping = modifyList(
+                   aes(x = X1, y = Y1, xend = X2, yend = Y2),
+                   color_layer[[1]]
+                 ),
+                 linewidth = link.size) +
+    color_layer[[2]] +
+    geom_point(data = plotcord,aes(x = X1,y = X2, fill = pop),
+               pch = 21,
+               alpha=plotcord$kinship,
+               size = node.size) +
+    scale_fill_manual(name = legend.title, values = colors_pops)+
+    coord_fixed(ratio = 1) +
+    theme_void() +
+    ggtitle(paste(title, "\n[", layout.name, "]")) +
+    theme(legend.position = "bottom",
+          plot.title = element_text( hjust = 0.5, face = "bold",size = title.size),
+          legend.title = element_text(size = legend.size),
+          legend.text = element_text(size = 8))
+
+  if (isTRUE(node.label)) {
     p1 <-
       p1 + geom_text(
         data = plotcord,
