@@ -269,7 +269,7 @@ unchanged. `tests/testthat/test-gl.grm.R` (sibling function) re-run
 unaffected (12/12 pass, this PR touches no shared code). The documented
 `@examples` block re-run end to end at `verbose = 3` on `possums.gl` —
 completes without error or warning.
-PR: not yet opened.
+PR: #87
 
 ```json
 {
@@ -292,6 +292,6 @@ PR: not yet opened.
   ],
   "coverage_skipped": [],
   "status": "pr-open",
-  "pr": null
+  "pr": 87
 }
 ```
