@@ -211,7 +211,8 @@ approved behavior (SilicoDArT now errors; `plotheatmap = FALSE` +
 map to approved changes 1 and 2. The baseline SNP-path numeric snapshot
 (diagonal/off-diagonal values on `testset.gl[1:10, 1:100]`) is unchanged,
 confirming changes 3-8 didn't alter computed output for the default path.
-PR: not yet opened.
+PR: #85 (https://github.com/green-striped-gecko/dartR.captive/pull/85),
+merged into `dev` 2026-08-26.
 
 ```json
 {
@@ -233,7 +234,7 @@ PR: not yet opened.
     {"id": "F8", "severity": "INFO", "confidence": "medium", "rule": "DAT6 (proposed)", "status": "approved", "change": 8}
   ],
   "coverage_skipped": ["DAT6 full-scale FBM run: no large FBM fixture available"],
-  "status": "pr-open",
+  "status": "done",
   "pr": 85
 }
 ```
