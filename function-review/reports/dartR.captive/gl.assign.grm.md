@@ -236,7 +236,8 @@ values on `testset.gl[1:30, 1:200]`) is unchanged, confirming changes 2,
 `gl.assign.grm(sub, unknown = "AA019237", verbose = 3)` on reference data
 and confirmed begin/end messages, the results summary, and the returned
 vector all behave as expected.
-PR: #88 (https://github.com/green-striped-gecko/dartR.captive/pull/88).
+PR: #88 (https://github.com/green-striped-gecko/dartR.captive/pull/88),
+merged into `dev` 2026-09-01.
 
 ```json
 {
@@ -258,7 +259,7 @@ PR: #88 (https://github.com/green-striped-gecko/dartR.captive/pull/88).
     {"id": "F8", "severity": "INFO", "confidence": "high", "rule": "DOC7 (proposed)", "status": "approved", "change": 8}
   ],
   "coverage_skipped": ["DAT6: not applicable, no densification in this function's own body"],
-  "status": "pr-open",
+  "status": "done",
   "pr": 88
 }
 ```

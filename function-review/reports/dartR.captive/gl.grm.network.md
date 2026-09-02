@@ -269,7 +269,8 @@ unchanged. `tests/testthat/test-gl.grm.R` (sibling function) re-run
 unaffected (12/12 pass, this PR touches no shared code). The documented
 `@examples` block re-run end to end at `verbose = 3` on `possums.gl` —
 completes without error or warning.
-PR: #87
+PR: #87 (https://github.com/green-striped-gecko/dartR.captive/pull/87),
+merged into `dev` 2026-08-28.
 
 ```json
 {
@@ -291,7 +292,7 @@ PR: #87
     {"id": "F8", "severity": "INFO", "confidence": "medium", "rule": "STY3", "status": "approved", "change": 8}
   ],
   "coverage_skipped": [],
-  "status": "pr-open",
+  "status": "done",
   "pr": 87
 }
 ```
