@@ -2,3 +2,4 @@ function,package,family,claimed_by,status
 gl.grm,dartR.captive,analysis,Claude,done#85
 gl.grm.network,dartR.captive,analysis,Claude,done#87
 gl.assign.grm,dartR.captive,analysis,Claude,done#88
+gl.assign.on.genotype,dartR.captive,analysis,Claude,pr-open#91

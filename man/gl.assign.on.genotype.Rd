@@ -24,11 +24,11 @@ provenance is unknown [required].}
 analysis [default 10].}
 
 \item{n.best}{If given a value, dictates the best n=n.best populations to
-retain for consideration (or more if their are ties) based on AIC weight. If not
+retain for consideration (or more if there are ties) based on AIC weight. If not
 specified, then the putative source populations identified as possibilities (AIC.wt >= aic.threshold)
 are retained. [default NULL].}
 
-\item{aic.threshold}{The critical value used to select populations for which their is considered
+\item{aic.threshold}{The critical value used to select populations for which there is considered
 some support as a putative source based on AIC weights [default 0.05]}
 
 \item{verbose}{Verbosity: 0, silent or fatal errors; 1, begin and end; 2,
