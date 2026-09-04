@@ -2,6 +2,22 @@
 
 ## Unreleased
 
+* `gl.assign.on.genotype()`: when no candidate population meets
+  `aic.threshold`, the function now returns the documented "unknown
+  individual only, with a warning" result instead of crashing inside
+  `gl.keep.pop()` with an opaque `no populations listed to keep!` error.
+* `gl.assign.on.genotype()`: `n.best` larger than the number of candidate
+  populations is now capped (with a warning) instead of crashing with
+  `Subsetting resulted in zero individuals`.
+* `gl.assign.on.genotype()`: now errors on SilicoDArT (presence/absence,
+  ploidy 1) input instead of silently applying a diploid Hardy-Weinberg
+  genotype-probability model to it and returning statistically invalid
+  results. Callers passing SilicoDArT data will need to use a different
+  assignment function (e.g. `gl.assign.pa()`).
+* `gl.assign.on.genotype()`: the results table now only prints at
+  `verbose >= 3`, matching the documented verbosity levels (previously
+  printed even at `verbose = 0`).
+
 * `gl.grm()`: now errors on SilicoDArT (presence/absence) input instead of
   silently returning a numerically meaningless matrix — the additive
   relationship algorithm and the documented diagonal range (1 to 2) only

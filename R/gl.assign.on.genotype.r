@@ -28,12 +28,12 @@
 #' provenance is unknown [required].
 #' @param nmin Minimum sample size for a target population to be included in the
 #' analysis [default 10].
-#' @param aic.threshold The critical value used to select populations for which their is considered
-#' some support as a putative source based on AIC weights [default 0.05]
 #' @param n.best If given a value, dictates the best n=n.best populations to
-#' retain for consideration (or more if their are ties) based on AIC weight. If not
+#' retain for consideration (or more if there are ties) based on AIC weight. If not
 #' specified, then the putative source populations identified as possibilities (AIC.wt >= aic.threshold)
 #' are retained. [default NULL].
+#' @param aic.threshold The critical value used to select populations for which there is considered
+#' some support as a putative source based on AIC weights [default 0.05]
 #' @param verbose Verbosity: 0, silent or fatal errors; 1, begin and end; 2,
 #' progress log; 3, progress and results summary; 5, full report
 #'  [default 2 or as specified using gl.set.verbosity].
@@ -74,7 +74,13 @@ gl.assign.on.genotype <- function(x,
   
   # CHECK DATATYPE
   datatype <- utils.check.datatype(x, verbose = verbose)
-  
+
+  if (datatype == "SilicoDArT") {
+    stop(error("Fatal Error: gl.assign.on.genotype() computes genotype likelihoods
+                under a diploid Hardy-Weinberg model and is not valid for
+                SilicoDArT (presence/absence) data.\n"))
+  }
+
   if (!is(x, "dartR")) {
     class(x) <- "dartR"  
     if (verbose>2) {
@@ -206,17 +212,17 @@ gl.assign.on.genotype <- function(x,
   
   # Function to calculate log liklihood for a focal genotype vector vs a population matrix
   
-  utils.gen.prob <- function(focal, popmat) {
-    
+  calc.genotype.logL <- function(focal, popmat) {
+
     # Ensure dimensions are compatible
     stopifnot(length(focal) == ncol(popmat))
-    
+
     # Calculate allele frequencies (0/1/2 encoding) and HWE genotype probabilities
     p <- colMeans(popmat, na.rm = TRUE) / 2  # frequency of 'B' allele
     pAA <- (1 - p)^2
     pAB <- 2 * p * (1 - p)
     pBB <- p^2
-    
+
     # Likelihood of focal genotype under HWE
     logL_focal <- mapply(function(g, pa, pb, pc) {
       if (is.na(g)) return(NA)
@@ -225,24 +231,10 @@ gl.assign.on.genotype <- function(x,
       if (g == 2) return(log(pc + 1e-10))
       return(NA)
     }, focal, pAA, pAB, pBB)
-    
+
     logL_focal_total <- sum(logL_focal, na.rm = TRUE)
-    
-    # Likelihoods for each individual in the population
-    logLs_pop <- apply(popmat, 1, function(ind) {
-      mapply(function(g, pa, pb, pc) {
-        if (is.na(g)) return(NA)
-        if (g == 0) return(log(pa + 1e-10))
-        if (g == 1) return(log(pb + 1e-10))
-        if (g == 2) return(log(pc + 1e-10))
-        return(NA)
-      }, ind, pAA, pAB, pBB)
-    })
-    
-    logL_pop_totals <- colSums(logLs_pop, na.rm = TRUE)
-    logL = logL_focal_total
-    
-    return(logL)
+
+    return(logL_focal_total)
   }
   
   # Prepare results container
@@ -260,7 +252,7 @@ gl.assign.on.genotype <- function(x,
     
     # Calculate the stats
     
-    logL <- utils.gen.prob(unknown.vec,pop.mat)
+    logL <- calc.genotype.logL(unknown.vec,pop.mat)
     # Store results
     result$logL[i] <- logL
     
@@ -281,30 +273,51 @@ gl.assign.on.genotype <- function(x,
   # View result
   result <- result[, c("population", "logL", "aic", "delta.aic", "aic.wt", "flag")]
   names(result) <- c("population","Log Likelihood","AIC","dAIC","AIC.wt","assign")
-  print(result)
-  
+  if(verbose >=3){
+    print(result)
+  }
+
   if(verbose >=3){
     cat("\n  Best prospect for source population is",result$population[1],"\n\n")
   }
-  
+
   # Retain only those n.best populations, or if n.best not set, the non-significant
   # populations
-  
+
   if(!is.null(n.best)){
-    pop.keep <- result$pop[1:n.best]
+    if(n.best > nrow(result)){
+      if(verbose >= 2){
+        cat(warn(
+          "  Warning: n.best (",n.best,") exceeds the number of candidate
+                populations (",nrow(result),"), retaining all of them\n"
+        ))
+      }
+      n.best <- nrow(result)
+    }
+    pop.keep <- result$population[seq_len(n.best)]
   } else {
-    pop.keep <- result$pop[result$assign == "yes"]
+    pop.keep <- result$population[result$assign == "yes"]
   }
-  
-  gl.out <- gl.keep.pop(knowns,pop.list=pop.keep,verbose=0)
-  gl.out <- gl.join(gl.out,unknown.ind,method="join.by.loc",verbose=0)
-  
-  gl.out <- gl.filter.monomorphs(gl.out,verbose=0)
-  
+
+  if(length(pop.keep) == 0){
+    if(verbose >= 1){
+      cat(warn("Warning: No population met the AIC weight threshold; returning the unknown individual only.\n"))
+    }
+    gl.out <- unknown.ind
+  } else {
+    gl.out <- gl.keep.pop(knowns,pop.list=pop.keep,verbose=0)
+    gl.out <- gl.join(gl.out,unknown.ind,verbose=0)
+    gl.out <- gl.filter.monomorphs(gl.out,verbose=0)
+  }
+
   if (nInd(gl.out) == 1) {
     cat(warn("Warning: Final genlight object contains only the unknown individual, no populations assigned.\n"))
   }
-  
+
+  # ADD TO HISTORY
+  nh <- length(gl.out@other$history)
+  gl.out@other$history[[nh + 1]] <- match.call()
+
   # FLAG SCRIPT END
   
   if (verbose > 0) {
