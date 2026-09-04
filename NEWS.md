@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+* `gl.assign.pa()` moved out of dartR.captive: the reviewed successor
+  lives in dartR.popgen (arriving with the assignment-suite
+  migration).
+
 * `gl.assign.on.genotype()` moved out of dartR.captive: the reviewed
   successor lives in dartR.popgen (arriving with the assignment-suite
   migration).
