@@ -2,6 +2,27 @@
 
 ## Unreleased
 
+* `gl.assign.pa()` moved out of dartR.captive: the reviewed successor
+  lives in dartR.popgen (arriving with the assignment-suite
+  migration).
+
+* `gl.assign.on.genotype()` moved out of dartR.captive: the reviewed
+  successor lives in dartR.popgen (arriving with the assignment-suite
+  migration).
+* `utils.assignment()`, `utils.assignment_2()`, `utils.assignment_3()`
+  and `utils.assignment_4()` REMOVED: four side-by-side revisions of
+  the same helper ("Population assignment probabilities", identical
+  signatures), all exported yet called by nothing anywhere in the
+  family - development history versioned by filename rather than git.
+
+* `gl.assign.mahal()` and `gl.assign.mahalanobis()` REMOVED (family
+  consolidation): two side-by-side versions of the same function
+  (identical signatures and titles). The reviewed and corrected
+  `gl.assign.mahalanobis()` becomes the single implementation across
+  the verse, arriving with the assignment-suite migration to
+  dartR.popgen; dartR.base's `gl.mahal.assign()` is removed in the
+  companion PR. No callers existed in the family.
+
 * `gl.grm()`: now errors on SilicoDArT (presence/absence) input instead of
   silently returning a numerically meaningless matrix — the additive
   relationship algorithm and the documented diagonal range (1 to 2) only
