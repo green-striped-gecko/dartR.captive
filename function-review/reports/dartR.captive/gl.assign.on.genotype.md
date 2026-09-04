@@ -231,7 +231,7 @@ maps to an approved change, no unexplained diffs.
   "UC_00126", nmin = 5, verbose = 3)`).
 - F6/F8/F9/F10: verified by reading the diff; no behavioral effect.
 - `devtools::document()` run; `man/gl.assign.on.genotype.Rd` regenerated.
-- PR: not yet opened.
+- PR: #91 (`review/gl.assign.on.genotype` -> `dev`).
 
 ```json
 {
@@ -255,7 +255,7 @@ maps to an approved change, no unexplained diffs.
     {"id": "F10", "severity": "INFO", "confidence": "high", "rule": "DOC1", "status": "approved", "change": 10}
   ],
   "coverage_skipped": ["DAT6: no FBM fixture available for this function"],
-  "status": "applied",
-  "pr": null
+  "status": "pr-open",
+  "pr": 91
 }
 ```
