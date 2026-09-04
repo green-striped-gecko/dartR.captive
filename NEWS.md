@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+* `gl.assign.pca()` moved out of dartR.captive: the successor in
+  dartR.popgen is the newer revision (April 2026 bug fixes and CL
+  ellipse documentation caveats); the copy here had diverged and its
+  only post-divergence change was a commented-out example line.
+
 * `gl.assign.pa()` moved out of dartR.captive: the reviewed successor
   lives in dartR.popgen (arriving with the assignment-suite
   migration).
