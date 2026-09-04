@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+* `gl.assign.on.genotype()` moved out of dartR.captive: the reviewed
+  successor lives in dartR.popgen (arriving with the assignment-suite
+  migration).
+* `utils.assignment()`, `utils.assignment_2()`, `utils.assignment_3()`
+  and `utils.assignment_4()` REMOVED: four side-by-side revisions of
+  the same helper ("Population assignment probabilities", identical
+  signatures), all exported yet called by nothing anywhere in the
+  family - development history versioned by filename rather than git.
+
 * `gl.assign.mahal()` and `gl.assign.mahalanobis()` REMOVED (family
   consolidation): two side-by-side versions of the same function
   (identical signatures and titles). The reviewed and corrected
