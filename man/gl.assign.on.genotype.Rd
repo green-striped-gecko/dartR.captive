@@ -71,7 +71,8 @@ test <- gl.assign.on.genotype(testset.gl,unknown='UC_00146',nmin=10,verbose=3)
 }
 }
 \seealso{
-\code{\link{gl.assign.pca}}, \code{\link{gl.assign.pa}}, \code{\link{gl.assign.mahalanobis}}
+\code{\link{gl.assign.pca}}, \code{\link{gl.assign.pa}};
+\code{gl.assign.mahalanobis} (moving to dartR.popgen)
 }
 \author{
 Script: Arthur Georges. Custodian: Arthur Georges -- Post to
