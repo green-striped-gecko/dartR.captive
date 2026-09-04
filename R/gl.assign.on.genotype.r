@@ -54,7 +54,8 @@
 #' # if (isTRUE(getOption("dartR_fbm"))) testset.gl <- gl.gen2fbm(testset.gl)
 #' test <- gl.assign.on.genotype(testset.gl,unknown='UC_00146',nmin=10,verbose=3)
 #' }
-#' @seealso \code{\link{gl.assign.pca}}, \code{\link{gl.assign.pa}}, \code{\link{gl.assign.mahalanobis}}
+#' @seealso \code{\link{gl.assign.pca}}, \code{\link{gl.assign.pa}};
+#' \code{gl.assign.mahalanobis} (moving to dartR.popgen)
 
 gl.assign.on.genotype <- function(x,
                                   unknown,

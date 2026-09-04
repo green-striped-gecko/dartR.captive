@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+* `gl.assign.mahal()` and `gl.assign.mahalanobis()` REMOVED (family
+  consolidation): two side-by-side versions of the same function
+  (identical signatures and titles). The reviewed and corrected
+  `gl.assign.mahalanobis()` becomes the single implementation across
+  the verse, arriving with the assignment-suite migration to
+  dartR.popgen; dartR.base's `gl.mahal.assign()` is removed in the
+  companion PR. No callers existed in the family.
+
 * `gl.grm()`: now errors on SilicoDArT (presence/absence) input instead of
   silently returning a numerically meaningless matrix — the additive
   relationship algorithm and the documented diagonal range (1 to 2) only
