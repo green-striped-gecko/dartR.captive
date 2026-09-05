@@ -109,7 +109,7 @@ directory; otherwise to the tempdir().
 }
 \examples{
 # From a genlight object (kinship computed internally)
-proj <- gl.report.gd.projection(testset.gl, ne = 50, years = 100)
+proj <- gl.report.gd.projection(testset2.gl, ne = 50, years = 100)
 proj$summary
 # Direct gene-diversity input, no genlight required
 gl.report.gd.projection(gd.now = 0.3, ne = 25, years = 50)

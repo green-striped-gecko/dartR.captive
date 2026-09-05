@@ -60,8 +60,8 @@
 #' @examples
 #' # Captive cohorts as management groups; kinship estimated on the FULL
 #' # dataset and subset to the colony (see Details on the reference population)
-#' kin <- gl.kin(testset.gl)
-#' cb <- gl.keep.pop(testset.gl, pop.list = "EmmacCaptBred", verbose = 0)
+#' kin <- gl.kin(testset2.gl)
+#' cb <- gl.keep.pop(testset2.gl, pop.list = "EmmacCaptBred", verbose = 0)
 #' res <- gl.report.kin.groups(cb, group.col = "cohort",
 #'                             kin = kin[indNames(cb), indNames(cb)])
 #' res$groups

@@ -69,8 +69,8 @@ as part of the population being replaced.
 }
 \examples{
 # Estimate kinship on the FULL dataset, then subset to the captive colony
-kin <- gl.kin(testset.gl)
-cb <- gl.keep.pop(testset.gl, pop.list = "EmmacCaptBred", verbose = 0)
+kin <- gl.kin(testset2.gl)
+cb <- gl.keep.pop(testset2.gl, pop.list = "EmmacCaptBred", verbose = 0)
 kin.cb <- kin[indNames(cb), indNames(cb)]
 tg <- gl.report.repro.targets(cb, kin = kin.cb, n.target = 12)
 head(tg[order(-tg$target), ])

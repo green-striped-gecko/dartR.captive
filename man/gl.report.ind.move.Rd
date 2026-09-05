@@ -61,13 +61,13 @@ net change, best first (NA net values last).
 }
 \examples{
 # SNP data: captive colony plus two wild populations
-ex <- gl.keep.pop(testset.gl,
+ex <- gl.keep.pop(testset2.gl,
   pop.list = c("EmmacCaptBred", "EmmacMaclGeor", "EmmacBurnBara"),
   verbose = 0)
 res <- gl.report.ind.move(ex)
 head(res)
 # Tag P/A data (SilicoDArT; kinship computed internally)
-ex.gs <- gl.keep.pop(testset.gs,
+ex.gs <- gl.keep.pop(testset2.gs,
   pop.list = c("EmmacCaptBred", "EmmacMaclGeor", "EmmacBurnBara"),
   verbose = 0)
 res.gs <- gl.report.ind.move(ex.gs)

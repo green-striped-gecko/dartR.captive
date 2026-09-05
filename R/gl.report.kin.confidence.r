@@ -65,12 +65,12 @@
 #' @examples
 #' # SNP data -- bootstrap on the FULL dataset (kinship references collapse on
 #' # small family groups), reduced bootstraps for speed
-#' res <- gl.report.kin.confidence(testset.gl, nboots = 20)
+#' res <- gl.report.kin.confidence(testset2.gl, nboots = 20)
 #' res$summary
 #' # SE for a known full-sib pair in the captive colony
 #' res$se["CB_AB_01", "CB_AB_02"]
 #' # Tag P/A data
-#' res.gs <- gl.report.kin.confidence(testset.gs, nboots = 20)
+#' res.gs <- gl.report.kin.confidence(testset2.gs, nboots = 20)
 #' res.gs$summary
 
 #' @seealso \code{\link{gl.kin}}, \code{\link{gl.report.kin.classes}}

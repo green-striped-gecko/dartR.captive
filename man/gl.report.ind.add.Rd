@@ -64,12 +64,12 @@ rejected with a fatal error.
 }
 \examples{
 # SNP data
-kin <- gl.kin(testset.gl)
-res <- gl.report.ind.add(testset.gl, candidates = "EmmacMaclGeor",
+kin <- gl.kin(testset2.gl)
+res <- gl.report.ind.add(testset2.gl, candidates = "EmmacMaclGeor",
                          target.pop = "EmmacCaptBred", kin = kin)
 head(res)  # wild individuals ranked by the diversity they would add
 # Tag P/A data (SilicoDArT; kinship computed internally)
-res.gs <- gl.report.ind.add(testset.gs, candidates = "EmmacMaclGeor",
+res.gs <- gl.report.ind.add(testset2.gs, candidates = "EmmacMaclGeor",
                             target.pop = "EmmacCaptBred")
 head(res.gs)
 

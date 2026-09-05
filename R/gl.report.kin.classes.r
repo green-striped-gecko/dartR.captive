@@ -68,8 +68,8 @@
 #' @examples
 #' # SNP data -- run on the FULL dataset so the median baseline is set by
 #' # unrelated pairs (a family-only matrix biases it; see Details)
-#' kin <- gl.kin(testset.gl)
-#' res <- gl.report.kin.classes(testset.gl, kin = kin)
+#' kin <- gl.kin(testset2.gl)
+#' res <- gl.report.kin.classes(testset2.gl, kin = kin)
 #' table(res$pairs$class)
 #' # The known captive full sibs classify as full-sib
 #' res$pairs[res$pairs$id1 == "CB_AB_01" & res$pairs$id2 == "CB_AB_02", ]
@@ -77,7 +77,7 @@
 #' # near the class boundary are expected at this number of loci
 #' head(res$conflicts)
 #' # Tag P/A data (no PO/FS split possible)
-#' res.gs <- gl.report.kin.classes(testset.gs, kin = gl.kin(testset.gs))
+#' res.gs <- gl.report.kin.classes(testset2.gs, kin = gl.kin(testset2.gs))
 
 #' @seealso \code{\link{gl.kin}}, \code{\link{gl.report.kin.confidence}},
 #' \code{\link{gl.report.parent.offspring}}

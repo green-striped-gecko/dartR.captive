@@ -63,7 +63,7 @@ of close relatives will yield inflated relative values.
 }
 \examples{
 # Examples for testing
-# kin <- utils.kin.dominant(testset.gs)
+# kin <- utils.kin.dominant(testset2.gs)
 # kin[1:5, 1:5]
 # 1 - mean(kin)  # gene diversity over the full matrix
 }

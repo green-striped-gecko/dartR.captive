@@ -48,9 +48,9 @@
 #' \url{https://groups.google.com/d/forum/dartr}
 #' @examples
 #' # Examples for testing
-#' # kin <- gl.kin(testset.gl, verbose = 0)
+#' # kin <- gl.kin(testset2.gl, verbose = 0)
 #' # utils.kin.dgd(kin)                                # current gene diversity
-#' # utils.kin.dgd(kin, drop = indNames(testset.gl)[1:5])
+#' # utils.kin.dgd(kin, drop = indNames(testset2.gl)[1:5])
 #' # off <- matrix(c("CB_AB_01", "CB_X_01"), ncol = 2) # one virtual offspring
 #' # utils.kin.dgd(kin, add.pairs = off)
 #' @seealso \code{\link{gl.kin}}, \code{\link{gl.report.kinship}}

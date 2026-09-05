@@ -67,13 +67,13 @@ removals, whichever comes first (never beyond nInd - 1).
 }
 \examples{
 # SNP data: kinship from the FULL dataset, subset to the captive colony
-kin <- gl.kin(testset.gl)
-cb <- gl.keep.pop(testset.gl, pop.list = "EmmacCaptBred", verbose = 0)
+kin <- gl.kin(testset2.gl)
+cb <- gl.keep.pop(testset2.gl, pop.list = "EmmacCaptBred", verbose = 0)
 res <- gl.report.ind.remove(cb, kin = kin[indNames(cb), indNames(cb)])
 head(res$ranking)  # most-inbred/most-redundant sibs rank first
 res$removal.set
 # Tag P/A data (SilicoDArT; kinship computed internally)
-cb.gs <- gl.keep.pop(testset.gs, pop.list = "EmmacCaptBred", verbose = 0)
+cb.gs <- gl.keep.pop(testset2.gs, pop.list = "EmmacCaptBred", verbose = 0)
 res.gs <- gl.report.ind.remove(cb.gs, n.best = 3)
 
 }

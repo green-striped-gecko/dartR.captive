@@ -70,8 +70,8 @@
 #' \url{https://groups.google.com/d/forum/dartr}
 #' @examples
 #' # Estimate kinship on the FULL dataset, then subset to the captive colony
-#' kin <- gl.kin(testset.gl)
-#' cb <- gl.keep.pop(testset.gl, pop.list = "EmmacCaptBred", verbose = 0)
+#' kin <- gl.kin(testset2.gl)
+#' cb <- gl.keep.pop(testset2.gl, pop.list = "EmmacCaptBred", verbose = 0)
 #' kin.cb <- kin[indNames(cb), indNames(cb)]
 #' pairs <- gl.select.pairs(cb, kin = kin.cb, n.pairs = 5)
 #' pairs  # avoids sib x sib pairings (f.off < 0.125)

@@ -64,12 +64,12 @@
 #' \url{https://groups.google.com/d/forum/dartr}
 #' @examples
 #' # SNP data
-#' kin <- gl.kin(testset.gl)
-#' res <- gl.report.kinship(testset.gl, kin = kin)
+#' kin <- gl.kin(testset2.gl)
+#' res <- gl.report.kinship(testset2.gl, kin = kin)
 #' head(res$ind)
 #' res$pop
 #' # Tag P/A data -- dominant kinship computed internally
-#' res.gs <- gl.report.kinship(testset.gs)
+#' res.gs <- gl.report.kinship(testset2.gs)
 #' # Captive-bred individuals
 #' res$ind[res$ind$pop == "EmmacCaptBred", ][1:5, ]
 #' @seealso \code{\link{gl.kin}}, \code{\link{gl.grm}},

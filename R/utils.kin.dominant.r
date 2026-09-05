@@ -51,7 +51,7 @@
 #' \url{https://groups.google.com/d/forum/dartr}
 #' @examples
 #' # Examples for testing
-#' # kin <- utils.kin.dominant(testset.gs)
+#' # kin <- utils.kin.dominant(testset2.gs)
 #' # kin[1:5, 1:5]
 #' # 1 - mean(kin)  # gene diversity over the full matrix
 #' @seealso \code{\link{gl.kin}}, \code{\link{gl.report.kinship}}

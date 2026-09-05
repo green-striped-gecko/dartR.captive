@@ -81,13 +81,13 @@ population, then subset the resulting matrix.
 }
 \examples{
 # SNP data
-kin <- gl.kin(testset.gl)
+kin <- gl.kin(testset2.gl)
 kin[1:5, 1:5]
 # Tag P/A data
-kins <- gl.kin(testset.gs)
+kins <- gl.kin(testset2.gs)
 \dontrun{
 # Requires the external EMIBD9 binary (see gl.run.EMIBD9)
-kin.ibd <- gl.kin(testset.gl, method = "emibd9")
+kin.ibd <- gl.kin(testset2.gl, method = "emibd9")
 }
 }
 \seealso{

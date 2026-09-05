@@ -59,12 +59,12 @@
 #'
 #' @examples
 #' # SNP data
-#' kin <- gl.kin(testset.gl)
-#' res <- gl.report.kin.sets(testset.gl, kin = kin)
+#' kin <- gl.kin(testset2.gl)
+#' res <- gl.report.kin.sets(testset2.gl, kin = kin)
 #' res$sets[res$sets$pop == "EmmacCaptBred", ]
 #' res$fst[1:4, 1:4]  # captive pop shows elevated within-set kinship
 #' # Tag P/A data (SilicoDArT; kinship computed internally)
-#' res.gs <- gl.report.kin.sets(testset.gs)
+#' res.gs <- gl.report.kin.sets(testset2.gs)
 #'
 #' @seealso \code{\link{gl.kin}}, \code{\link{gl.report.ind.move}},
 #' \code{\link{gl.report.ind.add}}

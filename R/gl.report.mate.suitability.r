@@ -110,8 +110,8 @@
 #' \url{https://groups.google.com/d/forum/dartr}
 #' @examples
 #' # Estimate kinship on the FULL dataset, then subset to the captive colony
-#' kin <- gl.kin(testset.gl)
-#' cb <- gl.keep.pop(testset.gl, pop.list = "EmmacCaptBred", verbose = 0)
+#' kin <- gl.kin(testset2.gl)
+#' cb <- gl.keep.pop(testset2.gl, pop.list = "EmmacCaptBred", verbose = 0)
 #' kin.cb <- kin[indNames(cb), indNames(cb)]
 #' res <- gl.report.mate.suitability(cb, kin = kin.cb)
 #' table(res$msi)   # spans 1-6; kin pairings (F.off >= 0.125) score NoWay

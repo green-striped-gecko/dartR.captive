@@ -34,8 +34,8 @@
 #' \url{https://groups.google.com/d/forum/dartr}
 #' @examples
 #' # Examples for testing
-#' # kin <- utils.kin.check(testset.gl)              # computes via gl.kin
-#' # kin2 <- utils.kin.check(testset.gl, kin = kin)  # validates and passes through
+#' # kin <- utils.kin.check(testset2.gl)              # computes via gl.kin
+#' # kin2 <- utils.kin.check(testset2.gl, kin = kin)  # validates and passes through
 #' @seealso \code{\link{gl.kin}}, \code{\link{gl.report.kinship}}
 #' @keywords internal
 # @export
