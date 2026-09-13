@@ -65,8 +65,9 @@
 #'  \item \url{https://ggplot2.tidyverse.org/reference/ggtheme.html} and \item
 #'  \url{https://yutannihilation.github.io/allYourFigureAreBelongToUs/ggthemes/}
 #'  }
-#' @return A set of individuals in parent-offspring relationship. NULL if no
-#' parent-offspring relationships were found.
+#' @return A data frame of individual pairs in parent-offspring relationship
+#' (columns Outlier, ind1, ind2, zscore, p). An empty data frame with the same
+#' columns if no parent-offspring relationships were found.
 #' @author Custodian: Arthur Georges (Post to
 #' \url{https://groups.google.com/d/forum/dartr})
 #' @examples
@@ -281,7 +282,16 @@ gl.report.parent.offspring <- function(x,
 
   # Output the outlier loci
   if (length(lower.extremes) == 0) {
-    df <- NULL
+    # Return an empty data frame with the result's columns rather than NULL,
+    # so callers (e.g. the dartR GUI) can treat "no pairs found" as a result
+    # and write it out with headers.
+    df <- data.frame(
+      Outlier = numeric(0),
+      ind1 = character(0),
+      ind2 = character(0),
+      zscore = numeric(0),
+      p = numeric(0)
+    )
     if(verbose>0) cat(important("  No outliers detected\n"))
   }else{
     outliers_df <- outliers_df[order(outliers_df$Outlier), ]

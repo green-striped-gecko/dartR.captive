@@ -48,8 +48,9 @@ progress log; 3, progress and results summary; 5, full report
 [default 2, unless specified using gl.set.verbosity].}
 }
 \value{
-A set of individuals in parent-offspring relationship. NULL if no
-parent-offspring relationships were found.
+A data frame of individual pairs in parent-offspring relationship
+(columns Outlier, ind1, ind2, zscore, p). An empty data frame with the same
+columns if no parent-offspring relationships were found.
 }
 \description{
 This script examines the frequency of pedigree inconsistent loci, that is,
