@@ -31,13 +31,15 @@ gl.grm(
 
 \item{legendx}{x coordinates for the legend[default 0].}
 
-\item{legendy}{y coordinates for the legend[default 1].}
+\item{legendy}{y coordinates for the legend[default 0.5].}
 
 \item{label.size}{Specify the size of the population labels [default 0.75].}
 
 \item{legend.title}{Legend title [default "Populations"].}
 
-\item{plot.file}{Name for the RDS binary file to save (base name only, exclude extension) [default NULL]}
+\item{plot.file}{Name for the RDS binary file to save (base name only,
+exclude extension); saved only when \code{plotheatmap = TRUE}
+[default NULL]}
 
 \item{plot.dir}{Directory in which to save files [default = working directory]}
 
@@ -76,6 +78,11 @@ locus are IBD from the base population). As this probability lies between 0
  the off-diagonal elements is -(1+f)/n, where n is the number of loci.
  Individual names are shown in the margins of the heatmap and colors
  represent different populations.
+
+ This function densifies the genotype matrix (\code{as.matrix(x)}) before
+ calling \link[rrBLUP]{A.mat}, which requires a dense matrix. It is not
+ suited to full-size FBM-backed objects, where densification defeats the
+ memory savings FBM backing is meant to provide.
 }
 \examples{
 if (isTRUE(getOption("dartR_fbm"))) platypus.gl <- gl.gen2fbm(platypus.gl)
@@ -97,7 +104,7 @@ Other inbreeding functions:
 \code{\link{gl.grm.network}()}
 }
 \author{
-Custodian: Arthur Georges -- Post to
+Author(s): Arthur Georges. Custodian: Arthur Georges -- Post to
 \url{https://groups.google.com/d/forum/dartr}
 }
 \concept{inbreeding functions}

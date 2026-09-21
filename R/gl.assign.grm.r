@@ -1,13 +1,12 @@
 #' @name gl.assign.grm
 #' @title Population assignment using grm
 #' @description
-#' This function takes one individual and estimates
-#' their probability of coming from individual populations
-#' from multilocus genotype frequencies.
-#
+#' This function takes one individual and, for each candidate population,
+#' estimates their mean relatedness (via a genomic relationship matrix) to
+#' that population's members, based on multilocus genotype frequencies.
+#'
 #' @param x Name of the genlight object containing the SNP data [required].
 #' @param unknown Name of the individual to be assigned to a population [required].
-# @param inbreeding_par The inbreeding parameter [default 0].
 #' @param verbose Verbosity: 0, silent or fatal errors; 1, begin and end; 2,
 #' progress log; 3, progress and results summary; 5, full report
 #' [default 2, unless specified using gl.set.verbosity].
@@ -16,13 +15,15 @@
 #'  from package gstudio.
 #'  Description of the method used in this function can be found at:
 #' https://dyerlab.github.io/applied_population_genetics/population-assignment.html
-#' @return A \code{data.frame} consisting of assignment probabilities for each
-#'  population.
-#' @author Custodian: Luis Mijangos -- Post to
+#' @return A named \code{numeric} vector giving, for each candidate
+#'  population, the mean pairwise GRM (identity-by-descent) value between
+#'  the unknown individual and that population's members, sorted from most
+#'  to least related.
+#' @author Author(s): Luis Mijangos. Custodian: Luis Mijangos -- Post to
 #' \url{https://groups.google.com/d/forum/dartr}
 #' @examples
 #' require("dartR.data")
-#' if ((requireNamespace("rrBLUP", quietly = TRUE)) & (requireNamespace("gplots", quietly = TRUE))) {
+#' if (requireNamespace("rrBLUP", quietly = TRUE)) {
 #'   if (isTRUE(getOption("dartR_fbm"))) platypus.gl <- gl.gen2fbm(platypus.gl)
 #'   res <- gl.assign.grm(platypus.gl, unknown = "T27")
 #' }
@@ -50,6 +51,14 @@ gl.assign.grm <- function(x,
     stop(error(
       paste("  Individual", unknown, "is not in the genlight object\n")
     ))
+  }
+
+  if (is.null(pop(x))) {
+    stop(error("Fatal Error: Population assignments (pop(x)) are NULL.\n"))
+  }
+
+  if (any(duplicated(indNames(x)))) {
+    stop(error("Fatal Error: Duplicate individual names in genlight object.\n"))
   }
 
   # DO THE JOB
@@ -88,5 +97,18 @@ gl.assign.grm <- function(x,
 
   res <- names(rel_list)[1]
 
+  if (verbose >= 3) {
+    cat(report(
+      "  Best-matching population for", unknown, ":", res,
+      "(mean relatedness", round(rel_list[1], 4), ")\n"
+    ))
+  }
+
+  # FLAG SCRIPT END
+  if (verbose >= 1) {
+    cat(report("Completed:", funname, "\n"))
+  }
+
+  # RETURN
   return(rel_list)
 }

@@ -38,11 +38,11 @@
 #'  [default NULL, unless specified using gl.set.verbosity]
 #' @details
 #' The results of EMIBD9 include the identical in state (IIS) values for each mode 
-#'(S1 - 9) and nine condensed identical by descent (IBD) modes (∆1 - ∆9) as well as 
+#'(S1 - 9) and nine condensed identical by descent (IBD) modes (delta1 - delta9) as well as 
 #' the relatedness coefficient (r). Alleles are IIS if they are the same. Similarly,
 #' IBD describes a matching allele between two individuals that has been inherited 
-#' from a common ancestor or common gene. In a pairwise comparison, ∆1 to ∆9 are the
-#'  probabilities associated with each IBD mode. ∆1 to ∆6 take vakue > 0 in presence
+#' from a common ancestor or common gene. In a pairwise comparison, delta1 to delta9 are the
+#'  probabilities associated with each IBD mode. delta1 to delta6 take vakue > 0 in presence
 #'  of inbreeding and hence are only computed when this option is selected. 
 #'  
 #'EMIBD9 uses an expectation maximization (EM) algorithm based on the maximum

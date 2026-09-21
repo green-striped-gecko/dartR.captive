@@ -49,7 +49,7 @@ kinship categories [default = c("#E63E94","#E5D44C","#3ED2E6")].}
 
 \item{node.label}{TRUE to display node labels [default TRUE].}
 
-\item{node.label.size}{Size of the node labels [default 3].}
+\item{node.label.size}{Size of the node labels [default 2].}
 
 \item{node.label.color}{Color of the text of the node labels
 [default 'black'].}
@@ -62,7 +62,7 @@ palette function [NULL].}
 \item{kinship.threshold}{Threshold of kinship value to display in the 
 network diagram [default 0.125].}
 
-\item{title}{Title for the plot [default 'Network of similarity matrix'].}
+\item{title}{Title for the plot [default 'Network of a similarity matrix'].}
 
 \item{legend.title}{Title for the legend [default "Populations"].}
 
@@ -183,7 +183,7 @@ Other inbreeding functions:
 \code{\link{gl.grm}()}
 }
 \author{
-Custodian: Arthur Georges -- Post to
+Author(s): Arthur Georges. Custodian: Arthur Georges -- Post to
 \url{https://groups.google.com/d/forum/dartr}
 }
 \concept{inbreeding functions}

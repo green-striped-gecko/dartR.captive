@@ -34,8 +34,8 @@ Suggests:
     rrBLUP,
     scales,
     spelling,
-    tidyverse,
-    testthat (>= 3.0.0)
+    testthat (>= 3.0.0),
+    tidyverse
 Config/testthat/edition: 3
 License: GPL (>= 3)
 RoxygenNote: 7.3.3
