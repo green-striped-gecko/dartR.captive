@@ -2,7 +2,7 @@
 % Please edit documentation in R/gl.sim.relatedness.R
 \name{gl.sim.relatedness}
 \alias{gl.sim.relatedness}
-\title{Simulate relatedness estimates.}
+\title{Simulate kinship estimates for known relationships}
 \usage{
 gl.sim.relatedness(
   x,
@@ -25,78 +25,113 @@ gl.sim.relatedness(
 \arguments{
 \item{x}{Name of the genlight object containing the SNP data [required].}
 
-\item{rel}{The degree of relatedness you wish to simulate. One of, 'full.sib', 
-'half.sib','first.cousin' [default 'full.sib'].}
+\item{rel}{The relationship to simulate. One of 'full.sib', 'half.sib',
+'first.cousin' [default 'full.sib'].}
 
-\item{nboots}{The number of simulation replicates you wish to perform 
-[default 10].}
+\item{nboots}{The number of simulated pairs (replicates); use at least 100
+for a stable interval [default 10].}
 
-\item{emibd9.path}{The location of all necessary files to run EMIBD9 
+\item{emibd9.path}{The location of all necessary files to run EMIBD9
 (read more at gl.run.EMIBD9) [required].}
 
-\item{conf}{The specified threshold for confidence interval calculation 
-from simulated relatedness values [default 0.95].}
+\item{conf}{The proportion of simulated kinship values contained in the
+reported interval, and the confidence level of the interval for the mean
+[default 0.95].}
 
-\item{OutAlleleFre}{Whether to write , 1, or not, 0, the allele frequency 
-file [default 0].}
+\item{OutAlleleFre}{Whether to write (1) or not (0) the EMIBD9 allele
+frequency file [default 0].}
 
-\item{EM_Method}{Whether to estimate delta only (EM_Method=0) or to estimate delta
-and p jointly (EM_Method=1) [default 1].}
+\item{EM_Method}{EMIBD9 expectation maximization method: 1, standard; 2,
+quasi-Newton acceleration; 3, SQUAREM acceleration (see gl.run.EMIBD9)
+[default 1].}
 
-\item{Inbreed}{A Boolean, taking values TRUE or FALSE to indicate inbreeding 
-is not and is allowed in estimating IBD coefficients [default FALSE].}
+\item{Inbreed}{Whether EMIBD9 allows inbreeding when estimating IBD
+coefficients [default FALSE].}
 
-\item{ISeed}{An integer used to seed the random number generator [default 42].}
+\item{ISeed}{Seed for the EMIBD9 random number generator. The simulation of
+offspring uses R's random number generator; set it with set.seed() for
+reproducible results [default 42].}
 
-\item{parallel}{Use parallelisation. Only works for Mac and Linux at the 
-moment[default FALSE].}
+\item{parallel}{Use the parallel (MPI) version of EMIBD9. Only works for Mac
+and Linux at the moment [default FALSE].}
 
 \item{ncores}{How many cores should be used [default 1].}
 
-\item{plot.out}{A boolean that indicates whether to plot the results 
+\item{plot.out}{A boolean that indicates whether to plot the results
 [default TRUE].}
 
-\item{plot.dir}{Directory to save the plot RDS files [default as specified 
+\item{plot.dir}{Directory to save the plot RDS files [default as specified
 by the global working directory or tempdir()]}
 
-\item{plot.file}{Name for the RDS binary file to save (base name only, 
+\item{plot.file}{Name for the RDS binary file to save (base name only,
 exclude extension) [default NULL]}
 
 \item{verbose}{Verbosity: 0, silent or fatal errors; 1, begin and end; 2,
 progress log; 3, progress and results summary; 5, full report
- [default NULL, unless specified using gl.set.verbosity]}
+[default 2, unless specified using gl.set.verbosity].}
 }
 \value{
-Summary statistics of chosen relatedness relationship and a 
-histogram of relatedness values showing the mean.
+Invisibly, a named list:
+\itemize{
+\item values -- the simulated kinship values, one per replicate.
+\item mean -- their mean.
+\item interval -- the lower and upper limits containing the central conf
+proportion of the values.
+\item ci.mean -- the confidence interval (level conf) of the mean.
+\item plot -- a histogram of the values with the mean and the interval.
+}
 }
 \description{
-A simulation based tool to estimate different degrees of relatedness using
-genlight object to bootstrap the results of kinship estimates. This method 
-uses EMIBD9 (Wang, J. 2022).
+Simulates pairs of individuals with a known relationship (full siblings,
+half siblings or first cousins) from the individuals in a genlight object,
+estimates their kinship with EMIBD9 (Wang, J. 2022) and summarises the
+distribution of the estimates over replicates. The result shows which
+kinship values that relationship produces in this dataset, to guide the
+choice of kinship thresholds.
+}
+\details{
+In each replicate, parents are drawn at random, without replacement, from
+the individuals in x, and the relatives are simulated with
+\code{dartR.sim::gl.sim.offspring}:
+\itemize{
+\item full.sib: two offspring of the same two parents.
+\item half.sib: one offspring of each of two mothers with the same father.
+\item first.cousin: two full siblings, each mated with a further
+(different) individual; the two resulting offspring are first cousins.
+}
+The simulated individuals are added to x and kinship is estimated with
+\code{\link{gl.run.EMIBD9}}, so allele frequencies come from the sample.
 
-Below is a table modified from Speed & Balding (2015) showing kinship values,
-and their confidence intervals (CI), for different relationships that could 
-be used to guide the choosing of the relatedness threshold in the function.
+The interval reported is the range that contains the central conf
+proportion of the simulated kinship values (e.g. the 2.5\% and 97.5\%
+quantiles for conf = 0.95). It describes the spread of individual pairs and
+is the one to compare with thresholds. The confidence interval of the mean
+is reported separately; it narrows as nboots grows.
+
+Below is a table modified from Speed & Balding (2015) showing kinship
+values, and their confidence intervals (CI), for different relationships.
 
 \tabular{lll}{
   \strong{Relationship} \tab \strong{Kinship} \tab \strong{95\% CI} \cr
-  Identical twins / clones / same individual \tab 0.5   \tab –              \cr
-  Sibling / Parent–Offspring                \tab 0.25  \tab (0.204, 0.296)\cr
-  Half‑sibling                              \tab 0.125 \tab (0.092, 0.158)\cr
+  Identical twins / clones / same individual \tab 0.5   \tab -              \cr
+  Sibling / Parent-Offspring                \tab 0.25  \tab (0.204, 0.296)\cr
+  Half-sibling                              \tab 0.125 \tab (0.092, 0.158)\cr
   First cousin                              \tab 0.062 \tab (0.038, 0.089)\cr
-  Half‑cousin                               \tab 0.031 \tab (0.012, 0.055)\cr
+  Half-cousin                               \tab 0.031 \tab (0.012, 0.055)\cr
   Second cousin                             \tab 0.016 \tab (0.004, 0.031)\cr
-  Half‑second cousin                        \tab 0.008 \tab (0.001, 0.020)\cr
+  Half-second cousin                        \tab 0.008 \tab (0.001, 0.020)\cr
   Third cousin                              \tab 0.004 \tab (0.000, 0.012)\cr
-  Unrelated                                 \tab 0     \tab –              \cr
+  Unrelated                                 \tab 0     \tab -              \cr
 }
 }
 \examples{
 \dontrun{
-#To run this function needs EMIBD9 installed in your computer
-if (isTRUE(getOption("dartR_fbm"))) platypus.gl <- gl.gen2fbm(platypus.gl)
-gl.sim.relatedness(platypus.gl)
+# To run this function needs EMIBD9 installed in your computer
+t1 <- gl.filter.allna(platypus.gl)
+set.seed(1)
+res <- gl.sim.relatedness(t1, rel = "half.sib", nboots = 100,
+                          emibd9.path = "path/to/emibd9")
+res$interval
 }
 
 }
@@ -105,12 +140,34 @@ gl.sim.relatedness(platypus.gl)
 \item Wang, J. (2022). A joint likelihood estimator of relatedness and allele
  frequencies from a small sample of individuals. Methods in Ecology and
  Evolution, 13(11), 2443-2462.
- 
- Speed, D., Balding, D. Relatedness in the post-genomic era: is it still 
- useful?. Nat Rev Genet 16, 33–44 (2015). 
+\item Speed, D., Balding, D. (2015). Relatedness in the post-genomic era: is
+ it still useful? Nature Reviews Genetics 16, 33-44.
 }
+}
+\seealso{
+Other captive management: 
+\code{\link{gl.kin}()},
+\code{\link{gl.report.gd.projection}()},
+\code{\link{gl.report.ind.add}()},
+\code{\link{gl.report.ind.move}()},
+\code{\link{gl.report.ind.remove}()},
+\code{\link{gl.report.kin.classes}()},
+\code{\link{gl.report.kin.confidence}()},
+\code{\link{gl.report.kin.groups}()},
+\code{\link{gl.report.kin.sets}()},
+\code{\link{gl.report.kinship}()},
+\code{\link{gl.report.mate.suitability}()},
+\code{\link{gl.report.repro.targets}()},
+\code{\link{gl.run.EMIBD9}()},
+\code{\link{gl.run.colony}()},
+\code{\link{gl.select.pairs}()},
+\code{\link{gl2colony}()},
+\code{\link{utils.kin.check}()},
+\code{\link{utils.kin.dgd}()},
+\code{\link{utils.kin.dominant}()}
 }
 \author{
-Custodian: Sam Amini -- Post to
+Author(s): Sam Amini. Custodian: Sam Amini -- Post to
 \url{https://groups.google.com/d/forum/dartr}
 }
+\concept{captive management}
