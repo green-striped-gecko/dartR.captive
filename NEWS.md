@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+* `gl.run.EMIBD9()`: a run in which EMIBD9 fails now stops with EMIBD9's
+  message; previously the results of the previous call in the same
+  session could be returned. `OutAlleleFre = TRUE` no longer crashes
+  EMIBD9. `raw` and `processed` columns are numeric (were character).
+  SilicoDArT input now errors. `rel` is documented as the kinship
+  coefficient (it always was) and carries `attr(rel, "scale") =
+  "kinship"`. Building the input file is faster for large numbers of
+  loci. EMIBD9's console output prints only at `verbose >= 2`.
+
 * `gl.grm.network()`: a `G` tagged `attr(G, "scale") = "kinship"` (as
   returned by `gl.run.EMIBD9()`) is used as kinship without halving.
   Since the previous change EMIBD9 kinship was halved, because EMIBD9's
@@ -23,6 +32,7 @@
   of two. `categorise` colours now follow the documented order. `G` must
   match `indNames(x)`; an invalid `method` now errors. The return value
   is a named list (`plot`, `kinship`).
+
 * `gl2colony()`: stops with an error, instead of writing a file COLONY
   rejects or misreads, when individual names contain whitespace, the data
   are SilicoDArT, or `sibship.prior`, `known.allele.freq`, or any

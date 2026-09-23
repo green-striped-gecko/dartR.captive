@@ -1,20 +1,22 @@
 #' @name gl.run.EMIBD9
 #' @title Run program EMIBD9
 #' @description
-#' Run program EMIBD9
+#' Runs the program EMIBD9 (Wang 2022) on a genlight object with SNP data and
+#' returns pairwise kinship, the IBD mode probabilities (delta1 to delta9) and
+#' individual inbreeding.
 #' @param x Name of the genlight object containing the SNP data [required].
-#' @param outfile A string, giving the path and name of the output file
-#' [default "EMIBD9_Res.ibd9"].
+#' @param outfile File name (without a path) of the EMIBD9 output file; it is
+#' copied to outpath [default "EMIBD9_Res.ibd9"].
 #' @param outpath Path where to save the output file. Use outpath=getwd() or
 #' outpath='.' when calling this function to direct output files to your working
 #' or current directory [default tempdir(), mandated by CRAN].
-#' @param emibd9.path Path to the folder emidb files.
+#' @param emibd9.path Path to the folder with the EMIBD9 files.
 #'  Please note there are 2 different executables depending on your OS:
 #'  EM_IBD_P.exe (=Windows) EM_IBD_P (=Mac, Linux).
 #'  You only need to point to the folder (the function will recognise which OS 
 #'  you are running) [default getwd()].
-#' @param OutAlleleFre A boolean that indicates whether to output allele frequencies
-#'  [default FALSE].
+#' @param OutAlleleFre Whether to output allele frequencies (TRUE/FALSE or
+#'  1/0) [default FALSE].
 #' @param EM_Method An integer that indicates the method to use for the expectation
 #'  maximization (EM) algorithm. 1, the standard EM method;
 #'  2, the EM method with a quasi-Newton acceleration; 3, the EM method with a
@@ -28,21 +30,23 @@
 #' [default 1].
 #' @param ISeed An integer specifying the random seed to use for the EM algorithm
 #' [default 42].
-#' @param plot.out A boolean that indicates whether to plot the results [default TRUE].
+#' @param plot.out A boolean that indicates whether to plot the results
+#'  [default TRUE].
 #' @param plot.dir Directory to save the plot RDS files [default as specified
 #' by the global working directory or tempdir()]
 #' @param plot.file Name for the RDS binary file to save (base name only, 
 #' exclude extension) [default NULL]
 #' @param verbose Verbosity: 0, silent or fatal errors; 1, begin and end; 2,
-#' progress log; 3, progress and results summary; 5, full report
-#'  [default NULL, unless specified using gl.set.verbosity]
+#' progress log, including the EMIBD9 console output; 3, progress and results
+#' summary; 5, full report [default 2, unless specified using
+#' gl.set.verbosity].
 #' @details
 #' The results of EMIBD9 include the identical in state (IIS) values for each mode 
 #'(S1 - 9) and nine condensed identical by descent (IBD) modes (delta1 - delta9) as well as 
 #' the relatedness coefficient (r). Alleles are IIS if they are the same. Similarly,
 #' IBD describes a matching allele between two individuals that has been inherited 
 #' from a common ancestor or common gene. In a pairwise comparison, delta1 to delta9 are the
-#'  probabilities associated with each IBD mode. delta1 to delta6 take vakue > 0 in presence
+#'  probabilities associated with each IBD mode. delta1 to delta6 take value > 0 in presence
 #'  of inbreeding and hence are only computed when this option is selected. 
 #'  
 #'EMIBD9 uses an expectation maximization (EM) algorithm based on the maximum
@@ -59,16 +63,16 @@
 #'and their confidence intervals (CI), for different relationships.
 #'
 #' \tabular{lll}{
-#'   \strong{Relationship} \tab \strong{Kinship} \tab \strong{95\% CI} \cr
-#'   Identical twins / clones / same individual \tab 0.5   \tab –              \cr
-#'   Sibling / Parent–Offspring                \tab 0.25  \tab (0.204, 0.296)\cr
-#'   Half‑sibling                              \tab 0.125 \tab (0.092, 0.158)\cr
-#'   First cousin                              \tab 0.062 \tab (0.038, 0.089)\cr
-#'   Half‑cousin                               \tab 0.031 \tab (0.012, 0.055)\cr
-#'   Second cousin                             \tab 0.016 \tab (0.004, 0.031)\cr
-#'   Half‑second cousin                        \tab 0.008 \tab (0.001, 0.020)\cr
-#'   Third cousin                              \tab 0.004 \tab (0.000, 0.012)\cr
-#'   Unrelated                                 \tab 0     \tab –              \cr
+#'   \strong{Relationship} \tab \strong{Kinship} \tab \strong{95\% CI} \cr
+#'   Identical twins / clones / same individual \tab 0.5   \tab -              \cr
+#'   Sibling / Parent-Offspring                \tab 0.25  \tab (0.204, 0.296)\cr
+#'   Half-sibling                              \tab 0.125 \tab (0.092, 0.158)\cr
+#'   First cousin                              \tab 0.062 \tab (0.038, 0.089)\cr
+#'   Half-cousin                               \tab 0.031 \tab (0.012, 0.055)\cr
+#'   Second cousin                             \tab 0.016 \tab (0.004, 0.031)\cr
+#'   Half-second cousin                        \tab 0.008 \tab (0.001, 0.020)\cr
+#'   Third cousin                              \tab 0.004 \tab (0.000, 0.012)\cr
+#'   Unrelated                                 \tab 0     \tab -              \cr
 #' }
 #'
 #'For greater detail on the methods employed by EMIBD9, we encourage you to 
@@ -90,15 +94,26 @@
 #'  duplications). Any string longer than 20 characters for individual ID will 
 #'  be truncated to have 20 characters.
 #'
-#' @return A list with three or four elements depending on whether inbreeding was
-#' selected. The first element (rel) is a matrix with pairwise relatedness. 
-#' The second (raw) is the raw output table from the program. The third (processed) 
-#' is the 'processed' output from the table (self-comparisons - an individuals with 
-#' itself - and redundant pairs - e.g. the second individuals with the first, when the first 
-#' vs the second is already present in the results - are removed). The last (inbreeding)
-#'  is a table of individual inbreeding values (if requested). 
-# 
-#' @author Custodian: Luis Mijangos -- Post to
+#' Each call runs EMIBD9 in its own temporary folder. EMIBD9 does not return
+#' an error status when it fails, so the function stops with the last lines
+#' of the EMIBD9 console output when no output file is written.
+#'
+#' @return A list with four elements:
+#' \itemize{
+#' \item rel -- a square matrix of pairwise kinship coefficients (theta; the
+#' EMIBD9 column r(1,2)), with self-comparisons on the diagonal
+#' (0.5 x (1 + F)). The matrix carries attr(rel, "scale") = "kinship", which
+#' gl.grm.network uses to plot it without rescaling.
+#' \item raw -- the raw EMIBD9 table, all pairs including self-comparisons,
+#' with numeric columns.
+#' \item processed -- the table without self-comparisons and redundant pairs
+#' (e.g. the second individual with the first, when the first with the
+#' second is already present).
+#' \item inbreeding -- a table of individual inbreeding values; EMIBD9 writes
+#' it whether or not Inbreed is TRUE.
+#' }
+#'
+#' @author Author(s): Luis Mijangos. Custodian: Luis Mijangos -- Post to
 #' \url{https://groups.google.com/d/forum/dartr}
 #' @examples
 #' \dontrun{
@@ -115,6 +130,7 @@
 #'  Evolution, 13(11), 2443-2462.
 #' }
 #' 
+#' @family captive management
 #' @importFrom utils combn
 #' @importFrom stringr str_split
 #' @rawNamespace import(data.table)
@@ -143,62 +159,57 @@ gl.run.EMIBD9 <- function(x,
   
   # FLAG SCRIPT START
   funname <- match.call()[[1]]
-  utils.flag.start(func = funname,
-                   build = "Jody",
-                   verbose = verbose)
+  utils.flag.start(func = funname, verbose = verbose)
   
   # CHECK DATATYPE
   datatype <- utils.check.datatype(x, verbose = verbose)
-  #check if embid9 is available
-  os <- Sys.info()["sysname"]
-  # setting running directory 
-  rundir <- tempdir()
+  
+  # FUNCTION SPECIFIC ERROR CHECKING
+  # EMIBD9 reads 0/1/2 genotypes; presence/absence would be read as SNPs
+  if (datatype == "SilicoDArT") {
+    stop(error(
+      "  Only SNP data are supported; x contains SilicoDArT data\n"
+    ))
+  }
+  
+  # each call runs in its own folder, so output left by an earlier call can
+  # never be read as the result of this one
+  rundir <- tempfile("EMIBD9_")
+  dir.create(rundir)
   
   if (Sys.info()["sysname"] == "Windows") {
     prog <- c("EM_IBD_P.exe", "impi.dll", "libiomp5md.dll")
-    cmd <- "EM_IBD_P.exe INP:MyData.par"
+    cmd <- "EM_IBD_P.exe"
+    cmd.args <- "INP:MyData.par"
   } 
   
-  if (Sys.info()["sysname"] == "Linux") {
+  if (Sys.info()["sysname"] %in% c("Linux", "Darwin")) {
     if(parallel){
-    prog <- "EM_IBD_P_mpi"
-    cmd <- paste("mpirun -np",ncores,"--use-hwthread-cpus ./EM_IBD_P_mpi INP:MyData.par")
+      prog <- "EM_IBD_P_mpi"
+      cmd <- "mpirun"
+      cmd.args <- c("-np", ncores, "--use-hwthread-cpus", "./EM_IBD_P_mpi",
+                    "INP:MyData.par")
     }else{
       prog <- "EM_IBD_P"
-      cmd <- "./EM_IBD_P INP:MyData.par"
-    }
-  }
-  
-  if (Sys.info()["sysname"] == "Darwin") {
-    if(parallel){
-    prog <- "EM_IBD_P_mpi"
-    cmd <- paste("mpirun -np",ncores,"--use-hwthread-cpus ./EM_IBD_P_mpi INP:MyData.par")
-    }else{
-      prog <- "EM_IBD_P"
-      cmd <- "./EM_IBD_P INP:MyData.par"
+      cmd <- "./EM_IBD_P"
+      cmd.args <- "INP:MyData.par"
     }
   }
   
   # check if file program can be found
   if (all(file.exists(file.path(emibd9.path, prog)))) {
     file.copy(file.path(emibd9.path, prog),
-              to = tempdir(),
+              to = rundir,
               overwrite = TRUE)
-    if (verbose > 0) {
+    if (verbose >= 2) {
       cat(report("  Found necessary files to run EMIBD9.\n"))
     }
     
   } else {
-    message(
-      error(
-        "  Cannot find",
-        prog,
-        "in the specified folder given by emibd9.path:",
-        emibd9.path,
-        "\n"
-      )
-    )
-    stop()
+    stop(error(
+      "  Cannot find", paste(prog, collapse = ", "),
+      "in the folder given by emibd9.path:", emibd9.path, "\n"
+    ))
   }
   
   # Resolve no visible global function definition 
@@ -241,6 +252,8 @@ gl.run.EMIBD9 <- function(x,
   OutFileName <- outfile
   RndDelta0 <- 1
   EM_Method <- EM_Method
+  # EMIBD9 reads 0/1; a logical would be written as TRUE/FALSE and crash it
+  OutAlleleFre <- as.integer(isTRUE(as.logical(OutAlleleFre)))
 
   param <- paste(NumIndiv,
     NumLoci,
@@ -260,9 +273,7 @@ gl.run.EMIBD9 <- function(x,
   gl_mat <- as.matrix(x2)
   gl_mat[is.na(gl_mat)] <- 3
   
-  tmp <- cbind(apply(gl_mat, 1, function(y) {
-    Reduce(paste0, y)
-  }))
+  tmp <- cbind(apply(gl_mat, 1, paste, collapse = ""))
   
   tmp <- rbind(paste(indNames(x2), collapse = " "), tmp)
 
@@ -283,7 +294,23 @@ gl.run.EMIBD9 <- function(x,
     row.names = FALSE,
     col.names = FALSE,
     file = "MyData.par")
-  system(cmd)
+  # EMIBD9 exits with status 0 when it fails, so the output file is the test
+  console.file <- file.path(rundir, "EMIBD9_console.txt")
+  console.to <- if (verbose >= 2) "" else console.file
+  status <- system2(cmd, args = cmd.args, stdout = console.to,
+                    stderr = console.to)
+  if (!file.exists(outfile) ||
+      !any(grepl("^IBD", readLines(outfile, warn = FALSE)))) {
+    console.tail <- if (file.exists(console.file)) {
+      utils::tail(readLines(console.file, warn = FALSE), 10)
+    } else {
+      "(EMIBD9 console output shown above)"
+    }
+    stop(error(paste0(
+      "  EMIBD9 did not write its results (exit status ", status, "):\n",
+      paste(console.tail, collapse = "\n"), "\n"
+    )))
+  }
   
   ### get output  
 
@@ -299,8 +326,10 @@ gl.run.EMIBD9 <- function(x,
   tmp_data_raw_1 <- lapply(tmp_data, "[", c(2:22))
   tmp_data_raw_2 <- do.call("rbind", tmp_data_raw_1)
   tmp_data_raw_3 <- as.data.frame(tmp_data_raw_2)
-  tmp_data_raw_3$V3 <- lapply(tmp_data_raw_3$V3, as.numeric)
   colnames(tmp_data_raw_3) <- tmp_headings[2:22]
+  # every column except the two individual IDs is numeric
+  num.cols <- setdiff(colnames(tmp_data_raw_3), c("Indiv1", "Indiv2"))
+  tmp_data_raw_3[num.cols] <- lapply(tmp_data_raw_3[num.cols], as.numeric)
   
   # Kick out self & redundant comparisons
   # the parsed Indiv1/Indiv2 columns hold the sanitised names, so the pairs
@@ -328,6 +357,8 @@ gl.run.EMIBD9 <- function(x,
   res <- res[order(as.integer(rownames(res))),
              order(as.integer(colnames(res))), drop = FALSE]
   dimnames(res) <- list(hold_names, hold_names)
+  # EMIBD9's r(1,2) is the kinship coefficient; gl.grm.network reads this
+  attr(res, "scale") <- "kinship"
 
   # restore original individual names in the raw table
   tmp_data_raw_3$Indiv1 <- hold_names[match(tmp_data_raw_3$Indiv1, safe_names)]
@@ -336,9 +367,9 @@ gl.run.EMIBD9 <- function(x,
 # Inbreeding 
  inbreedStart <- which(grepl("^Indiv genotypes at polymorphic loci", x_lines)) + 1
  if(length(inbreedStart)>0) {
-   if (verbose>0){
+   if (verbose >= 2){
      cat(
-       report("Exporting individual diversity and inbreeding values \n"))
+       report("  Exporting individual diversity and inbreeding values\n"))
    }
    
    inbTable <- fread(file = OutFileName, nrows = nInd(x), skip = inbreedStart)
@@ -353,39 +384,44 @@ gl.run.EMIBD9 <- function(x,
   
   #compile the two dataframes into on list for output
 
-  if (verbose > 0){
+  if (verbose >= 3){
     cat(
       report(
-        "  Returning a list containing the input gl object, a square matrix  of pairwise kinship, and the raw EMIBD9 results table as follows:\n",
-        "          $rel -- a square matrix of relatedness \n",
-        "          $raw -- raw EMIBD9 results table \n",
-        "          $processed -- EMIBD9 results without self and redundant comparison \n",
-        "          $inbreeding -- Individual diversity and inbreeding (if requested) \n"
+        "  Returning a list with the EMIBD9 results:\n",
+        "          $rel -- a square matrix of pairwise kinship\n",
+        "          $raw -- raw EMIBD9 results table\n",
+        "          $processed -- EMIBD9 results without self and redundant comparisons\n",
+        "          $inbreeding -- individual diversity and inbreeding\n"
       )
     )
   }
   
   # PRINTING OUTPUTS
   
-  if (plot.out) {
+  if (plot.out || !is.null(plot.file)) {
     
     if (is.null(palette_convergent)) {
       palette_convergent <- gl.colors("div")
     } 
     
+    # gl.plot.heatmap returns the plot only while drawing it; to save a plot
+    # that is not displayed, draw it on a null device
+    if (!plot.out) {
+      grDevices::pdf(NULL)
+    }
     p1 <- gl.plot.heatmap(res,
                           palette.divergent = palette_convergent,
-                          plot.out = plot.out,
+                          plot.out = TRUE,
                           verbose = 0)
-    invisible(p1)
+    if (!plot.out) {
+      grDevices::dev.off()
+    }
   }
   
-  # write outfile if requested
-  if(outpath != tempdir()){
-    temp_path <- file.path(tempdir(), outfile)
-    dest_path <- file.path(outpath, outfile)
-    file.copy(from = temp_path, to = dest_path, overwrite = TRUE)
-  }
+  # copy the EMIBD9 output file to outpath
+  file.copy(from = file.path(rundir, outfile),
+            to = file.path(outpath, outfile),
+            overwrite = TRUE)
   
   # Optionally save the plot ---------------------
   if (!is.null(plot.file)) {
@@ -408,7 +444,7 @@ gl.run.EMIBD9 <- function(x,
       raw = tmp_data_raw_3,
       processed = table_output)
   
-      if(inbreedStart>0) {
+      if(length(inbreedStart) > 0) {
         results[["inbreeding"]] <- inbTable
       }
   

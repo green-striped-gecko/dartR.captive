@@ -25,21 +25,21 @@ gl.run.EMIBD9(
 \arguments{
 \item{x}{Name of the genlight object containing the SNP data [required].}
 
-\item{outfile}{A string, giving the path and name of the output file
-[default "EMIBD9_Res.ibd9"].}
+\item{outfile}{File name (without a path) of the EMIBD9 output file; it is
+copied to outpath [default "EMIBD9_Res.ibd9"].}
 
 \item{outpath}{Path where to save the output file. Use outpath=getwd() or
 outpath='.' when calling this function to direct output files to your working
 or current directory [default tempdir(), mandated by CRAN].}
 
-\item{emibd9.path}{Path to the folder emidb files.
+\item{emibd9.path}{Path to the folder with the EMIBD9 files.
 Please note there are 2 different executables depending on your OS:
 EM_IBD_P.exe (=Windows) EM_IBD_P (=Mac, Linux).
 You only need to point to the folder (the function will recognise which OS 
 you are running) [default getwd()].}
 
-\item{OutAlleleFre}{A boolean that indicates whether to output allele frequencies
-[default FALSE].}
+\item{OutAlleleFre}{Whether to output allele frequencies (TRUE/FALSE or
+1/0) [default FALSE].}
 
 \item{EM_Method}{An integer that indicates the method to use for the expectation
 maximization (EM) algorithm. 1, the standard EM method;
@@ -60,7 +60,8 @@ IBD9 (EM_IBD_P_mpi) [default FALSE].}
 \item{ISeed}{An integer specifying the random seed to use for the EM algorithm
 [default 42].}
 
-\item{plot.out}{A boolean that indicates whether to plot the results [default TRUE].}
+\item{plot.out}{A boolean that indicates whether to plot the results
+[default TRUE].}
 
 \item{plot.dir}{Directory to save the plot RDS files [default as specified
 by the global working directory or tempdir()]}
@@ -69,20 +70,30 @@ by the global working directory or tempdir()]}
 exclude extension) [default NULL]}
 
 \item{verbose}{Verbosity: 0, silent or fatal errors; 1, begin and end; 2,
-progress log; 3, progress and results summary; 5, full report
- [default NULL, unless specified using gl.set.verbosity]}
+progress log, including the EMIBD9 console output; 3, progress and results
+summary; 5, full report [default 2, unless specified using
+gl.set.verbosity].}
 }
 \value{
-A list with three or four elements depending on whether inbreeding was
-selected. The first element (rel) is a matrix with pairwise relatedness. 
-The second (raw) is the raw output table from the program. The third (processed) 
-is the 'processed' output from the table (self-comparisons - an individuals with 
-itself - and redundant pairs - e.g. the second individuals with the first, when the first 
-vs the second is already present in the results - are removed). The last (inbreeding)
- is a table of individual inbreeding values (if requested).
+A list with four elements:
+\itemize{
+\item rel -- a square matrix of pairwise kinship coefficients (theta; the
+EMIBD9 column r(1,2)), with self-comparisons on the diagonal
+(0.5 x (1 + F)). The matrix carries attr(rel, "scale") = "kinship", which
+gl.grm.network uses to plot it without rescaling.
+\item raw -- the raw EMIBD9 table, all pairs including self-comparisons,
+with numeric columns.
+\item processed -- the table without self-comparisons and redundant pairs
+(e.g. the second individual with the first, when the first with the
+second is already present).
+\item inbreeding -- a table of individual inbreeding values; EMIBD9 writes
+it whether or not Inbreed is TRUE.
+}
 }
 \description{
-Run program EMIBD9
+Runs the program EMIBD9 (Wang 2022) on a genlight object with SNP data and
+returns pairwise kinship, the IBD mode probabilities (delta1 to delta9) and
+individual inbreeding.
 }
 \details{
 The results of EMIBD9 include the identical in state (IIS) values for each mode 
@@ -90,7 +101,7 @@ The results of EMIBD9 include the identical in state (IIS) values for each mode
 the relatedness coefficient (r). Alleles are IIS if they are the same. Similarly,
 IBD describes a matching allele between two individuals that has been inherited 
 from a common ancestor or common gene. In a pairwise comparison, delta1 to delta9 are the
- probabilities associated with each IBD mode. delta1 to delta6 take vakue > 0 in presence
+ probabilities associated with each IBD mode. delta1 to delta6 take value > 0 in presence
  of inbreeding and hence are only computed when this option is selected. 
  
 EMIBD9 uses an expectation maximization (EM) algorithm based on the maximum
@@ -107,16 +118,16 @@ Below is a table modified from Speed & Balding (2015) showing kinship values,
 and their confidence intervals (CI), for different relationships.
 
 \tabular{lll}{
-  \strong{Relationship} \tab \strong{Kinship} \tab \strong{95\% CI} \cr
-  Identical twins / clones / same individual \tab 0.5   \tab –              \cr
-  Sibling / Parent–Offspring                \tab 0.25  \tab (0.204, 0.296)\cr
-  Half‑sibling                              \tab 0.125 \tab (0.092, 0.158)\cr
-  First cousin                              \tab 0.062 \tab (0.038, 0.089)\cr
-  Half‑cousin                               \tab 0.031 \tab (0.012, 0.055)\cr
-  Second cousin                             \tab 0.016 \tab (0.004, 0.031)\cr
-  Half‑second cousin                        \tab 0.008 \tab (0.001, 0.020)\cr
-  Third cousin                              \tab 0.004 \tab (0.000, 0.012)\cr
-  Unrelated                                 \tab 0     \tab –              \cr
+  \strong{Relationship} \tab \strong{Kinship} \tab \strong{95\% CI} \cr
+  Identical twins / clones / same individual \tab 0.5   \tab -              \cr
+  Sibling / Parent-Offspring                \tab 0.25  \tab (0.204, 0.296)\cr
+  Half-sibling                              \tab 0.125 \tab (0.092, 0.158)\cr
+  First cousin                              \tab 0.062 \tab (0.038, 0.089)\cr
+  Half-cousin                               \tab 0.031 \tab (0.012, 0.055)\cr
+  Second cousin                             \tab 0.016 \tab (0.004, 0.031)\cr
+  Half-second cousin                        \tab 0.008 \tab (0.001, 0.020)\cr
+  Third cousin                              \tab 0.004 \tab (0.000, 0.012)\cr
+  Unrelated                                 \tab 0     \tab -              \cr
 }
 
 For greater detail on the methods employed by EMIBD9, we encourage you to 
@@ -137,6 +148,10 @@ For Windows, Mac and Linux install the program then point to the folder
  (such as /), and must be unique among all sampled individuals (i.e. NO 
  duplications). Any string longer than 20 characters for individual ID will 
  be truncated to have 20 characters.
+
+Each call runs EMIBD9 in its own temporary folder. EMIBD9 does not return
+an error status when it fails, so the function stops with the last lines
+of the EMIBD9 console output when no output file is written.
 }
 \examples{
 \dontrun{
@@ -154,7 +169,29 @@ res_rel <- gl.run.EMIBD9(t1)
  Evolution, 13(11), 2443-2462.
 }
 }
+\seealso{
+Other captive management: 
+\code{\link{gl.kin}()},
+\code{\link{gl.report.gd.projection}()},
+\code{\link{gl.report.ind.add}()},
+\code{\link{gl.report.ind.move}()},
+\code{\link{gl.report.ind.remove}()},
+\code{\link{gl.report.kin.classes}()},
+\code{\link{gl.report.kin.confidence}()},
+\code{\link{gl.report.kin.groups}()},
+\code{\link{gl.report.kin.sets}()},
+\code{\link{gl.report.kinship}()},
+\code{\link{gl.report.mate.suitability}()},
+\code{\link{gl.report.repro.targets}()},
+\code{\link{gl.run.colony}()},
+\code{\link{gl.select.pairs}()},
+\code{\link{gl2colony}()},
+\code{\link{utils.kin.check}()},
+\code{\link{utils.kin.dgd}()},
+\code{\link{utils.kin.dominant}()}
+}
 \author{
-Custodian: Luis Mijangos -- Post to
+Author(s): Luis Mijangos. Custodian: Luis Mijangos -- Post to
 \url{https://groups.google.com/d/forum/dartr}
 }
+\concept{captive management}
