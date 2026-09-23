@@ -131,25 +131,30 @@ Choosing meaningful thresholds to represent relationships between
 individuals can be challenging because kinship and inbreeding coefficients 
 are relative measures. To standardize a genomic relationship matrix (GRM),
 such as the one produced by the function gl.grm, and facilitate interpretation, 
-the function adjusts the matrix through the following steps:
+the function re-expresses kinship relative to the average pair of
+individuals in the sample, following Goudet et al. (2018):
 
-1. Centering Inbreeding Coefficients: Subtract 1 from the mean of the 
-diagonal elements to calculate the average inbreeding coefficient. This 
-centers the inbreeding coefficients around zero, providing a reference point 
-relative to the population's average inbreeding level.
+1. Off-diagonal elements are converted to kinship theta (G / 2, or G
+itself when G is tagged as kinship).
 
-2. Calculating Kinship Coefficients: Divide the off-diagonal elements by 2 
-to obtain the kinship coefficients. This conversion reflects the probability 
-of sharing alleles IBD between pairs of individuals.
+2. The mean kinship over all pairs of distinct individuals, mean_theta, is
+taken as the reference.
 
-3. Centering Kinship Coefficients: Subtract the adjusted mean inbreeding 
-coefficient (from step 1) from each kinship coefficient (from step 2). This 
-centers the kinship coefficients relative to the population average, 
-allowing for meaningful comparisons.
+3. Each kinship becomes (theta - mean_theta) / (1 - mean_theta), so the
+average pair has kinship 0 and a pair identical by descent at every locus
+keeps kinship 0.5.
 
-This adjustment method aligns with the approach used by Goudet et al. (2018), 
-enabling the relationships to be interpreted in the context of the overall 
-genetic relatedness within the population.
+For gl.grm input, which is already centred on the sample allele
+frequencies, mean_theta is close to 0 and the change is small; it matters
+for matrices on another reference, such as EMIBD9 output. The diagonal
+(inbreeding) is not used, because the mean inbreeding of the sample
+reflects population structure and missing data rather than the
+relationship between pairs.
+Because the average pair becomes the zero point, a sample made up mostly
+of relatives gives standardised values below the pedigree expectations
+(e.g. parent-offspring 0.12 instead of 0.21 in an EMIBD9 run on a single
+captive family with a few wild individuals); standardise only when the
+sample represents the wider population.
 
 Below is a table modified from Speed & Balding (2015) showing kinship values,
  and their confidence intervals (CI), for different relationships that could
