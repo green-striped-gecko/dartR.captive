@@ -101,6 +101,7 @@ if ((requireNamespace("rrBLUP", quietly = TRUE)) & (requireNamespace("gplots", q
 }
 \seealso{
 Other captive management: 
+\code{\link{gl.diagnostics.relatedness}()},
 \code{\link{gl.kin}()},
 \code{\link{gl.report.gd.projection}()},
 \code{\link{gl.report.ind.add}()},
@@ -116,6 +117,7 @@ Other captive management:
 \code{\link{gl.run.EMIBD9}()},
 \code{\link{gl.run.colony}()},
 \code{\link{gl.select.pairs}()},
+\code{\link{gl.sim.relatedness}()},
 \code{\link{gl2colony}()},
 \code{\link{utils.kin.check}()},
 \code{\link{utils.kin.dgd}()},

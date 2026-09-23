@@ -5,12 +5,12 @@ slotDescriptions[["InputDf"]] <- "Original genlight input"
 slotDescriptions[["SimOutput"]] <- "Genlight object of simulation output"
 slotDescriptions[["MergedDf"]] <- "Final dataframe containing results of relatedness analysis"
 slotDescriptions[["corOutList"]] <- "Results of correlation analysis"
-slotDescriptions[["corVals"]] <- "Output of correlation results bewteen methods"
+slotDescriptions[["corVals"]] <- "Output of correlation results between methods"
 slotDescriptions[["plotList"]] <- "List of plots"
 
 corrSlotDescriptions <- NULL
-corrSlotDescriptions[["rmsePlot"]] <- "Plot of RMSE bewteen actual and estimated related values"
-corrSlotDescriptions[["varPlot"]] <- "Plot of variance bewteen actual and estimated related values"
+corrSlotDescriptions[["rmsePlot"]] <- "Table of RMSE between pedigree and estimated kinship"
+corrSlotDescriptions[["varPlot"]] <- "Table of the variance of estimated kinship"
 
 # Base output class (stores original genlight input)
 setClass("OutputS4",

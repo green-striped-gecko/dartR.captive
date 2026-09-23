@@ -10,11 +10,15 @@
 #' dynamics. It supports multiple simulation back ends, correlation
 #' output, error checking, RMSE/variance summaries, and optional plotting.
 #'
-#' @param x A genlight object containing SNP or SilicoDArT data [required].
+#' @param x A genlight object containing SNP data [required].
 #' @param cleanup Logical. Apply callrate, heterozygosity and all-NA filters
 #'   before simulation [default = FALSE].
-#' @param ref_variables Path to reference variable file [optional].
-#' @param sim_variables Path to simulation variable file [optional].
+#' @param ref_variables Path to the reference variable file for
+#'   \code{dartR.sim::gl.sim.WF.table} [default NULL, which uses
+#'   ref_variables.csv shipped with dartR.sim].
+#' @param sim_variables Path to the simulation variable file for
+#'   \code{dartR.sim::gl.sim.WF.run} [default NULL, which uses
+#'   sim_variables.csv shipped with dartR.sim].
 #' @param which_tests Character vector of relatedness tests to apply
 #'   [default = "wang"].
 #' @param run_sim Logical. If TRUE, run simulations [default = FALSE].
@@ -23,7 +27,9 @@
 #' @param plotOut Logical. If TRUE, prints the generated plots to the graphics
 #'   device (requires \code{IncludePlots = TRUE}) [default = FALSE].
 #' @param varOut Logical. If TRUE, return variance results [default = FALSE].
-#' @param rmseOut Logical. If TRUE, return RMSE results [default = FALSE].
+#' @param rmseOut Logical. If TRUE, return the root mean square error of each
+#'   estimator against the pedigree kinship, by relationship class
+#'   [default = FALSE].
 #' @param numberIterations Integer. Number of simulation iterations
 #'   [default = 1].
 #' @param numberGenerations Integer. Number of generations to simulate;
@@ -34,13 +40,15 @@
 #' @param E9Inbreed Logical. If TRUE, then runs EMIBD9 twice - once with inbreeding once w/out
 #'   [default = FALSE].
 #' @param e9Path Path to external EMIBD9 binary [optional].
-#' @param verbose Verbosity level: 0–5. If NULL, set by
-#'   \code{gl.set.verbosity()} [default = NULL].
+#' @param verbose Verbosity: 0, silent or fatal errors; 1, begin and end; 2,
+#'   progress log; 3, progress and results summary; 5, full report
+#'   [default 2, unless specified using gl.set.verbosity].
 #' @param e9parallel Logical. Run EMIBD9 in parallel [default = FALSE].
 #' @param nCores Integer. Number of cores if running EMIBD9 in parallel
 #'   [default = 1].
-#' @param includedPed Logical. If TRUE then input file has attache pedigree
-#'   [default = FALSE]
+#' @param includedPed Logical. If TRUE, the input has a pedigree attached in
+#'   \code{x@other$ind.metrics} (columns id, dad, mom; missing parents 0 or
+#'   NA) [default = FALSE]
 #'
 #' @details
 #' The function manages filtering, simulation setup, correlation
@@ -50,7 +58,18 @@
 #' The relatedness estimators in \code{which_tests} are computed by
 #' \code{coancestry()} from the package \code{related}, which is not on CRAN;
 #' install it with
-#' \code{devtools::install_github("timothyfrasier/related")}.
+#' \code{devtools::install_github("timothyfrasier/related")}. Its Fortran code
+#' prints progress to the console at every verbosity.
+#'
+#' All estimates are on the kinship scale. When a pedigree is available (from
+#' the simulation or attached with includedPed), every pair of individuals
+#' gets its exact pedigree kinship (column rel), computed recursively from the
+#' pedigree with founders unrelated and not inbred, and its closest
+#' relationship class (column RelDegree: parent_offspring, full_sibs,
+#' half_sibs, full_first_cousins, half_first_cousins, second_cousins or
+#' unrelated). All pairs are kept, whatever their estimated kinship. RMSE is
+#' the root mean square difference between each estimator and rel, by
+#' relationship class.
 #'
 #' @return Returns an S4 object containing simulation and/or relatedness
 #'   outputs. The slots for the output class are as follows:
@@ -58,24 +77,27 @@
 #'     \item @InputDf: The genlight input (after filtering when
 #'       \code{cleanup = TRUE})
 #'     \item @SimOutput: Genlight object of simulation outputs
-#'     \item @MergedDf: Relatedness estimates per iteration (with pedigree
-#'       relationship classes when a pedigree is available)
+#'     \item @MergedDf: Kinship estimates per iteration, one row per pair;
+#'       with a pedigree, also the columns RelDegree and rel
 #'     \item @corOutList: Results of correlation analysis
 #'     \item @corVals: Output of correlation results between methods
 #'     \item @plotList: List of plots
 #'   }
 #'
-#' @author Ethan, Luis (Post to
-#'   \url{https://groups.google.com/d/forum/dartr})
+#' @author Author(s): Ethan, Luis Mijangos. Custodian: Luis Mijangos -- Post
+#'   to \url{https://groups.google.com/d/forum/dartr}
 #'
 #' @examples
 #' \dontrun{
-#' gl.diagnostics.relatedness(possums.gl, run_sim = TRUE, IncludePlots = TRUE)
+#' # requires the package 'related'
+#' res <- gl.diagnostics.relatedness(possums.gl, run_sim = TRUE,
+#'                                   rmseOut = TRUE, IncludePlots = TRUE)
 #' }
 #'
 #' @seealso \code{\link[dartR.base]{gl.filter.callrate}},
 #'   \code{\link[dartR.base]{gl.filter.heterozygosity}}
 #'
+#' @family captive management
 #' @export
 #' @import methods
 #' @import stats
@@ -113,7 +135,7 @@ gl.diagnostics.relatedness <- function(
 
   # FLAG SCRIPT START ----
   funname <- match.call()[[1]]
-  utils.flag.start(func = funname, build = "Jody", verbose = verbose)
+  utils.flag.start(func = funname, verbose = verbose)
 
   # CHECK DATATYPE ----
   datatype <- utils.check.datatype(x, verbose = verbose)
@@ -129,6 +151,24 @@ gl.diagnostics.relatedness <- function(
       "  gl.diagnostics.relatedness needs the package 'related' (not on CRAN).\n",
       "  Install it with:\n",
       "    devtools::install_github('timothyfrasier/related')\n"))
+  }
+
+  # related and gl.grm need SNP genotypes
+  if (datatype == "SilicoDArT") {
+    stop(error(
+      "  Only SNP data are supported; x contains SilicoDArT data\n"
+    ))
+  }
+
+  # the simulation needs both variable files; default to those shipped with
+  # dartR.sim
+  if (is.null(ref_variables)) {
+    ref_variables <- system.file("extdata", "ref_variables.csv",
+                                 package = "dartR.sim")
+  }
+  if (is.null(sim_variables)) {
+    sim_variables <- system.file("extdata", "sim_variables.csv",
+                                 package = "dartR.sim")
   }
 
   # Validate input parameters
@@ -195,8 +235,8 @@ gl.diagnostics.relatedness <- function(
 
   if (cleanup) {
     x <- gl.filter.callrate(x, threshold = 1, verbose = 0, mono.rm = FALSE)
-    x <- gl.filter.heterozygosity(x)
-    x <- gl.filter.allna(x)
+    x <- gl.filter.heterozygosity(x, verbose = 0)
+    x <- gl.filter.allna(x, verbose = 0)
   }
 
   pedOrSim <- run_sim || includedPed
@@ -274,13 +314,9 @@ gl.diagnostics.relatedness <- function(
     finalClassValues[["SimOutput"]] <- finalSimOutput
     defaultAnalysisDf <- finalSimOutput
 
-    # Extract the pedigree of each iteration, recode and fix column names
-    RelatedManualRecode <- lapply(seq_along(dartSim), function(i) {
-      recode <- ExtractParents(dartSim, iteration = i) %>%
-        CleanupExtractParents() %>%
-        as.matrix()
-      colnames(recode) <- c("id1", "id2", "RelDegree", "relationship")
-      recode
+    # Pedigree (id, dad, mom) of each iteration
+    simPedigrees <- lapply(seq_along(dartSim), function(i) {
+      ExtractParents(dartSim, iteration = i)
     })
 
   }
@@ -321,13 +357,14 @@ gl.diagnostics.relatedness <- function(
   # When both run_sim and includedPed are TRUE, the simulated pedigree wins
   # (warned above).
   if (run_sim) {
-    pedigreeDfFinal <- mapply(mergeRelatedManual,
+    pedigreeDfFinal <- mapply(mergePedigreeTruth,
                               relatedDf = analysisOutputDf,
-                              RecodeDf = RelatedManualRecode,
+                              ped = simPedigrees,
                               SIMPLIFY = FALSE)
     finalClassValues[["MergedDf"]] <- pedigreeDfFinal
   } else if (includedPed) {
-    pedigreeDfFinal <- generateRelatedTableBaseInput(x, analysisOutputDf[[1]])
+    pedigreeDfFinal <- list(mergePedigreeTruth(analysisOutputDf[[1]],
+                                               attachedPedigree(x)))
     finalClassValues[["MergedDf"]] <- pedigreeDfFinal
   }
 

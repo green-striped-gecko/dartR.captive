@@ -14,6 +14,16 @@
   prints mean pairwise kinship instead of a gene diversity that is about 1
   by construction. dartR.data (>= 1.2.5) is now required, for
   `testset2.gl` in the examples.
+* `gl.diagnostics.relatedness()`: accuracy statistics are now computed
+  against the exact pedigree kinship of each pair (new column `rel`;
+  inbreeding included), with one relationship class per pair
+  (`RelDegree`, including a new "unrelated" class). Previously pairs
+  below 0.05 were discarded before any summary, founders in an attached
+  pedigree were labelled half siblings, some pairs were counted under
+  two relationships, and "RMSE" was the mean absolute error. RMSE and
+  variance values change. `run_sim = TRUE` now works without supplying
+  variable files (dartR.sim's defaults are used). SilicoDArT input now
+  errors.
 
 * `gl.plot.network()`: new argument `type = c("similarity", "distance")`;
   with `type = "distance"` the closest pairs (lowest values) are drawn.

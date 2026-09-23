@@ -55,6 +55,7 @@ downstream row/column indexing by individual id is sound.
 \code{\link{gl.kin}}, \code{\link{gl.report.kinship}}
 
 Other captive management: 
+\code{\link{gl.diagnostics.relatedness}()},
 \code{\link{gl.kin}()},
 \code{\link{gl.plot.network}()},
 \code{\link{gl.report.gd.projection}()},

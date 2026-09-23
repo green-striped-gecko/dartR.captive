@@ -79,6 +79,7 @@ head(res.gs)
 \code{\link{gl.report.ind.add}}
 
 Other captive management: 
+\code{\link{gl.diagnostics.relatedness}()},
 \code{\link{gl.kin}()},
 \code{\link{gl.plot.network}()},
 \code{\link{gl.report.gd.projection}()},
