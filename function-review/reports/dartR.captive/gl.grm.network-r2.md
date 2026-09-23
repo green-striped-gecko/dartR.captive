@@ -199,6 +199,7 @@ tests of the approved behaviour; the first-round tests pass unchanged.
 - End-to-end: the `@examples` call on `possums.gl` at `verbose = 3`, all
   four layouts, `standardise = TRUE, categorise = TRUE`, and a row-shuffled
   `G` (same values once symmetrised) all run without error.
+- PR #97 (`review-gl.grm.network` -> `dev`), commit 8b1ecbe.
 
 ```json
 {
@@ -220,7 +221,7 @@ tests of the approved behaviour; the first-round tests pass unchanged.
     {"id": "F7", "severity": "INFO", "confidence": "high", "rule": "DOC6", "status": "approved", "change": 7}
   ],
   "coverage_skipped": ["DAT6: not applicable"],
-  "status": "awaiting-approval",
-  "pr": null
+  "status": "pr-open",
+  "pr": 97
 }
 ```
