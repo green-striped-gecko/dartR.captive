@@ -28,14 +28,18 @@ gl.diagnostics.relatedness(
 )
 }
 \arguments{
-\item{x}{A genlight object containing SNP or SilicoDArT data [required].}
+\item{x}{A genlight object containing SNP data [required].}
 
 \item{cleanup}{Logical. Apply callrate, heterozygosity and all-NA filters
 before simulation [default = FALSE].}
 
-\item{ref_variables}{Path to reference variable file [optional].}
+\item{ref_variables}{Path to the reference variable file for
+\code{dartR.sim::gl.sim.WF.table} [default NULL, which uses
+ref_variables.csv shipped with dartR.sim].}
 
-\item{sim_variables}{Path to simulation variable file [optional].}
+\item{sim_variables}{Path to the simulation variable file for
+\code{dartR.sim::gl.sim.WF.run} [default NULL, which uses
+sim_variables.csv shipped with dartR.sim].}
 
 \item{which_tests}{Character vector of relatedness tests to apply
 [default = "wang"].}
@@ -50,7 +54,9 @@ device (requires \code{IncludePlots = TRUE}) [default = FALSE].}
 
 \item{varOut}{Logical. If TRUE, return variance results [default = FALSE].}
 
-\item{rmseOut}{Logical. If TRUE, return RMSE results [default = FALSE].}
+\item{rmseOut}{Logical. If TRUE, return the root mean square error of each
+estimator against the pedigree kinship, by relationship class
+[default = FALSE].}
 
 \item{numberIterations}{Integer. Number of simulation iterations
 [default = 1].}
@@ -68,16 +74,18 @@ minimum 3 [default = 3].}
 
 \item{e9Path}{Path to external EMIBD9 binary [optional].}
 
-\item{verbose}{Verbosity level: 0–5. If NULL, set by
-\code{gl.set.verbosity()} [default = NULL].}
+\item{verbose}{Verbosity: 0, silent or fatal errors; 1, begin and end; 2,
+progress log; 3, progress and results summary; 5, full report
+[default 2, unless specified using gl.set.verbosity].}
 
 \item{e9parallel}{Logical. Run EMIBD9 in parallel [default = FALSE].}
 
 \item{nCores}{Integer. Number of cores if running EMIBD9 in parallel
 [default = 1].}
 
-\item{includedPed}{Logical. If TRUE then input file has attache pedigree
-[default = FALSE]}
+\item{includedPed}{Logical. If TRUE, the input has a pedigree attached in
+\code{x@other$ind.metrics} (columns id, dad, mom; missing parents 0 or
+NA) [default = FALSE]}
 }
 \value{
 Returns an S4 object containing simulation and/or relatedness
@@ -86,8 +94,8 @@ Returns an S4 object containing simulation and/or relatedness
     \item @InputDf: The genlight input (after filtering when
       \code{cleanup = TRUE})
     \item @SimOutput: Genlight object of simulation outputs
-    \item @MergedDf: Relatedness estimates per iteration (with pedigree
-      relationship classes when a pedigree is available)
+    \item @MergedDf: Kinship estimates per iteration, one row per pair;
+      with a pedigree, also the columns RelDegree and rel
     \item @corOutList: Results of correlation analysis
     \item @corVals: Output of correlation results between methods
     \item @plotList: List of plots
@@ -109,19 +117,56 @@ control checks on input objects and file paths before analysis.
 The relatedness estimators in \code{which_tests} are computed by
 \code{coancestry()} from the package \code{related}, which is not on CRAN;
 install it with
-\code{devtools::install_github("timothyfrasier/related")}.
+\code{devtools::install_github("timothyfrasier/related")}. Its Fortran code
+prints progress to the console at every verbosity.
+
+All estimates are on the kinship scale. When a pedigree is available (from
+the simulation or attached with includedPed), every pair of individuals
+gets its exact pedigree kinship (column rel), computed recursively from the
+pedigree with founders unrelated and not inbred, and its closest
+relationship class (column RelDegree: parent_offspring, full_sibs,
+half_sibs, full_first_cousins, half_first_cousins, second_cousins or
+unrelated). All pairs are kept, whatever their estimated kinship. RMSE is
+the root mean square difference between each estimator and rel, by
+relationship class.
 }
 \examples{
 \dontrun{
-gl.diagnostics.relatedness(possums.gl, run_sim = TRUE, IncludePlots = TRUE)
+# requires the package 'related'
+res <- gl.diagnostics.relatedness(possums.gl, run_sim = TRUE,
+                                  rmseOut = TRUE, IncludePlots = TRUE)
 }
 
 }
 \seealso{
 \code{\link[dartR.base]{gl.filter.callrate}},
   \code{\link[dartR.base]{gl.filter.heterozygosity}}
+
+Other captive management: 
+\code{\link{gl.kin}()},
+\code{\link{gl.plot.network}()},
+\code{\link{gl.report.gd.projection}()},
+\code{\link{gl.report.ind.add}()},
+\code{\link{gl.report.ind.move}()},
+\code{\link{gl.report.ind.remove}()},
+\code{\link{gl.report.kin.classes}()},
+\code{\link{gl.report.kin.confidence}()},
+\code{\link{gl.report.kin.groups}()},
+\code{\link{gl.report.kin.sets}()},
+\code{\link{gl.report.kinship}()},
+\code{\link{gl.report.mate.suitability}()},
+\code{\link{gl.report.repro.targets}()},
+\code{\link{gl.run.EMIBD9}()},
+\code{\link{gl.run.colony}()},
+\code{\link{gl.select.pairs}()},
+\code{\link{gl.sim.relatedness}()},
+\code{\link{gl2colony}()},
+\code{\link{utils.kin.check}()},
+\code{\link{utils.kin.dgd}()},
+\code{\link{utils.kin.dominant}()}
 }
 \author{
-Ethan, Luis (Post to
-  \url{https://groups.google.com/d/forum/dartr})
+Author(s): Ethan, Luis Mijangos. Custodian: Luis Mijangos -- Post
+  to \url{https://groups.google.com/d/forum/dartr}
 }
+\concept{captive management}
