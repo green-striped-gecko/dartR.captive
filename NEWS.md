@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+* `gl.filter.parent.offspring()`: `method = "best"` removed the member of
+  each pair with fewer missing genotypes (counts compared as text); it
+  now keeps the better-genotyped individual, as documented. Pairs now
+  come from `gl.report.parent.offspring()`, so the filter uses the same
+  proportion-based pairs, `range` is honoured by both methods (and
+  `range = 3` no longer errors), and SilicoDArT input errors.
+  Individuals in several pairs are removed first, so fewer individuals
+  are removed. One history entry per call; an unknown `method` errors.
+
 * `gl.report.parent.offspring()`: pairs are now assessed on the
   proportion of pedigree-inconsistent loci among loci genotyped in both
   individuals (new columns `n.loci` and `prop`), so individuals with much
