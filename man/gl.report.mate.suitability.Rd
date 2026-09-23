@@ -153,6 +153,7 @@ res$msi["CB_AB_01", "CB_CD_02"]    # yet detrimental: both well represented
 
 Other captive management: 
 \code{\link{gl.kin}()},
+\code{\link{gl.plot.network}()},
 \code{\link{gl.report.gd.projection}()},
 \code{\link{gl.report.ind.add}()},
 \code{\link{gl.report.ind.move}()},

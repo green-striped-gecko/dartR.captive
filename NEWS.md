@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+* `gl.plot.network()`: new argument `type = c("similarity", "distance")`;
+  with `type = "distance"` the closest pairs (lowest values) are drawn.
+  Previously the largest values were always drawn, i.e. the most distant
+  pairs of a distance matrix; the default keeps the previous behaviour
+  for similarity matrices such as `gl.grm()`. Link widths now reflect
+  each drawn link's own value (they were taken from other pairs).
+  `x = NULL` works as documented. D is checked against `indNames(x)`; an
+  invalid `method` errors. Returns the drawn igraph network invisibly
+  (was NULL). Much faster for many individuals.
+
 * `gl.filter.parent.offspring()`: `method = "best"` removed the member of
   each pair with fewer missing genotypes (counts compared as text); it
   now keeps the better-genotyped individual, as documented. Pairs now
