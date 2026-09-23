@@ -4,7 +4,7 @@
 \alias{gl.kin}
 \title{Calculates a standardized kinship matrix from SNP or presence/absence data}
 \usage{
-gl.kin(x, method = NULL, verbose = NULL)
+gl.kin(x, method = NULL, emibd9.path = getwd(), verbose = NULL)
 }
 \arguments{
 \item{x}{Name of the genlight object containing the SNP or presence/absence
@@ -15,6 +15,10 @@ gl.kin(x, method = NULL, verbose = NULL)
 (SilicoDArT only) [default NULL, resolved to 'grm' for SNP data and
 'dominant' for SilicoDArT data].}
 
+\item{emibd9.path}{Path to the folder containing the EMIBD9 executable,
+passed to gl.run.EMIBD9; used only with method 'emibd9'
+[default getwd()].}
+
 \item{verbose}{Verbosity: 0, silent or fatal errors; 1, begin and end; 2,
 progress log; 3, progress and results summary; 5, full report
 [default NULL, adopting the global verbosity set by gl.set.verbosity(),
@@ -23,7 +27,8 @@ or 2 if no global is set].}
 \value{
 A square numeric kinship matrix with dimnames = indNames(x),
 diagonal 0.5*(1+F), off-diagonal pairwise kinship, and attributes 'method',
-'datatype' and 'nLoc', returned invisibly.
+'datatype', 'nLoc' and 'scale' (= "kinship", which gl.grm.network reads to
+plot the matrix without rescaling), returned invisibly.
 }
 \description{
 Produces the single standardized kinship matrix that underpins the captive
@@ -47,23 +52,33 @@ for a non-inbred individual); kin[i,j] = f_ij, the kinship between
 individuals i and j. Gene diversity for any set of individuals is
 GD = 1 - mean(kin) taken over the full matrix including the diagonal, and
 mean kinship for individual i is MK_i = rowMeans(kin)[i], including self.
-These conventions match those used by PMx for pedigree-based management.
+These are the conventions PMx uses for pedigree-based management, with one
+difference: PMx measures kinship from the founders, whereas here the base
+is the supplied dataset. Because genomic kinship is centred on the sample,
+GD of the full dataset is about 1 by construction (exactly 1 for method
+'grm'); GD values are meaningful as comparisons between subsets of
+individuals, or before and after removals and additions, not as an
+absolute measure of diversity.
 
 Method 'grm' computes the genomic relationship matrix G with
-gl.grm (rrBLUP::A.mat, diagonal ~ 1+F) and converts it to kinship using the
-centring of Goudet et al. (2018, Molecular Ecology 27:4121-4135), as in
-gl.grm.network: the mean inbreeding coefficient MS = mean(diag(G) - 1) is
-used as the reference, off-diagonals become G/2 - MS, and the diagonal
-becomes diag(G)/2.
+gl.grm (rrBLUP::A.mat, diagonal ~ 1+F, off-diagonal ~ twice the kinship)
+and returns kin = G/2, the same scale gl.grm.network uses by default: the
+diagonal is 0.5*(1+F) and the off-diagonal elements are pairwise kinship,
+both relative to the allele frequencies of the supplied dataset.
+gl.grm imputes missing genotypes with the locus mean, which pulls kinship
+toward 0: on testset2.gl (15% missing) parent-offspring pairs average
+0.19, and 0.25 after gl.filter.callrate(threshold = 0.95). Filter on call
+rate before gl.kin when kinship values are compared against thresholds or
+relationship classes.
 
 Method 'emibd9' runs the external EMIBD9 program (Wang 2022, Methods in
-Ecology and Evolution 13:2443-2462) via gl.run.EMIBD9, symmetrises the
-populated triangle of the returned $rel matrix and rescales it by 1/2 to
-the kinship contract: $rel is Wang's r(1,2) relatedness (~2x kinship, with
-self-relatedness 1 + F), so halving gives off-diagonal pairwise kinship and
-a diagonal of 0.5*(1+F); where EMIBD9 leaves the diagonal unpopulated it
-defaults to the non-inbred self-kinship 0.5. EMIBD9 must be installed
-separately; see gl.run.EMIBD9 for download and path details.
+Ecology and Evolution 13:2443-2462) via gl.run.EMIBD9 and symmetrises the
+populated triangle of the returned $rel matrix. $rel is EMIBD9's r(1,2),
+the kinship coefficient, so it is used without rescaling; where EMIBD9
+leaves the diagonal unpopulated it defaults to the non-inbred self-kinship
+0.5. gl.run.EMIBD9 runs with Inbreed = FALSE, so the diagonal is 0.5.
+EMIBD9 must be installed separately; give its folder with emibd9.path (see
+gl.run.EMIBD9 for download details).
 
 Method 'dominant' calls utils.kin.dominant, a standardized band-sharing
 covariance for presence/absence data. Dominant-marker kinship is a
@@ -71,6 +86,10 @@ rank-valid approximation: rankings and relative comparisons are sound but
 absolute values are approximate (see utils.kin.dominant for details), and
 the diagonal is fixed at 0.5 because individual inbreeding is not estimable
 from single dominant bands.
+
+Kinship between two different individuals cannot exceed 0.5 except for
+duplicate samples or clones; if any pair exceeds 0.5 a warning reports how
+many (see gl.report.replicates in dartR.base to identify duplicates).
 
 Important caveat: with all methods, kinship values are relative to the
 allele (or band) frequencies of the full dataset supplied, which acts as
@@ -87,7 +106,8 @@ kin[1:5, 1:5]
 kins <- gl.kin(testset2.gs)
 \dontrun{
 # Requires the external EMIBD9 binary (see gl.run.EMIBD9)
-kin.ibd <- gl.kin(testset2.gl, method = "emibd9")
+kin.ibd <- gl.kin(testset2.gl, method = "emibd9",
+                  emibd9.path = "path/to/EMIBD9")
 }
 }
 \seealso{
