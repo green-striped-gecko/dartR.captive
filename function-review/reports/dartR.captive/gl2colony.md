@@ -215,6 +215,7 @@ of the approved behaviour; the default-layout baseline passes unchanged.
   `importFrom(stats, dnorm)` and `importFrom(stats, qnorm)` from
   NAMESPACE (no source declares them); reverted here to keep the PR to
   one function.
+- PR #98 (`review-gl2colony` -> `dev`), commit 625e70a.
 
 ```json
 {
@@ -237,6 +238,6 @@ of the approved behaviour; the default-layout baseline passes unchanged.
   ],
   "coverage_skipped": ["DAT6: no FBM fixture", "Google Group search: no access"],
   "status": "pr-open",
-  "pr": null
+  "pr": 98
 }
 ```
