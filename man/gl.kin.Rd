@@ -95,6 +95,7 @@ kin.ibd <- gl.kin(testset2.gl, method = "emibd9")
 \code{\link{gl.run.EMIBD9}}
 
 Other captive management: 
+\code{\link{gl.plot.network}()},
 \code{\link{gl.report.gd.projection}()},
 \code{\link{gl.report.ind.add}()},
 \code{\link{gl.report.ind.move}()},
