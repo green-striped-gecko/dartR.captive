@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+* `gl.run.colony()`: COLONY's output files are now written to `outpath`
+  instead of the R working directory, and the function returns
+  `list(files, best.config)`, where `best.config` is the COLONY best
+  configuration as a data frame (previously it returned `outpath`). The
+  default `outpath = NULL` now works, paths with spaces are supported,
+  and a run in which COLONY rejects its input now stops with COLONY's
+  error message instead of returning normally. COLONY's console output
+  prints only at `verbose >= 2`. Individual names longer than COLONY's
+  20-character limit or containing spaces are replaced by short IDs for
+  the run and restored in `best.config`.
+
 * `gl2colony()`: stops with an error, instead of writing a file COLONY
   rejects or misreads, when individual names contain whitespace, the data
   are SilicoDArT, or `sibship.prior`, `known.allele.freq`, or any

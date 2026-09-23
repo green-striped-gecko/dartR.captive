@@ -47,17 +47,22 @@ gl.run.colony(
 )
 }
 \arguments{
-\item{x}{A \code{genlight} object with individual metadata columns
-'offspring', 'mother', and 'father' indicating 'yes'/'no' for each sample
-[required].}
+\item{x}{A \code{genlight} object with SNP data and individual metadata
+columns 'offspring', 'mother', and 'father' indicating 'yes'/'no' for each
+sample. Column names and values are matched ignoring case. A missing column
+is filled with 'yes' (offspring) or 'no' (mother, father). Individual names
+must not contain whitespace [required].}
 
-\item{colony.path}{Path to the colony executable [default getwd()].}
+\item{colony.path}{Path to the folder that contains the COLONY executable:
+Colony2p.exe (Windows), colony2s.ifort.out (Linux) or colony2s.out (macOS)
+[default getwd()].}
 
 \item{outfile}{File name of the output file (including extension)
 [default "colony2.dat"].}
 
-\item{outpath}{Path where to save the output file [default global working
-directory or if not specified, tempdir()].}
+\item{outpath}{Folder for the COLONY input file and for all the output
+files COLONY writes [default global working directory or if not
+specified, tempdir()].}
 
 \item{project.name}{Project name to include in the file header
 [default 'my_project'].}
@@ -92,15 +97,16 @@ included among candidates [default 0.5].}
 
 \item{scale.shibship}{0 = do not scale full sibship; 1 = scale [default 1].}
 
-\item{sibship.prior}{0–4 specifying sibship prior strength (No, Weak,
-Medium, Strong, Optimal) [default 0].}
-
-\item{known.allele.freq}{0 = unknown allele frequencies; 1 = known
+\item{sibship.prior}{Sibship prior; only 0 (no prior) is supported, because
+other values require mean sibship sizes that this function does not write
 [default 0].}
+
+\item{known.allele.freq}{0 = unknown allele frequencies. Known
+frequencies (1) are not supported [default 0].}
 
 \item{num.runs}{Number of runs [default 1].}
 
-\item{length.run}{1–4 specifying run length (short, medium, long, very
+\item{length.run}{1-4 specifying run length (short, medium, long, very
 long) [default 2].}
 
 \item{monitor.method}{0 = monitor by iteration number; 1 = monitor by time
@@ -111,76 +117,126 @@ seconds) [default 10000].}
 
 \item{windows.gui}{0 = no Windows GUI; 1 = use Windows GUI [default 0].}
 
-\item{likelihood}{0–2 specifying likelihood scoring (PairLikelihood,
+\item{likelihood}{0-2 specifying likelihood scoring (PairLikelihood,
 FullLikelihood, FPLS) [default 0].}
 
-\item{precision.fl}{0–3 specifying precision level for full-likelihood (Low,
+\item{precision.fl}{0-3 specifying precision level for full-likelihood (Low,
 Medium, High, VeryHigh) [default 2].}
 
-\item{marker.id}{Marker IDs string for all loci [default 'mk@'].}
+\item{marker.id}{Marker IDs string; a trailing '@' applies one value to
+all loci [default 'mk@'].}
 
-\item{marker.type}{Marker types string for all loci (0@ for codominant, 1@
-for dominant) [default '0@'].}
+\item{marker.type}{Marker types string (0@ for codominant) [default '0@'].}
 
-\item{allelic.dropout}{Allelic dropout rate string per locus
-[default '0.000@'].}
+\item{allelic.dropout}{Allelic dropout rate string; a single value without
+'@' (e.g. '0.01') is applied to all loci [default '0.000@'].}
 
-\item{other.typ.err}{Other typing error rate string per locus
-[default '0.05@'].}
+\item{other.typ.err}{Other typing error rate string; a single value without
+'@' is applied to all loci [default '0.05@'].}
 
-\item{paternity.exclusion.threshold}{Threshold for paternity exclusion
-("0 0") [default '0 0'].}
+\item{paternity.exclusion.threshold}{Number of offspring with known father
+and the exclusion threshold. Only a count of 0 is supported, because other
+values require a list of offspring-father pairs [default '0 0'].}
 
-\item{maternity.exclusion.threshold}{Threshold for maternity exclusion
-("0 0") [default '0 0'].}
+\item{maternity.exclusion.threshold}{Number of offspring with known mother
+and the exclusion threshold. Only a count of 0 is supported [default '0 0'].}
 
-\item{paternal.sibship}{Number of known paternal sibships [default 0].}
+\item{paternal.sibship}{Number of known paternal sibships; only 0 is
+supported [default 0].}
 
-\item{maternal.sibship}{Number of known maternal sibships [default 0].}
+\item{maternal.sibship}{Number of known maternal sibships; only 0 is
+supported [default 0].}
 
-\item{excluded.paternity}{Number of offspring with excluded paternity
-[default 0].}
+\item{excluded.paternity}{Number of offspring with excluded paternity; only
+0 is supported [default 0].}
 
-\item{excluded.maternity}{Number of offspring with excluded maternity
-[default 0].}
+\item{excluded.maternity}{Number of offspring with excluded maternity; only
+0 is supported [default 0].}
 
-\item{excluded.paternal.sibships}{Number of excluded paternal sibships
-[default 0].}
+\item{excluded.paternal.sibships}{Number of excluded paternal sibships; only
+0 is supported [default 0].}
 
-\item{excluded.maternity.sibships}{Number of excluded maternal sibships
-[default 0].}
+\item{excluded.maternity.sibships}{Number of excluded maternal sibships;
+only 0 is supported [default 0].}
 
 \item{verbose}{Verbosity: 0, silent or fatal errors; 1, begin and end; 2,
-progress log ; 3, progress and results summary; 5, full report
-[default 2 or as specified using gl.set.verbosity].}
+progress log, including the COLONY console output; 3, progress and
+results summary; 5, full report [default 2, unless specified using
+gl.set.verbosity].}
 }
 \value{
-Invisibly returns the output filename.
+Invisibly, a list with two elements:
+\itemize{
+\item files -- full paths of the output files written by this run
+(including output.name.IDmap.csv when IDs were replaced).
+\item best.config -- the best configuration (output.name.BestConfig) as
+a data frame with columns OffspringID, FatherID, MotherID, CloneIndex and
+ClusterIndex. Parents not among the candidates are given COLONY's
+inferred labels (e.g. *1 for fathers, #1 for mothers).
+}
 }
 \description{
-A convenient R wrapper for the COLONY pedigree‐inference software 
-(Jones & Wang 2010), allowing users to perform full‐pedigree likelihood 
-analyses of multilocus genotype data directly from R. This function 
-automates the creation of the required `Colony2.DAT` input file and runs 
-the COLONY executable.
+An R wrapper for the COLONY pedigree-inference software (Jones & Wang
+2010), to run full-pedigree likelihood analyses of SNP genotypes from R.
+The function writes the COLONY input file with \code{gl2colony}, runs the
+COLONY executable and reads the best configuration back into R.
 }
 \details{
-COLONY implements a Bayesian full‐pedigree likelihood method that 
-simultaneously infers sibships and parentage by considering the likelihood 
-of entire pedigree configurations rather than pairwise comparisons.
+COLONY implements a full-pedigree likelihood method that simultaneously
+infers sibships and parentage by considering the likelihood of entire
+pedigree configurations rather than pairwise comparisons.
+
+COLONY writes its output files (named after output.name) into outpath.
+
+COLONY truncates individual IDs to 20 characters and splits them at
+spaces. If any name is longer than 20 characters or contains whitespace,
+COLONY runs on the IDs ind1, ind2, ... instead; the original names are
+restored in best.config, and the file output.name.IDmap.csv in outpath
+maps the IDs used in COLONY's own output files to the original names.
+COLONY does not return an error status when it rejects its input, so the
+function checks for the COLONY error file and for a new BestConfig file
+and stops with COLONY's message if the run failed.
 }
 \examples{
 \dontrun{
-if (isTRUE(getOption("dartR_fbm"))) testset.gl <- gl.gen2fbm(testset.gl)
-gl2colony(x = testset.gl)
+# requires the COLONY executable
+t1 <- testset.gl[1:30, 1:50]
+t1@other$ind.metrics$offspring <- rep(c("yes", "no", "no"), each = 10)
+t1@other$ind.metrics$father <- rep(c("no", "yes", "no"), each = 10)
+t1@other$ind.metrics$mother <- rep(c("no", "no", "yes"), each = 10)
+res <- gl.run.colony(t1, colony.path = "path/to/colony", seed = 1234)
+head(res$best.config)
 }
 
 }
 \references{
-Wang, J. (2011). COLONY: a program for parentage and sibship inference
-from multilocus genotype data. Molecular Ecology Resources 10: 551–555.
+Jones, O. R., & Wang, J. (2010). COLONY: a program for parentage and
+sibship inference from multilocus genotype data. Molecular Ecology
+Resources, 10(3), 551-555.
+}
+\seealso{
+Other captive management: 
+\code{\link{gl.kin}()},
+\code{\link{gl.report.gd.projection}()},
+\code{\link{gl.report.ind.add}()},
+\code{\link{gl.report.ind.move}()},
+\code{\link{gl.report.ind.remove}()},
+\code{\link{gl.report.kin.classes}()},
+\code{\link{gl.report.kin.confidence}()},
+\code{\link{gl.report.kin.groups}()},
+\code{\link{gl.report.kin.sets}()},
+\code{\link{gl.report.kinship}()},
+\code{\link{gl.report.mate.suitability}()},
+\code{\link{gl.report.repro.targets}()},
+\code{\link{gl.select.pairs}()},
+\code{\link{gl2colony}()},
+\code{\link{utils.kin.check}()},
+\code{\link{utils.kin.dgd}()},
+\code{\link{utils.kin.dominant}()}
 }
 \author{
-Jesús Castrejón-Figueroa, Diana A. Robledo-Ruiz & Luis Mijangos-- Post to
+Author(s): Jesús Castrejón-Figueroa, Diana A. Robledo-Ruiz, Luis Mijangos.
+Custodian: Luis Mijangos -- Post to
 \url{https://groups.google.com/d/forum/dartr}
 }
+\concept{captive management}
