@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+* `gl.kin()`: `method = "grm"` (the SNP default) now returns `G / 2`.
+  It returned `G / 2 - mean(diag(G) - 1)` off the diagonal, which shifted
+  every pairwise kinship by the mean inbreeding of the sample; after
+  call-rate filtering, parent-offspring pairs came out near 0.1 instead of
+  0.25. `method = "emibd9"` no longer halves EMIBD9 kinship (it returned
+  half the kinship and a diagonal of 0.25) and has a new `emibd9.path`
+  argument. All kinship-series results computed from `gl.kin()` change
+  accordingly. The output carries `attr(, "scale") = "kinship"`, a warning
+  reports pairs above 0.5 (possible duplicates), and the verbose summary
+  prints mean pairwise kinship instead of a gene diversity that is about 1
+  by construction. dartR.data (>= 1.2.5) is now required, for
+  `testset2.gl` in the examples.
 * `gl.diagnostics.relatedness()`: accuracy statistics are now computed
   against the exact pedigree kinship of each pair (new column `rel`;
   inbreeding included), with one relationship class per pair

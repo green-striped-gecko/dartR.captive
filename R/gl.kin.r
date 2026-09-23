@@ -21,6 +21,9 @@
 #' 'emibd9' (SNP only, requires the external EMIBD9 binary) or 'dominant'
 #' (SilicoDArT only) [default NULL, resolved to 'grm' for SNP data and
 #' 'dominant' for SilicoDArT data].
+#' @param emibd9.path Path to the folder containing the EMIBD9 executable,
+#' passed to gl.run.EMIBD9; used only with method 'emibd9'
+#' [default getwd()].
 #' @param verbose Verbosity: 0, silent or fatal errors; 1, begin and end; 2,
 #' progress log; 3, progress and results summary; 5, full report
 #' [default NULL, adopting the global verbosity set by gl.set.verbosity(),
@@ -32,23 +35,33 @@
 #' individuals i and j. Gene diversity for any set of individuals is
 #' GD = 1 - mean(kin) taken over the full matrix including the diagonal, and
 #' mean kinship for individual i is MK_i = rowMeans(kin)[i], including self.
-#' These conventions match those used by PMx for pedigree-based management.
+#' These are the conventions PMx uses for pedigree-based management, with one
+#' difference: PMx measures kinship from the founders, whereas here the base
+#' is the supplied dataset. Because genomic kinship is centred on the sample,
+#' GD of the full dataset is about 1 by construction (exactly 1 for method
+#' 'grm'); GD values are meaningful as comparisons between subsets of
+#' individuals, or before and after removals and additions, not as an
+#' absolute measure of diversity.
 #'
 #' Method 'grm' computes the genomic relationship matrix G with
-#' gl.grm (rrBLUP::A.mat, diagonal ~ 1+F) and converts it to kinship using the
-#' centring of Goudet et al. (2018, Molecular Ecology 27:4121-4135), as in
-#' gl.grm.network: the mean inbreeding coefficient MS = mean(diag(G) - 1) is
-#' used as the reference, off-diagonals become G/2 - MS, and the diagonal
-#' becomes diag(G)/2.
+#' gl.grm (rrBLUP::A.mat, diagonal ~ 1+F, off-diagonal ~ twice the kinship)
+#' and returns kin = G/2, the same scale gl.grm.network uses by default: the
+#' diagonal is 0.5*(1+F) and the off-diagonal elements are pairwise kinship,
+#' both relative to the allele frequencies of the supplied dataset.
+#' gl.grm imputes missing genotypes with the locus mean, which pulls kinship
+#' toward 0: on testset2.gl (15% missing) parent-offspring pairs average
+#' 0.19, and 0.25 after gl.filter.callrate(threshold = 0.95). Filter on call
+#' rate before gl.kin when kinship values are compared against thresholds or
+#' relationship classes.
 #'
 #' Method 'emibd9' runs the external EMIBD9 program (Wang 2022, Methods in
-#' Ecology and Evolution 13:2443-2462) via gl.run.EMIBD9, symmetrises the
-#' populated triangle of the returned $rel matrix and rescales it by 1/2 to
-#' the kinship contract: $rel is Wang's r(1,2) relatedness (~2x kinship, with
-#' self-relatedness 1 + F), so halving gives off-diagonal pairwise kinship and
-#' a diagonal of 0.5*(1+F); where EMIBD9 leaves the diagonal unpopulated it
-#' defaults to the non-inbred self-kinship 0.5. EMIBD9 must be installed
-#' separately; see gl.run.EMIBD9 for download and path details.
+#' Ecology and Evolution 13:2443-2462) via gl.run.EMIBD9 and symmetrises the
+#' populated triangle of the returned $rel matrix. $rel is EMIBD9's r(1,2),
+#' the kinship coefficient, so it is used without rescaling; where EMIBD9
+#' leaves the diagonal unpopulated it defaults to the non-inbred self-kinship
+#' 0.5. gl.run.EMIBD9 runs with Inbreed = FALSE, so the diagonal is 0.5.
+#' EMIBD9 must be installed separately; give its folder with emibd9.path (see
+#' gl.run.EMIBD9 for download details).
 #'
 #' Method 'dominant' calls utils.kin.dominant, a standardized band-sharing
 #' covariance for presence/absence data. Dominant-marker kinship is a
@@ -56,6 +69,10 @@
 #' absolute values are approximate (see utils.kin.dominant for details), and
 #' the diagonal is fixed at 0.5 because individual inbreeding is not estimable
 #' from single dominant bands.
+#'
+#' Kinship between two different individuals cannot exceed 0.5 except for
+#' duplicate samples or clones; if any pair exceeds 0.5 a warning reports how
+#' many (see gl.report.replicates in dartR.base to identify duplicates).
 #'
 #' Important caveat: with all methods, kinship values are relative to the
 #' allele (or band) frequencies of the full dataset supplied, which acts as
@@ -73,19 +90,22 @@
 #' kins <- gl.kin(testset2.gs)
 #' \dontrun{
 #' # Requires the external EMIBD9 binary (see gl.run.EMIBD9)
-#' kin.ibd <- gl.kin(testset2.gl, method = "emibd9")
+#' kin.ibd <- gl.kin(testset2.gl, method = "emibd9",
+#'                   emibd9.path = "path/to/EMIBD9")
 #' }
 #' @seealso \code{\link{gl.report.kinship}}, \code{\link{gl.grm}},
 #' \code{\link{gl.run.EMIBD9}}
 #' @export
 #' @return A square numeric kinship matrix with dimnames = indNames(x),
 #' diagonal 0.5*(1+F), off-diagonal pairwise kinship, and attributes 'method',
-#' 'datatype' and 'nLoc', returned invisibly.
+#' 'datatype', 'nLoc' and 'scale' (= "kinship", which gl.grm.network reads to
+#' plot the matrix without rescaling), returned invisibly.
 #'
 # ----------------------
 # Function
 gl.kin <- function(x,
                    method = NULL,
+                   emibd9.path = getwd(),
                    verbose = NULL) {
     # PRELIMINARIES -- checking ----------------
     # SET VERBOSITY
@@ -139,29 +159,27 @@ gl.kin <- function(x,
             stop(error(paste0("Fatal Error: gl.grm did not return a matrix; ",
                               "check that package rrBLUP is installed\n")))
         }
-        # Goudet et al. (2018) centring, as in gl.grm.network
-        MS <- mean(diag(G) - 1)
-        kin <- G / 2 - MS
-        diag(kin) <- diag(G) / 2
+        # G is on the relatedness scale (diagonal 1 + F, off-diagonal ~2x
+        # kinship). Subtracting the mean inbreeding from pairs would shift
+        # every kinship by the Wahlund and missing-data effects in diag(G)
+        kin <- G / 2
     }
 
     if (method == "emibd9") {
         if (verbose >= 2) {
             cat(report("  Computing kinship with the external program EMIBD9 (gl.run.EMIBD9)\n"))
         }
-        res <- gl.run.EMIBD9(x, plot.out = FALSE, verbose = 0)
+        res <- gl.run.EMIBD9(x, emibd9.path = emibd9.path,
+                             plot.out = FALSE, verbose = 0)
         m <- res$rel
         if (is.null(m) || !is.matrix(m)) {
             stop(error("Fatal Error: gl.run.EMIBD9 did not return a $rel matrix\n"))
         }
         # Merge the populated triangle(s) into a symmetric matrix
         kin <- pmax(m, t(m), na.rm = TRUE)
-        # $rel is Wang's r(1,2) relatedness (~2x kinship; self-relatedness
-        # 1 + F); rescale to the series kinship contract so every method
-        # returns the same currency
-        kin <- kin / 2
-        # Diagonal (now 0.5*(1+F)) where EMIBD9 populated it, else the
-        # non-inbred self-kinship
+        # $rel is EMIBD9's r(1,2), already the kinship coefficient (see
+        # gl.run.EMIBD9), so no rescaling. Diagonal 0.5*(1+F) where EMIBD9
+        # populated it, else the non-inbred self-kinship
         d <- diag(kin)
         d[is.na(d)] <- 0.5
         diag(kin) <- d
@@ -179,16 +197,25 @@ gl.kin <- function(x,
     attr(kin, "method") <- method
     attr(kin, "datatype") <- datatype
     attr(kin, "nLoc") <- nLoc(x)
+    attr(kin, "scale") <- "kinship"
+
+    # Pairs above 0.5 are beyond any relationship other than identity
+    n.high <- sum(kin[upper.tri(kin)] > 0.5, na.rm = TRUE)
+    if (n.high > 0 && verbose >= 1) {
+        cat(warn("  Warning:", n.high, "pair(s) of individuals have kinship",
+                 "above 0.5; they may be duplicate samples or clones",
+                 "(see gl.report.replicates)\n"))
+    }
 
     # Results summary -----------
     if (verbose >= 3) {
         cat(report("  Kinship matrix summary\n"))
         cat(report("    Method:", method, "| Datatype:", datatype,
                    "| Loci:", nLoc(x), "| Individuals:", nInd(x), "\n"))
-        cat(report("    Mean kinship (full matrix incl. diagonal):",
-                   round(mean(kin, na.rm = TRUE), 4), "\n"))
-        cat(report("    Gene diversity GD = 1 - mean kinship:",
-                   round(1 - mean(kin, na.rm = TRUE), 4), "\n"))
+        # Not GD = 1 - mean(kin): kinship is centred on this dataset, so
+        # that is about 1 whatever the diversity (see Details)
+        cat(report("    Mean pairwise kinship (off-diagonal):",
+                   round(mean(kin[upper.tri(kin)], na.rm = TRUE), 4), "\n"))
         cat(report("    Self-kinship (diagonal) range:",
                    round(min(diag(kin), na.rm = TRUE), 4), "to",
                    round(max(diag(kin), na.rm = TRUE), 4), "\n"))
