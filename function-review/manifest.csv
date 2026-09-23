@@ -8,3 +8,6 @@ gl.report.parent.offspring,dartR.captive,report,Claude,pr-open#102
 gl.filter.parent.offspring,dartR.captive,modify,Claude,pr-open#103
 gl.run.EMIBD9,dartR.captive,io,Claude,pr-open#100
 gl.sim.relatedness,dartR.captive,analysis,Claude,pr-open#105
+gl.run.EMIBD9,dartR.captive,io,Claude,done#100
+gl.report.parent.offspring,dartR.captive,report,Claude,done#102
+gl.filter.parent.offspring,dartR.captive,modify,Claude,done#103
