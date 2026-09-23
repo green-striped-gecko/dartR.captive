@@ -148,3 +148,22 @@ test_that("r2 change 6: invalid method errors", {
   dimnames(G) <- list(nm, nm)
   expect_error(gl.grm.network(G, sub, method = "xx", verbose = 0))
 })
+
+test_that("G tagged as kinship (gl.run.EMIBD9 $rel) is not halved", {
+  sub <- testset.gl[1:3, 1:50]
+  nm <- sort(indNames(sub))
+  G <- diag(0.5, 3)
+  dimnames(G) <- list(nm, nm)
+  G[nm[2], nm[1]] <- G[nm[1], nm[2]] <- 0.25  # full-sib kinship
+  attr(G, "scale") <- "kinship"
+  m <- gl.grm.network(G, sub, verbose = 0)$kinship
+  expect_equal(m[nm[2], nm[1]], 0.25)
+  # untagged, the same matrix is read as relatedness and halved
+  attr(G, "scale") <- NULL
+  m <- gl.grm.network(G, sub, verbose = 0)$kinship
+  expect_equal(m[nm[2], nm[1]], 0.125)
+  # standardise: F = 2 x 0.5 - 1 = 0, so kinship is unchanged
+  attr(G, "scale") <- "kinship"
+  m <- gl.grm.network(G, sub, standardise = TRUE, verbose = 0)$kinship
+  expect_equal(m[nm[2], nm[1]], 0.25)
+})

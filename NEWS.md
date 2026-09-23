@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+* `gl.grm.network()`: a `G` tagged `attr(G, "scale") = "kinship"` (as
+  returned by `gl.run.EMIBD9()`) is used as kinship without halving.
+  Since the previous change EMIBD9 kinship was halved, because EMIBD9's
+  `r(1,2)` is kinship, not relatedness.
+
 * `gl.grm.network()`: kinship is now computed as G / 2 when
   `standardise = FALSE` (default); previously relatedness values were
   treated as kinship, so thresholds and categories were off by a factor
