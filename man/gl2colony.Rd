@@ -208,6 +208,7 @@ Other captive management:
 \code{\link{gl.run.EMIBD9}()},
 \code{\link{gl.run.colony}()},
 \code{\link{gl.select.pairs}()},
+\code{\link{gl.sim.relatedness}()},
 \code{\link{utils.kin.check}()},
 \code{\link{utils.kin.dgd}()},
 \code{\link{utils.kin.dominant}()}
