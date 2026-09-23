@@ -152,6 +152,7 @@ res$msi["CB_AB_01", "CB_CD_02"]    # yet detrimental: both well represented
 \code{\link{gl.report.repro.targets}}
 
 Other captive management: 
+\code{\link{gl.diagnostics.relatedness}()},
 \code{\link{gl.kin}()},
 \code{\link{gl.plot.network}()},
 \code{\link{gl.report.gd.projection}()},

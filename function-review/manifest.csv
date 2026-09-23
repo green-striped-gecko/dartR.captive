@@ -4,11 +4,9 @@ gl.grm.network,dartR.captive,analysis,Claude,done#97 (r2; r1 done#87; kinship fi
 gl.assign.grm,dartR.captive,analysis,Claude,done#88
 gl2colony,dartR.captive,io,Claude,done#98
 gl.run.colony,dartR.captive,io,Claude,done#99
-gl.report.parent.offspring,dartR.captive,report,Claude,pr-open#102
-gl.filter.parent.offspring,dartR.captive,modify,Claude,pr-open#103
-gl.run.EMIBD9,dartR.captive,io,Claude,pr-open#100
-gl.plot.network,dartR.captive,analysis,Claude,pr-open#106
-gl.sim.relatedness,dartR.captive,analysis,Claude,pr-open#105
 gl.run.EMIBD9,dartR.captive,io,Claude,done#100
 gl.report.parent.offspring,dartR.captive,report,Claude,done#102
 gl.filter.parent.offspring,dartR.captive,modify,Claude,done#103
+gl.sim.relatedness,dartR.captive,analysis,Claude,done#105
+gl.plot.network,dartR.captive,analysis,Claude,done#106
+gl.diagnostics.relatedness,dartR.captive,analysis,Claude,pr-open

@@ -71,6 +71,7 @@ of close relatives will yield inflated relative values.
 \code{\link{gl.kin}}, \code{\link{gl.report.kinship}}
 
 Other captive management: 
+\code{\link{gl.diagnostics.relatedness}()},
 \code{\link{gl.kin}()},
 \code{\link{gl.plot.network}()},
 \code{\link{gl.report.gd.projection}()},

@@ -112,6 +112,7 @@ pairs  # avoids sib x sib pairings (f.off < 0.125)
 \code{\link{gl.report.repro.targets}}
 
 Other captive management: 
+\code{\link{gl.diagnostics.relatedness}()},
 \code{\link{gl.kin}()},
 \code{\link{gl.plot.network}()},
 \code{\link{gl.report.gd.projection}()},

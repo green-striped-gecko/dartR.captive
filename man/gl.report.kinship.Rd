@@ -107,6 +107,7 @@ res$ind[res$ind$pop == "EmmacCaptBred", ][1:5, ]
 \code{\link{gl.run.EMIBD9}}
 
 Other captive management: 
+\code{\link{gl.diagnostics.relatedness}()},
 \code{\link{gl.kin}()},
 \code{\link{gl.plot.network}()},
 \code{\link{gl.report.gd.projection}()},

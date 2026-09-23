@@ -1,7 +1,7 @@
 coanct_clean <- function(input, coanctTests = NULL){
   
   # Gets gl2realted input or coancestry 
-  x_gl2 <- gl2related(input, save=F)
+  x_gl2 <- gl2related(input, save = FALSE, verbose = 0)
   
   # Crappy code to avoid having 7 if loops to set tests based 
   # on function input 
@@ -59,7 +59,7 @@ coanct_clean <- function(input, coanctTests = NULL){
 
 # Clean up gl.grm output 
 GRM_clean <- function(input){
-  GRM <- gl.grm(input, plotheatmap = F)
+  GRM <- gl.grm(input, plotheatmap = FALSE, verbose = 0)
   order_grm <- colnames(GRM)[order(colnames(GRM))]
   GRM <- GRM[order_grm, order_grm]
   
@@ -77,8 +77,6 @@ cleanup_rel <- function(input_val, testSelect=NULL){
   rel_cal <- cbind(coanct_clean(input_val, coanctTests=testSelect), GRM_clean(input_val))
   rel_cal <- rel_cal[complete.cases(rel_cal[testSelect]),]
   colnames(rel_cal) <- c("ind1","ind2", testSelect, "rrBLUP")
-  rel_cal <- rel_cal[which(rel_cal[,"rrBLUP"] >= 0.05 & 
-                             rel_cal[,testSelect]>=0.05),]
   rel_plot_2 <- reshape2::melt(rel_cal, id.vars = c("ind1","ind2"))
   
   #rel_plot_2 <- rel_cal %>%
@@ -221,10 +219,12 @@ CleanupExtractParents <- function(parentalTable){
   full_sibs <- sibs[!is.na(dad) & !is.na(mom),
                     .(id1 = id, id2, relationship = "full_sibs", r = 0.25)]
   
+  # missing parents are unknown, not shared: data.table joins match NA to
+  # NA, so they are excluded before joining
   half_sibs <- rbind(
-    merge(ped[,.(id,dad)], ped[,.(id2=id,dad)], by="dad", allow.cartesian=TRUE)[id<id2,
+    merge(ped[!is.na(dad),.(id,dad)], ped[!is.na(dad),.(id2=id,dad)], by="dad", allow.cartesian=TRUE)[id<id2,
                                                                                 .(id1=id,id2,relationship="half_sibs", r=0.125)],
-    merge(ped[,.(id,mom)], ped[,.(id2=id,mom)], by="mom", allow.cartesian=TRUE)[id<id2,
+    merge(ped[!is.na(mom),.(id,mom)], ped[!is.na(mom),.(id2=id,mom)], by="mom", allow.cartesian=TRUE)[id<id2,
                                                                                 .(id1=id,id2,relationship="half_sibs", r=0.125)],
     fill=TRUE
   )
@@ -325,18 +325,15 @@ relatedLevelPlots <- function(relatedDf, which_tests, pedSim=F){
     
     df1 <- reshape2::melt(relatedDf, id.vars = "RelDegree", measure.vars = which_tests) %>%
       {.$RelDegree <- factor(.$RelDegree, 
-                             levels = c("parent_offspring","full_sibs", "half_sibs",
-                                        "full_first_cousins", "half_first_cousins", "second_cousins")); .}
+                             levels = relationshipClasses); .}
     
     lines_df <- data.frame(
-      RelDegree = c("parent_offspring","full_sibs", "half_sibs",
-                    "full_first_cousins","half_first_cousins", "second_cousins"),
-      yintercept = c(0.25, 0.25, 0.125, 0.0625, 0.03125, 0.015625)
+      RelDegree = relationshipClasses,
+      yintercept = c(0.25, 0.25, 0.125, 0.0625, 0.03125, 0.015625, 0)
     )
     
     lines_df$RelDegree <- factor(lines_df$RelDegree,
-                                 levels = c("parent_offspring","full_sibs", "half_sibs",
-                                            "full_first_cousins","half_first_cousins","second_cousins"))
+                                 levels = relationshipClasses)
     
     outputBoxPlot <- ggplot(df1, aes(x=variable,y=value,color=variable,
                                      fill=variable))+
@@ -416,53 +413,109 @@ runE9 <- function(inputObj, e9Path, numCores, e9parallel=e9parallel, E9Inbreed=F
 }
 
 
-mergeRelatedManual <- function(relatedDf, RecodeDf){
-  
-  relationship <- NULL
-  ind1 <- NULL
-  ind2 <- NULL
-  ID1 <- NULL
-  ID2 <- NULL
-  
-  relatedTransform <- relatedDf %>%
-    rbind() %>%
-    na.omit() 
-  relatedTransform$ind1 <- as.character(relatedTransform$ind1)
-  relatedTransform$ind2 <- as.character(relatedTransform$ind2)
-  
-  recodeBound <- RecodeDf %>%
-    as.data.frame() %>%
-    {transform(., relationship = as.numeric(relationship));} %>%
-    {colnames(.) <- c("ind1", "ind2", "RelDegree", "rel"); .}
-  
-  #{transform(., RelDegree = as.numeric(RelDegree));}
-  setDT(recodeBound); setDT(relatedTransform)
-  # 1. create canonical ID pairs in-place
-  recodeBound[ , `:=`(
-    ID1 = pmin(ind1, ind2),
-    ID2 = pmax(ind1, ind2)
-  )]
-  relatedTransform[ , `:=`(
-    ID1 = pmin(ind1, ind2),
-    ID2 = pmax(ind1, ind2)
-  )]
-  
-  # 2. set the join keys (very fast lookup)
-  setkey(recodeBound, ID1, ID2)
-  setkey(relatedTransform, ID1, ID2)
-  
-  # 3. merge (inner join; drop unmatched)
-  #    this will bring relatedTransform’s stats alongside recodeBound’s
-  merged <- recodeBound[relatedTransform, nomatch=0]
-  # 4. clean up helper columns if you like
-  merged[ , c("ind1","ind2") := NULL]  # drop originals
-  # or rename ID1/ID2 back to sample1/sample2
-  setnames(merged, c("ID1","ID2"), c("ind1","ind2"))
-  mergedWider <- merged %>%
-    pivot_wider(names_from = "variable", values_from = c("value"))
-  
-  return(mergedWider)
-  
+# Exact kinship coefficients from a pedigree (id, dad, mom; missing parents
+# NA or 0). Parents that are not listed as individuals are added as unrelated,
+# non-inbred founders. Individuals are ordered so that parents come before
+# their offspring, then the standard recursion is applied:
+#   K[i, i] = (1 + K[dad, mom]) / 2
+#   K[i, j] = (K[dad, j] + K[mom, j]) / 2   (j before i)
+pedigreeKinship <- function(ped) {
+  ped <- data.frame(id = as.character(ped$id),
+                    dad = as.character(ped$dad),
+                    mom = as.character(ped$mom),
+                    stringsAsFactors = FALSE)
+  ped$dad[ped$dad %in% c("0", "")] <- NA
+  ped$mom[ped$mom %in% c("0", "")] <- NA
+  if (anyDuplicated(ped$id)) {
+    stop(error("  The pedigree lists some individuals more than once\n"))
+  }
+  founders <- setdiff(unique(c(ped$dad, ped$mom)), c(ped$id, NA))
+  if (length(founders) > 0) {
+    ped <- rbind(data.frame(id = founders, dad = NA_character_,
+                            mom = NA_character_, stringsAsFactors = FALSE),
+                 ped)
+  }
+  ordered.ids <- character(0)
+  remaining <- ped
+  while (nrow(remaining) > 0) {
+    ready <- (is.na(remaining$dad) | remaining$dad %in% ordered.ids) &
+      (is.na(remaining$mom) | remaining$mom %in% ordered.ids)
+    if (!any(ready)) {
+      stop(error("  The pedigree contains a loop (an individual is its own",
+                 "ancestor)\n"))
+    }
+    ordered.ids <- c(ordered.ids, remaining$id[ready])
+    remaining <- remaining[!ready, , drop = FALSE]
+  }
+  ped <- ped[match(ordered.ids, ped$id), ]
+  n <- nrow(ped)
+  d <- match(ped$dad, ped$id)
+  m <- match(ped$mom, ped$id)
+  K <- matrix(0, n, n, dimnames = list(ped$id, ped$id))
+  for (i in seq_len(n)) {
+    if (i > 1) {
+      earlier <- seq_len(i - 1)
+      k.dad <- if (!is.na(d[i])) K[d[i], earlier] else 0
+      k.mom <- if (!is.na(m[i])) K[m[i], earlier] else 0
+      K[i, earlier] <- (k.dad + k.mom) / 2
+      K[earlier, i] <- K[i, earlier]
+    }
+    K[i, i] <- (1 + if (!is.na(d[i]) && !is.na(m[i])) K[d[i], m[i]] else 0) / 2
+  }
+  K
+}
+
+# Relationship classes, from the closest to the most distant; a pair that
+# the classifier places in several classes keeps the closest one, and a pair
+# in none of them is "unrelated"
+relationshipClasses <- c("parent_offspring", "full_sibs", "half_sibs",
+                         "full_first_cousins", "half_first_cousins",
+                         "second_cousins", "unrelated")
+
+# Adds the pedigree truth to the relatedness estimates: one row per pair
+# with ind1, ind2, RelDegree (closest relationship class), rel (exact
+# pedigree kinship) and one column per estimator
+mergePedigreeTruth <- function(relatedDf, ped) {
+
+  ind1 <- ind2 <- ID1 <- ID2 <- id1 <- id2 <- relationship <- NULL
+
+  estimates <- as.data.frame(stats::na.omit(relatedDf))
+  estimates$ind1 <- as.character(estimates$ind1)
+  estimates$ind2 <- as.character(estimates$ind2)
+  estimates$ID1 <- pmin(estimates$ind1, estimates$ind2)
+  estimates$ID2 <- pmax(estimates$ind1, estimates$ind2)
+  estimates <- as.data.frame(tidyr::pivot_wider(
+    estimates[, c("ID1", "ID2", "variable", "value")],
+    names_from = "variable", values_from = "value"))
+
+  # missing parents may be coded 0 or ""; the classifier needs NA
+  ped <- data.frame(id = as.character(ped$id), dad = as.character(ped$dad),
+                    mom = as.character(ped$mom), stringsAsFactors = FALSE)
+  ped$dad[ped$dad %in% c("0", "")] <- NA
+  ped$mom[ped$mom %in% c("0", "")] <- NA
+
+  classes <- as.data.frame(CleanupExtractParents(ped))
+  classes$ID1 <- pmin(as.character(classes$id1), as.character(classes$id2))
+  classes$ID2 <- pmax(as.character(classes$id1), as.character(classes$id2))
+  classes$rank <- match(classes$relationship, relationshipClasses)
+  classes <- classes[order(classes$rank), ]
+  classes <- classes[!duplicated(classes[, c("ID1", "ID2")]),
+                     c("ID1", "ID2", "relationship")]
+
+  out <- merge(estimates, classes, by = c("ID1", "ID2"), all.x = TRUE)
+  out$relationship[is.na(out$relationship)] <- "unrelated"
+
+  K <- pedigreeKinship(ped)
+  in.ped <- out$ID1 %in% rownames(K) & out$ID2 %in% rownames(K)
+  out$rel <- NA_real_
+  out$rel[in.ped] <- K[cbind(out$ID1[in.ped], out$ID2[in.ped])]
+
+  est.cols <- setdiff(colnames(out), c("ID1", "ID2", "relationship", "rel"))
+  out <- data.frame(ind1 = out$ID1, ind2 = out$ID2,
+                    RelDegree = out$relationship, rel = out$rel,
+                    out[, est.cols, drop = FALSE],
+                    stringsAsFactors = FALSE, check.names = FALSE)
+  out
 }
 
 mergeE9Related <- function(relatedDf, RecodeDf,test_select){
@@ -517,55 +570,41 @@ mergeE9Related <- function(relatedDf, RecodeDf,test_select){
   
 }
 
-rmse <- function(observed, predicted) {
-  sqrt(mean((observed - predicted)^2, na.rm = TRUE))
-}
-
+# Root mean square error of each estimator against the exact pedigree
+# kinship (column rel), by relationship class
 calcRMSE <- function(inputDf, which_tests){
-  
-  listReturn=NULL
-  levels = c(0.25, 0.25, 0.125, 0.0625, 0.03125, 0.015625)
-  for(i in 1:length(inputDf)){
-    emptCorDf <- matrix(data = 0, nrow = length(which_tests), ncol=6)%>%
-      as.data.frame() %>%
-      {rownames(.) <- which_tests; .} %>%
-      {colnames(.) <- c("parent_offspring","full_sibs", "half_sibs",
-                        "full_first_cousins","half_first_cousins","second_cousins");.}
-    
-    for(j in 1:length(which_tests)){
-      for(k in 1:ncol(emptCorDf)){
-        rowSelect <- inputDf[[i]][inputDf[[i]][,"RelDegree"]==colnames(emptCorDf)[k],rownames(emptCorDf)[j]]
-        fsdf <- sapply(rowSelect, rmse, predicted=levels[k])
-        emptCorDf[j,k] <- mean(fsdf)
+  lapply(inputDf, function(df) {
+    out <- matrix(NA_real_, nrow = length(which_tests),
+                  ncol = length(relationshipClasses),
+                  dimnames = list(which_tests, relationshipClasses))
+    for (j in which_tests) {
+      for (k in relationshipClasses) {
+        rows <- df$RelDegree == k & !is.na(df[[j]]) & !is.na(df$rel)
+        if (any(rows)) {
+          out[j, k] <- sqrt(mean((df[[j]][rows] - df$rel[rows])^2))
+        }
       }
     }
-    listReturn[[i]] <- emptCorDf
-  }
-  return(listReturn)
-  
+    as.data.frame(out)
+  })
 }
 
-
+# Variance of each estimator, by relationship class
 calcVar <- function(inputDf, which_tests){
-  listReturn=NULL
-  levels = c(0.25, 0.25, 0.125, 0.0625, 0.03125, 0.015625)
-  for(i in 1:length(inputDf)){
-    emptCorDf <- matrix(data = 0, nrow = length(which_tests), ncol=6)%>%
-      as.data.frame() %>%
-      {rownames(.) <- which_tests; .} %>%
-      {colnames(.) <- c("parent_offspring","full_sibs", "half_sibs",
-                        "full_first_cousins","half_first_cousins", "second_cousins");.}
-    
-    for(j in 1:length(which_tests)){
-      for(k in 1:ncol(emptCorDf)){
-        rowSelect <- inputDf[[i]][inputDf[[i]][,"RelDegree"]==colnames(emptCorDf)[k],rownames(emptCorDf)[j]]
-        emptCorDf[j,k] <- var(rowSelect)
+  lapply(inputDf, function(df) {
+    out <- matrix(NA_real_, nrow = length(which_tests),
+                  ncol = length(relationshipClasses),
+                  dimnames = list(which_tests, relationshipClasses))
+    for (j in which_tests) {
+      for (k in relationshipClasses) {
+        v <- df[[j]][df$RelDegree == k & !is.na(df[[j]])]
+        if (length(v) > 1) {
+          out[j, k] <- stats::var(v)
+        }
       }
     }
-    listReturn[[i]] <- emptCorDf
-  }
-  return(listReturn)
-  
+    as.data.frame(out)
+  })
 }
 
 tableColor <- function(dfIn){
@@ -613,22 +652,10 @@ tableOut <- function(valIn){
   return(listOut)
 }
 
-generateRelatedTableBaseInput <- function(baseInput,fullRun){
-  
-  parentalTable <- baseInput$other$ind.metrics %>%
-    {.[. == 0] <- NA; . } %>%
-    {. <- .[, c("id", "dad", "mom")];.} %>%
-    {.$mom <- as.character(.$mom);.} %>%
-    {.$dad <- as.character(.$dad);.} %>%
-    {. <- CleanupExtractParents(.);.} %>%
-    as.matrix() %>%
-    {colnames(.) <- c("id1", "id2", "RelDegree", "relationship");.} 
-  
-  
-  mergedFinal <-  mergeRelatedManual(fullRun, parentalTable)
-  
-  asdf <- NULL %>%
-    {.[[1]] <- mergedFinal;.}
-  
-  return(asdf)
+# Pedigree attached to the genlight object (ind.metrics columns id, dad,
+# mom; missing parents 0 or NA)
+attachedPedigree <- function(baseInput) {
+  im <- baseInput@other$ind.metrics
+  data.frame(id = as.character(im$id), dad = as.character(im$dad),
+             mom = as.character(im$mom), stringsAsFactors = FALSE)
 }
