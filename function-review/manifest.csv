@@ -5,3 +5,4 @@ gl.assign.grm,dartR.captive,analysis,Claude,done#88
 gl2colony,dartR.captive,io,Claude,done#98
 gl.run.colony,dartR.captive,io,Claude,done#99
 gl.report.parent.offspring,dartR.captive,report,Claude,pr-open#102
+gl.filter.parent.offspring,dartR.captive,modify,Claude,awaiting-approval

@@ -8,24 +8,25 @@
 #' parent for the reference allele, and homozygous in the offspring for the
 #' alternate allele. This condition is not consistent with any pedigree,
 #' regardless of the (unknown) genotype of the other parent.
-#' The pedigree inconsistent loci are counted as an indication of whether or not
-#' it is reasonable to propose the two individuals are in a parent-offspring
-#' relationship.
+#' The proportion of pedigree inconsistent loci is used as an indication of
+#' whether or not it is reasonable to propose the two individuals are in a
+#' parent-offspring relationship.
 #' @param x Name of the genlight object containing the SNP genotypes [required].
 #' @param min.rdepth Minimum read depth to include in analysis [default 12].
 #' @param min.reproducibility Minimum reproducibility to include in analysis
 #' [default 1].
 #' @param range Specifies the range to extend beyond the interquartile range for
 #'  delimiting outliers [default 1.5 interquartile ranges].
-#' @param method Method of selecting the individual to retain from each pair of
-#' parent offspring relationship, 'best' (based on CallRate) or 'random'
-#' [default 'best'].
+#' @param method Method of selecting the individual to remove from each pair
+#' in a parent offspring relationship: 'best' removes the individual with more
+#' missing genotypes (lower call rate) and keeps the other; 'random' removes
+#' one at random [default 'best'].
 #' @param rm.monomorphs If TRUE, remove monomorphic loci after filtering
 #' individuals [default FALSE].
 #' @param plot_theme Theme for the plot. See Details for options
 #' [default theme_dartR()].
 #' @param plot_colors List of two color names for the borders and fill of the
-#'  plots [default gl.colors(2)].
+#'  plots [default NULL, which uses gl.colors(2)].
 #' @param plot.dir Directory to save the plot RDS files [default as specified
 #' by the global working directory or tempdir()]
 #' @param plot.file Name for the RDS binary file to save (base name only, exclude extension) [default NULL]
@@ -35,13 +36,13 @@
 #' @details
 #' If two individuals are in a parent offspring relationship, the true number of
 #' pedigree inconsistent loci should be zero, but SNP calling is not infallible.
-#' Some loci will be miss-called. The problem thus becomes one of determining if
-#' the two focal individuals have a count of pedigree inconsistent loci less
-#' than would be expected of typical unrelated individuals. There are some quite
+#' Some loci will be miscalled. The problem thus becomes one of determining if
+#' the two focal individuals have a proportion of pedigree inconsistent loci
+#' lower than would be expected of typical unrelated individuals. There are some quite
 #' sophisticated software packages available to formally apply likelihoods to
 #' the decision, but we use a simple outlier comparison.
 #' 
-#' To reduce the frequency of miss-calls, and so emphasize the difference
+#' To reduce the frequency of miscalls, and so emphasize the difference
 #' between true parent-offspring pairs and unrelated pairs, the data can be
 #' filtered on read depth. Typically minimum read depth is set to 5x, but you
 #' can examine the distribution of read depths with the function
@@ -65,16 +66,23 @@
 #' your dataset.
 #' 
 #' Note that if your dataset does not contain RepAvg or rdepth among the locus
-#' metrics, the filters for reproducibility and read depth are no used.
+#' metrics, the filters for reproducibility and read depth are not used.
+#'
+#' The pairs are identified with \code{\link{gl.report.parent.offspring}}
+#' using the same arguments. An individual that belongs to several pairs is
+#' removed first, because that resolves all of its pairs at once; the
+#' remaining pairs are resolved in order of evidence (lowest proportion of
+#' inconsistent loci first), and a pair drops out as soon as either member
+#' has been removed. This keeps the number of removed individuals low.
 #' 
 #'  Examples of other themes that can be used can be consulted in \itemize{
 #'  \item \url{https://ggplot2.tidyverse.org/reference/ggtheme.html} and \item
 #'  \url{https://yutannihilation.github.io/allYourFigureAreBelongToUs/ggthemes/}
 #'  }
-#' @return the filtered genlight object without A set of individuals in
-#' parent-offspring relationship. NULL if no parent-offspring relationships were
-#' found.
-#' @author Custodian: Arthur Georges -- Post to
+#' @return The genlight object without one individual from each putative
+#' parent-offspring pair. If no pairs are found, the object is returned
+#' unchanged.
+#' @author Author(s): Arthur Georges. Custodian: Arthur Georges -- Post to
 #'  \url{https://groups.google.com/d/forum/dartr}
 #' @examples
 #' if (isTRUE(getOption("dartR_fbm"))) testset.gl <- gl.gen2fbm(testset.gl)
@@ -94,7 +102,7 @@ gl.filter.parent.offspring <- function(x,
                                        method = "best",
                                        rm.monomorphs = FALSE,
                                        plot_theme = theme_dartR(),
-                                       plot_colors = gl.colors(2),
+                                       plot_colors = NULL,
                                        plot.file = NULL,
                                        plot.dir = NULL,
                                        verbose = NULL) {
@@ -106,301 +114,98 @@ gl.filter.parent.offspring <- function(x,
 
   # FLAG SCRIPT START
   funname <- match.call()[[1]]
-  utils.flag.start(
-    func = funname,
-    build = "Jody",
-    verbose = verbose
-  )
+  utils.flag.start(func = funname, verbose = verbose)
 
   # CHECK DATATYPE
   datatype <- utils.check.datatype(x, verbose = verbose)
 
+  # FUNCTION SPECIFIC ERROR CHECKING
+  method <- match.arg(method, c("best", "random"))
+
   # DO THE JOB
   hold <- x
-  # Generate null expectation for pedigree inconsistency, and outliers
-  if (verbose >= 2) {
-    cat(
-      report(
-        "  Generating null expectation for distribution of counts of
-                pedigree incompatibility\n"
-      )
-    )
-  }
-  # Assign individuals as populations
-  pop(x) <- x$ind.names
-  # Filter stringently on reproducibility to minimize miscalls
-  if (is.null(x@other$loc.metrics$RepAvg)) {
-    if(verbose>0) cat(
-      warn(
-        "  Dataset does not include RepAvg among the locus metrics,
-                therefore the reproducibility filter was not used\n"
-      )
-    )
-  } else {
-    x <-
-      gl.filter.reproducibility(x,
-        threshold = min.reproducibility,
-        plot.display = F,
-        verbose = 0
-      )
-  }
-  # Filter stringently on read depth, to further minimize miscalls
-  if (is.null(x@other$loc.metrics$rdepth)) {
-    if(verbose>0) cat(
-      warn(
-        "  Dataset does not include rdepth among the locus metrics,
-                therefore the read depth filter was not used\n"
-      )
-    )
-  } else {
-    x <- gl.filter.rdepth(x,
-                          lower = min.rdepth, 
-                          plot.display = FALSE,
-                          verbose = 0)
-  }
-  
-  pairwise_table <- function(x,
-                             pw_fun,
-                             dec = 4) {
-    ind_names <- indNames(x)
-    x <- as.matrix(x)
-    ix <- setNames(seq_along(ind_names), ind_names)
-    pp <- outer(ix[-1L], ix[-length(ix)],
-                function(ivec, jvec) {
-                  vapply(seq_along(ivec),
-                         function(k) {
-                           i <- ivec[k]
-                           j <- jvec[k]
-                           if (i > j) {
-                             pw_fun(x = x[i, ], y = x[j, ])
-                           } else{
-                             NA_real_
-                           }
-                         }, numeric(1))
-                })
-    return(pp)
-    
-  }
-  
-  fun <- function(x, y) {
-    vect <- (x * 10) + y
-    homalts <- sum(vect == 2 | vect == 20, na.rm = T)
-  }
-  
-  count <- pairwise_table(x = x, pw_fun = fun)
-  
-  # Prepare for plotting
-  
-  if (verbose >= 2) {
-    cat(
-      report(
-        "  Identifying outliers with lower than expected counts of
-                pedigree inconsistencies\n"
-      )
-    )
-  }
-  title <-
-    paste0("SNP data (DArTSeq)\nCounts of pedigree incompatible loci per
-               pair")
-  
-  counts_plot <- as.vector(unlist(unname(count)))
-  counts_plot <- counts_plot[!is.na(counts_plot)]
-  counts_plot <- data.frame(count = counts_plot)
-  
-  # Boxplot
-  p1 <-
-    ggplot(counts_plot, aes(y = count)) +
-    geom_boxplot(color = plot_colors[1], fill = plot_colors[2]) +
-    coord_flip() +
-    plot_theme +
-    xlim(range = c(-1, 1)) +
-    ylim(min(count), max(count)) +
-    ylab(" ") +
-    theme(axis.text.y = element_blank(), axis.ticks.y = element_blank()) +
-    ggtitle(title)
-  
-  outliers_temp <- ggplot_build(p1)$data[[1]]$outliers[[1]]
-  
-  lower.extremes <-
-    outliers_temp[outliers_temp < stats::median(count,
-                                                na.rm = T)]
-  if (length(lower.extremes) == 0) {
-    outliers <- NULL
-  } else {
-    outliers <- data.frame(Outlier = lower.extremes)
-  }
-  
-  outliers <- unique(outliers)
-  
-  # Ascertain the identity of the pairs
-  if (verbose >= 2) {
-    cat(report("  Identifying outlying pairs\n"))
-  }
-  if (length(lower.extremes) > 0) {
-    tmp <- count
-    # tmp[lower.tri(tmp)] <- t(tmp)[lower.tri(tmp)]
-    outliers_df <- NULL
-    for (i in 1:length(outliers$Outlier)) {
-      # Identify
-      tmp2 <- which(tmp == outliers$Outlier[i],
-                    arr.ind = T)
-      ind1 <- rownames(count)[tmp2[, "row"]]
-      ind2 <- colnames(count)[tmp2[, "col"]]
-      # Z-scores
-      zscore <-
-        (mean(count, na.rm = TRUE) - outliers$Outlier[i]) /
-        sd(count, na.rm = TRUE)
-      zscore <- zscore * -1
-      outliers_p <-
-        round(pnorm(
-          mean = mean(count, na.rm = TRUE),
-          sd = sd(count, na.rm = TRUE),
-          q = zscore
-        ), 8)
-      outliers_df_tmp <- data.frame(
-        Outlier = rep(outliers$Outlier[i], length(ind1)),
-        ind1 = ind1,
-        ind2 = ind2,
-        zscore = zscore,
-        p = outliers_p
-      )
-      outliers_df <- rbind(outliers_df, outliers_df_tmp)
+  # Pairs come from gl.report.parent.offspring, so the filter always removes
+  # individuals from the pairs the report lists (it also draws the plots)
+  pairs <- gl.report.parent.offspring(
+    x,
+    min.rdepth = min.rdepth,
+    min.reproducibility = min.reproducibility,
+    range = range,
+    plot_theme = plot_theme,
+    plot_colors = plot_colors,
+    plot.dir = plot.dir,
+    plot.file = plot.file,
+    verbose = 0
+  )
+
+  ind_to_remove <- character(0)
+  if (nrow(pairs) > 0) {
+    if (verbose >= 2) {
+      cat(report(
+        "  Selecting one individual from each pair",
+        if (method == "best") "based on call rate\n" else "at random\n"
+      ))
     }
-    # ordering by number of outliers
-    outliers_df <- outliers_df[order(outliers_df$Outlier,
-                                     decreasing = T),]
-  }
-  
-  # Extract the quantile threshold
-  iqr <- stats::IQR(count, na.rm = TRUE)
-  qth <- quantile(count, 0.25, na.rm = TRUE)
-  cutoff <- qth - iqr * range
-  
-  # Histogram
-  p2 <-
-    ggplot(counts_plot, aes(x = count)) +
-    geom_histogram(bins = 50,
-                   color = plot_colors[1],
-                   fill = plot_colors[2]) +
-    geom_vline(xintercept = cutoff,
-               color = "red",
-               linewidth = 1) +
-    coord_cartesian(xlim = c(min(count), max(count))) +
-    xlab("No. Pedigree incompatible") +
-    ylab("Count") +
-    plot_theme
-
-  # if individuals in parent offspring relationship are found remove
-  if (length(lower.extremes) > 0) {
-    if (method == "best") {
-      if (verbose > 1) {
-        cat(report("  Selecting one individual based on Call rate\n"))
+    fbm <- .fbm_or_null(hold)
+    missing.count <- function(ind) {
+      i <- which(indNames(hold) == ind)[1]
+      if (is.null(fbm)) {
+        sum(is.na(as.matrix(hold[i, ])))
+      } else {
+        sum(is.na(hold@fbm[i, ]))
       }
-      outliers_df <- outliers_df[which(outliers_df$Outlier<=cutoff),]
-
-      ind_to_remove_temp <- 
-      outliers_df[
-          !duplicated(outliers_df[, c("ind1", "ind2")]),
-          c("ind1", "ind2")
-        ]
-      ind_to_remove <- vector()
-      for (i in 1:nrow(ind_to_remove_temp)) {
-        ind_to_remove_temp_2 <- unname(unlist(ind_to_remove_temp[i, ]))
-        fbm <- .fbm_or_null(hold) 
-        if(is.null(fbm)){
-        ind_1 <-
-          sum(glNA(
-            hold[which(indNames(hold) ==
-              ind_to_remove_temp_2[1]),],
-            alleleAsUnit = FALSE
-          ))
-        }else{
-          ind_1 <- sum(is.na(hold@fbm[which(indNames(hold) ==
-                                     ind_to_remove_temp_2[1]),]))
-        }
-        if(is.null(fbm)){
-        ind_2 <-
-          sum(glNA(
-            hold[which(indNames(hold) ==
-              ind_to_remove_temp_2[2]),],
-            alleleAsUnit = FALSE
-          ))
-        }else{
-          ind_2 <- sum(is.na(hold@fbm[which(indNames(hold) ==
-                                              ind_to_remove_temp_2[2]),]))
-        }
-        ind_to_remove_temp_3 <-
-          as.data.frame(cbind(ind_to_remove_temp_2, c(ind_1, ind_2)))
-        colnames(ind_to_remove_temp_3) <-
-          c("ind", "NAs")
-        ind_to_remove_temp_3 <-
-          ind_to_remove_temp_3[order(ind_to_remove_temp_3$NAs), ]
-        ind_to_remove <-
-          c(ind_to_remove, ind_to_remove_temp_3[1, "ind"])
+    }
+    # An individual in several pairs is removed first, because removing it
+    # resolves all of them; otherwise pairs are resolved in order of evidence
+    # (pairs is ordered by the lowest proportion of inconsistent loci first).
+    # A pair drops out once either member has been removed.
+    unresolved <- pairs[, c("ind1", "ind2")]
+    while (nrow(unresolved) > 0) {
+      n.pairs <- table(c(unresolved$ind1, unresolved$ind2))
+      if (max(n.pairs) > 1) {
+        candidates <- names(n.pairs)[n.pairs == max(n.pairs)]
+      } else {
+        candidates <- c(unresolved$ind1[1], unresolved$ind2[1])
       }
-
-      hold <-
-        gl.drop.ind(hold, ind.list = ind_to_remove, verbose = verbose)
-    } else {
-      if (verbose > 1) {
-        cat(report("  Selecting one individual at random\n"))
+      if (method == "best") {
+        # remove the candidate with more missing genotypes (lower call
+        # rate); on a tie, the first candidate
+        drop <- candidates[which.max(vapply(candidates, missing.count,
+                                            numeric(1)))]
+      } else {
+        drop <- candidates[sample(length(candidates), 1)]
       }
-
-      ind_to_remove_temp <-
-        outliers_df[
-          !duplicated(outliers_df[, c("ind1", "ind2")]),
-          c("ind1", "ind2")
-        ]
-      ind_to_remove <-
-        apply(ind_to_remove_temp, 1, function(x) {
-          x[sample(1:2, 1)]
-        })
-      hold <-
-        gl.drop.ind(hold, ind.list = ind_to_remove, verbose = verbose)
+      ind_to_remove <- c(ind_to_remove, drop)
+      unresolved <- unresolved[unresolved$ind1 != drop &
+                                 unresolved$ind2 != drop, , drop = FALSE]
     }
 
-    # removing monomorphic loci
+    # record only this call in the history, not the internal calls
+    history <- hold@other$history
+    hold <- gl.drop.ind(hold, ind.list = ind_to_remove, verbose = 0)
     if (rm.monomorphs == TRUE) {
-      hold <- gl.filter.monomorphs(hold, verbose = verbose)
+      hold <- gl.filter.monomorphs(hold, verbose = 0)
     }
+    hold@other$history <- history
 
     # REPORT THE RESULTS
     if (verbose >= 2) {
-      cat("  \nInitial number of individuals:", nInd(x), "\n")
-      cat("  Pairs of individuals in a parent offspring relationship:\n\n")
-      print(outliers_df)
-      cat("    \nIndividuals removed: ")
-      cat(ind_to_remove, sep = "\n")
+      cat(report("  Initial number of individuals:", nInd(x), "\n"))
+      cat(report("  Individuals removed:", length(ind_to_remove), "\n"))
+      cat("   ", ind_to_remove, sep = "\n    ")
       cat("\n")
     }
-  }
-
-  # if NO individuals in parent offspring relationship are found
-  if (length(lower.extremes) == 0) {
-    if (verbose > 0) {
-      cat(
-        important(
-          "No individuals were found to be in parent offspring
-                    relationship, therefore the genlight object is returned
-                    unchanged.\n"
-        )
-      )
+    if (verbose >= 3) {
+      cat(report("  Pairs of individuals in a parent offspring relationship:\n"))
+      print(pairs)
     }
-  }
-
-  df <- outliers
-  # PRINTING OUTPUTS
-  # using package patchwork
-  p3 <- (p1 / p2) + plot_layout(heights = c(1, 4))
-  print(p3)
-  if (!is.null(plot.file)) {
-    # Optionally save the plot ---------------------
-
-    tmp <- utils.plot.save(p3,
-      dir = plot.dir,
-      file = plot.file,
-      verbose = verbose
-    )
+  } else {
+    if (verbose >= 1) {
+      cat(important(
+        "  No individuals were found to be in a parent offspring",
+        "relationship, therefore the genlight object is returned unchanged\n"
+      ))
+    }
   }
 
   # ADD ACTION TO HISTORY
