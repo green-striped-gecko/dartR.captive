@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+* `gl.grm.network()`: kinship is now computed as G / 2 when
+  `standardise = FALSE` (default); previously relatedness values were
+  treated as kinship, so thresholds and categories were off by a factor
+  of two. `categorise` colours now follow the documented order. `G` must
+  match `indNames(x)`; an invalid `method` now errors. The return value
+  is a named list (`plot`, `kinship`).
 * `gl2colony()`: stops with an error, instead of writing a file COLONY
   rejects or misreads, when individual names contain whitespace, the data
   are SilicoDArT, or `sibship.prior`, `known.allele.freq`, or any

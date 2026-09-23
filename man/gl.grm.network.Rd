@@ -29,7 +29,10 @@ gl.grm.network(
 )
 }
 \arguments{
-\item{G}{A similarity matrix [required].}
+\item{G}{A square relationship matrix whose off-diagonal elements are
+relatedness coefficients (about twice the kinship), such as the output of
+gl.grm or the $rel element of gl.run.EMIBD9. Row and column names must be
+the individual names of x. Kinship is computed as G / 2 [required].}
 
 \item{x}{A genlight object from which the matrix was generated [required].}
 
@@ -37,11 +40,13 @@ gl.grm.network(
 see details [default FALSE].}
 
 \item{categorise}{Whether to categorise the color of the link representing 
-kinship values into relationships. Same Individual (>0.3), Full Siblings / Parent-Offspring 
-(>0.2 & <0.3) and Half Siblings (>0.1 & <0.2) [default FALSE].}
+kinship values (G / 2) into relationships. Same Individual (>=0.3), Full
+Siblings / Parent-Offspring (>=0.2 & <0.3) and Half Siblings (>=0.1 & <0.2)
+[default FALSE].}
 
-\item{color.categories}{A vector of three colors to represent the above 
-kinship categories [default = c("#E63E94","#E5D44C","#3ED2E6")].}
+\item{color.categories}{A vector of three colors for the above kinship
+categories, in the order Same Individual, Full Siblings / Parent-Offspring,
+Half Siblings [default = c("#E63E94","#E5D44C","#3ED2E6")].}
 
 \item{method}{One of 'fr', 'kk', 'gh' or 'mds' [default 'fr'].}
 
@@ -59,8 +64,8 @@ palette function [NULL].}
 
 \item{link.size}{Size of the links [default 2].}
 
-\item{kinship.threshold}{Threshold of kinship value to display in the 
-network diagram [default 0.125].}
+\item{kinship.threshold}{Threshold of kinship value (G / 2) to display in
+the network diagram [default 0.125].}
 
 \item{title}{Title for the plot [default 'Network of a similarity matrix'].}
 
@@ -85,15 +90,25 @@ progress log ; 3, progress and results summary; 5, full report
 [default 2 or as specified using gl.set.verbosity].}
 }
 \value{
-A network plot showing kinship between individuals
+Invisibly, a named list:
+\itemize{
+\item plot -- the network plot (ggplot object).
+\item kinship -- a matrix of pairwise kinship values (G / 2, or the
+standardised values when standardise = TRUE). Only the lower triangle is
+filled; the upper triangle is NA and the diagonal is set to 0. Rows and
+columns follow the row order of G.
+}
 }
 \description{
-This script takes any similarity matrix and represents
-the relationship among the specimens as a network diagram.
+This script takes a genomic relationship matrix and represents the
+kinship among the specimens as a network diagram.
 }
 \details{
 The gl.grm.network function creates a network diagram that represents 
-genetic relationships among individuals in a dataset. 
+genetic relationships among individuals in a dataset. Off-diagonal
+elements of G are relatedness coefficients, so they are divided by 2 to
+obtain the kinship values that are compared with kinship.threshold, used
+for the categories and returned in the kinship matrix.
 
 \strong{Layout options}
  
@@ -139,16 +154,16 @@ Below is a table modified from Speed & Balding (2015) showing kinship values,
  be used to guide the choosing of the kinship threshold in the function.
 
 \tabular{lll}{
-  \strong{Relationship} \tab \strong{Kinship} \tab \strong{95\% CI} \cr
-  Identical twins / clones / same individual \tab 0.5   \tab –              \cr
-  Sibling / Parent–Offspring                \tab 0.25  \tab (0.204, 0.296)\cr
-  Half‑sibling                              \tab 0.125 \tab (0.092, 0.158)\cr
-  First cousin                              \tab 0.062 \tab (0.038, 0.089)\cr
-  Half‑cousin                               \tab 0.031 \tab (0.012, 0.055)\cr
-  Second cousin                             \tab 0.016 \tab (0.004, 0.031)\cr
-  Half‑second cousin                        \tab 0.008 \tab (0.001, 0.020)\cr
-  Third cousin                              \tab 0.004 \tab (0.000, 0.012)\cr
-  Unrelated                                 \tab 0     \tab –              \cr
+  \strong{Relationship} \tab \strong{Kinship} \tab \strong{95\% CI} \cr
+  Identical twins / clones / same individual \tab 0.5   \tab -              \cr
+  Sibling / Parent-Offspring                \tab 0.25  \tab (0.204, 0.296)\cr
+  Half-sibling                              \tab 0.125 \tab (0.092, 0.158)\cr
+  First cousin                              \tab 0.062 \tab (0.038, 0.089)\cr
+  Half-cousin                               \tab 0.031 \tab (0.012, 0.055)\cr
+  Second cousin                             \tab 0.016 \tab (0.004, 0.031)\cr
+  Half-second cousin                        \tab 0.008 \tab (0.001, 0.020)\cr
+  Third cousin                              \tab 0.004 \tab (0.000, 0.012)\cr
+  Unrelated                                 \tab 0     \tab -              \cr
 }
 }
 \examples{
