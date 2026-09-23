@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+* `gl.grm.network(standardise = TRUE)` now follows Goudet et al. (2018):
+  kinship relative to the average pair, `(theta - mean) / (1 - mean)`.
+  It subtracted the mean inbreeding coefficient from every kinship, so
+  after call-rate filtering parent-offspring pairs came out near 0.1
+  instead of 0.25. Standardised kinship values, categories and the links
+  drawn above `kinship.threshold` change.
+
 * `gl.plot.network()`: new argument `type = c("similarity", "distance")`;
   with `type = "distance"` the closest pairs (lowest values) are drawn.
   Previously the largest values were always drawn, i.e. the most distant

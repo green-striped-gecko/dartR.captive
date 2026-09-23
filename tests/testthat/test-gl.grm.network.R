@@ -162,8 +162,32 @@ test_that("G tagged as kinship (gl.run.EMIBD9 $rel) is not halved", {
   attr(G, "scale") <- NULL
   m <- gl.grm.network(G, sub, verbose = 0)$kinship
   expect_equal(m[nm[2], nm[1]], 0.125)
-  # standardise: F = 2 x 0.5 - 1 = 0, so kinship is unchanged
+  # standardise (Goudet et al. 2018): pairs 0.25, 0, 0, mean 1/12, so
+  # (0.25 - 1/12) / (1 - 1/12) = 2/11; tagged and untagged scale alike
   attr(G, "scale") <- "kinship"
   m <- gl.grm.network(G, sub, standardise = TRUE, verbose = 0)$kinship
-  expect_equal(m[nm[2], nm[1]], 0.25)
+  expect_equal(m[nm[2], nm[1]], 2 / 11)
+  expect_equal(m[nm[3], nm[1]], (0 - 1 / 12) / (1 - 1 / 12))
+  attr(G, "scale") <- NULL
+  m <- gl.grm.network(2 * G, sub, standardise = TRUE, verbose = 0)$kinship
+  expect_equal(m[nm[2], nm[1]], 2 / 11)
+})
+
+test_that("standardise = TRUE recovers pedigree kinship on filtered data", {
+  skip_if_not_installed("rrBLUP")
+  skip_if_not_installed("igraph")
+  skip_if_not(exists("testset2.gl"), "testset2.gl needs dartR.data >= 1.2.5")
+  # before: kinship - mean inbreeding (0.158) gave parent-offspring 0.097
+  x <- gl.filter.callrate(testset2.gl, threshold = 0.95, verbose = 0)
+  im <- x@other$ind.metrics
+  ok <- im$sire %in% indNames(x)
+  po <- cbind(as.character(im$id[ok]), as.character(im$sire[ok]))
+  G <- gl.grm(x, plotheatmap = FALSE, verbose = 0)
+  pdf(NULL)
+  on.exit(grDevices::dev.off())
+  m <- gl.grm.network(G, x, standardise = TRUE, verbose = 0)$kinship
+  # kinship holds the lower triangle only
+  v <- pmax(m[po], m[po[, 2:1]], na.rm = TRUE)
+  expect_equal(mean(v), 0.25, tolerance = 0.03)
+  expect_true(all(v > 0.1875))
 })
