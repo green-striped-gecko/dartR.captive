@@ -91,6 +91,7 @@ Other captive management:
 \code{\link{gl.report.kin.sets}()},
 \code{\link{gl.report.kinship}()},
 \code{\link{gl.report.mate.suitability}()},
+\code{\link{gl.run.EMIBD9}()},
 \code{\link{gl.run.colony}()},
 \code{\link{gl.select.pairs}()},
 \code{\link{gl2colony}()},
