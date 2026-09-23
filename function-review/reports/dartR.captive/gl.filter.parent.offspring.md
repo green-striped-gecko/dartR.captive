@@ -162,6 +162,7 @@ baseline tests were replaced by tests of the approved behaviour.
   rows, `pop` length and `loc.metrics` rows match the object.
 - The `@examples` block runs (`devtools::run_examples`).
 - Depends on PR #102 (`gl.report.parent.offspring`); merge #102 first.
+- PR #103 (`review-gl.filter.parent.offspring`, stacked on #102).
 
 ```json
 {
@@ -182,6 +183,6 @@ baseline tests were replaced by tests of the approved behaviour.
   ],
   "coverage_skipped": ["DAT6/FBM branch: no FBM fixture"],
   "status": "pr-open",
-  "pr": null
+  "pr": 103
 }
 ```
