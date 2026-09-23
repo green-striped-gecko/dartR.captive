@@ -161,6 +161,7 @@ of the approved behaviour.
   drawn igraph network invisibly.
 - The `@examples` block runs.
 - Not in this change: the dartr2shiny call without `D`/`x` (F8).
+- PR #106 (`review-gl.plot.network` -> `dev`).
 
 ```json
 {
@@ -183,6 +184,6 @@ of the approved behaviour.
   ],
   "coverage_skipped": [],
   "status": "pr-open",
-  "pr": null
+  "pr": 106
 }
 ```
