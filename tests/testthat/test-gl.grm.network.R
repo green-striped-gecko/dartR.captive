@@ -67,3 +67,84 @@ test_that("gl.grm.network F3 fix: an individual in 2+ above-threshold pairs is n
 
   expect_equal(point_rows, nInd(sub))
 })
+
+# ---- Second-pass review (2026-09-23): approved changes 1-7 ----
+
+test_that("r2 change 1: no pair above threshold plots nodes only, no error", {
+  sub <- testset.gl[1:5, 1:50]
+  nm <- indNames(sub)
+  G <- diag(1, 5)
+  dimnames(G) <- list(nm, nm)
+  res <- gl.grm.network(G, sub, verbose = 0)
+  expect_s3_class(res$plot, "ggplot")
+  expect_silent(ggplot2::ggplot_build(res$plot))
+})
+
+test_that("r2 change 2: categorise colours follow the documented order", {
+  sub <- testset.gl[1:5, 1:50]
+  nm <- indNames(sub)
+  G <- diag(1, 5)
+  dimnames(G) <- list(nm, nm)
+  G[nm[1], nm[2]] <- G[nm[2], nm[1]] <- 0.7  # kinship 0.35
+  G[nm[3], nm[4]] <- G[nm[4], nm[3]] <- 0.5  # kinship 0.25
+  G[nm[5], nm[1]] <- G[nm[1], nm[5]] <- 0.3  # kinship 0.15
+  cols_of <- function(G) {
+    b <- ggplot2::ggplot_build(
+      gl.grm.network(G, sub, categorise = TRUE, verbose = 0)$plot
+    )
+    setNames(b$data[[1]]$colour, b$plot$layers[[1]]$data$cat)
+  }
+  cols <- cols_of(G)
+  expect_equal(unname(cols["Same Individual"]), "#E63E94")
+  expect_equal(unname(cols["Full Siblings\nParent-Offspring"]), "#E5D44C")
+  expect_equal(unname(cols["Half Siblings"]), "#3ED2E6")
+  # dropping the full-sib pair must not shift the other colours
+  G[nm[3], nm[4]] <- G[nm[4], nm[3]] <- 0
+  cols2 <- cols_of(G)
+  expect_equal(unname(cols2["Same Individual"]), "#E63E94")
+  expect_equal(unname(cols2["Half Siblings"]), "#3ED2E6")
+})
+
+test_that("r2 change 3: default path returns kinship = G / 2", {
+  sub <- testset.gl[1:3, 1:50]
+  nm <- sort(indNames(sub))
+  G <- diag(1.2, 3)
+  dimnames(G) <- list(nm, nm)
+  G[nm[2], nm[1]] <- G[nm[1], nm[2]] <- 0.4
+  m <- gl.grm.network(G, sub, verbose = 0)$kinship
+  expect_equal(m[nm[2], nm[1]], 0.2)
+  # a relatedness of 0.2 (kinship 0.1) is below the default threshold
+  G[nm[2], nm[1]] <- G[nm[1], nm[2]] <- 0.2
+  b <- ggplot2::ggplot_build(gl.grm.network(G, sub, verbose = 0)$plot)
+  expect_equal(nrow(b$data[[1]]), 0)
+})
+
+test_that("r2 change 4: G that does not match x errors clearly", {
+  sub <- testset.gl[1:5, 1:50]
+  nm <- indNames(sub)
+  G <- diag(1, 4)
+  dimnames(G) <- list(nm[1:4], nm[1:4])
+  expect_error(gl.grm.network(G, sub, verbose = 0), "individual names of x")
+  G <- diag(1, 5)
+  expect_error(gl.grm.network(G, sub, verbose = 0), "individual names of x")
+})
+
+test_that("r2 change 5: return is a named list; matrix lower-triangular", {
+  sub <- testset.gl[1:3, 1:50]
+  nm <- indNames(sub)
+  G <- diag(1.2, 3)
+  dimnames(G) <- list(nm, nm)
+  G[nm[1], nm[2]] <- G[nm[2], nm[1]] <- 0.4
+  res <- gl.grm.network(G, sub, verbose = 0)
+  expect_named(res, c("plot", "kinship"))
+  expect_true(all(is.na(res$kinship[upper.tri(res$kinship)])))
+  expect_equal(unname(diag(res$kinship)), c(0, 0, 0))
+})
+
+test_that("r2 change 6: invalid method errors", {
+  sub <- testset.gl[1:3, 1:50]
+  nm <- indNames(sub)
+  G <- diag(1, 3)
+  dimnames(G) <- list(nm, nm)
+  expect_error(gl.grm.network(G, sub, method = "xx", verbose = 0))
+})

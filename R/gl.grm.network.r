@@ -1,18 +1,23 @@
 #' @name gl.grm.network
 #' @title Represents a similarity matrix as a network
 #' @description
-#' This script takes any similarity matrix and represents
-#' the relationship among the specimens as a network diagram. 
+#' This script takes a genomic relationship matrix and represents the
+#' kinship among the specimens as a network diagram.
 #'
-#' @param G A similarity matrix [required].
+#' @param G A square relationship matrix whose off-diagonal elements are
+#' relatedness coefficients (about twice the kinship), such as the output of
+#' gl.grm or the $rel element of gl.run.EMIBD9. Row and column names must be
+#' the individual names of x. Kinship is computed as G / 2 [required].
 #' @param x A genlight object from which the matrix was generated [required].
 #' @param standardise Whether to standardise matrix using Goudet et al method, 
 #' see details [default FALSE].
 #' @param categorise Whether to categorise the color of the link representing 
-#' kinship values into relationships. Same Individual (>0.3), Full Siblings / Parent-Offspring 
-#' (>0.2 & <0.3) and Half Siblings (>0.1 & <0.2) [default FALSE].
-#' @param color.categories A vector of three colors to represent the above 
-#' kinship categories [default = c("#E63E94","#E5D44C","#3ED2E6")].
+#' kinship values (G / 2) into relationships. Same Individual (>=0.3), Full
+#' Siblings / Parent-Offspring (>=0.2 & <0.3) and Half Siblings (>=0.1 & <0.2)
+#' [default FALSE].
+#' @param color.categories A vector of three colors for the above kinship
+#' categories, in the order Same Individual, Full Siblings / Parent-Offspring,
+#' Half Siblings [default = c("#E63E94","#E5D44C","#3ED2E6")].
 #' @param method One of 'fr', 'kk', 'gh' or 'mds' [default 'fr'].
 #' @param node.size Size of the symbols for the network nodes [default 8].
 #' @param node.label TRUE to display node labels [default TRUE].
@@ -22,8 +27,8 @@
 #' @param link.color Colors for links, either a vector of colors or a color 
 #' palette function [NULL].
 #' @param link.size Size of the links [default 2].
-#' @param kinship.threshold Threshold of kinship value to display in the 
-#' network diagram [default 0.125].
+#' @param kinship.threshold Threshold of kinship value (G / 2) to display in
+#' the network diagram [default 0.125].
 #' @param title Title for the plot [default 'Network of a similarity matrix'].
 #' @param legend.title Title for the legend [default "Populations"].
 #' @param title.size Font size of the title [default 16].
@@ -40,7 +45,10 @@
 #'  [default 2 or as specified using gl.set.verbosity].
 #' @details
 #' The gl.grm.network function creates a network diagram that represents 
-#' genetic relationships among individuals in a dataset. 
+#' genetic relationships among individuals in a dataset. Off-diagonal
+#' elements of G are relatedness coefficients, so they are divided by 2 to
+#' obtain the kinship values that are compared with kinship.threshold, used
+#' for the categories and returned in the kinship matrix.
 #' 
 #'\strong{Layout options}
 #'  
@@ -86,20 +94,27 @@
 #'  be used to guide the choosing of the kinship threshold in the function.
 #'
 #' \tabular{lll}{
-#'   \strong{Relationship} \tab \strong{Kinship} \tab \strong{95\% CI} \cr
-#'   Identical twins / clones / same individual \tab 0.5   \tab –              \cr
-#'   Sibling / Parent–Offspring                \tab 0.25  \tab (0.204, 0.296)\cr
-#'   Half‑sibling                              \tab 0.125 \tab (0.092, 0.158)\cr
-#'   First cousin                              \tab 0.062 \tab (0.038, 0.089)\cr
-#'   Half‑cousin                               \tab 0.031 \tab (0.012, 0.055)\cr
-#'   Second cousin                             \tab 0.016 \tab (0.004, 0.031)\cr
-#'   Half‑second cousin                        \tab 0.008 \tab (0.001, 0.020)\cr
-#'   Third cousin                              \tab 0.004 \tab (0.000, 0.012)\cr
-#'   Unrelated                                 \tab 0     \tab –              \cr
+#'   \strong{Relationship} \tab \strong{Kinship} \tab \strong{95\% CI} \cr
+#'   Identical twins / clones / same individual \tab 0.5   \tab -              \cr
+#'   Sibling / Parent-Offspring                \tab 0.25  \tab (0.204, 0.296)\cr
+#'   Half-sibling                              \tab 0.125 \tab (0.092, 0.158)\cr
+#'   First cousin                              \tab 0.062 \tab (0.038, 0.089)\cr
+#'   Half-cousin                               \tab 0.031 \tab (0.012, 0.055)\cr
+#'   Second cousin                             \tab 0.016 \tab (0.004, 0.031)\cr
+#'   Half-second cousin                        \tab 0.008 \tab (0.001, 0.020)\cr
+#'   Third cousin                              \tab 0.004 \tab (0.000, 0.012)\cr
+#'   Unrelated                                 \tab 0     \tab -              \cr
 #' }
 #' 
 #'
-#' @return A network plot showing kinship between individuals
+#' @return Invisibly, a named list:
+#' \itemize{
+#' \item plot -- the network plot (ggplot object).
+#' \item kinship -- a matrix of pairwise kinship values (G / 2, or the
+#' standardised values when standardise = TRUE). Only the lower triangle is
+#' filled; the upper triangle is NA and the diagonal is set to 0. Rows and
+#' columns follow the row order of G.
+#' }
 #' @author Author(s): Arthur Georges. Custodian: Arthur Georges -- Post to
 #' \url{https://groups.google.com/d/forum/dartr}
 #' @examples
@@ -161,11 +176,7 @@ gl.grm.network <- function(G,
   
   # FLAG SCRIPT START
   funname <- match.call()[[1]]
-  utils.flag.start(
-    func = funname,
-    build = "Jody",
-    verbose = verbose
-  )
+  utils.flag.start(func = funname, verbose = verbose)
   
   # CHECK DATATYPE
   datatype <- utils.check.datatype(x, verbose = verbose)
@@ -177,8 +188,7 @@ gl.grm.network <- function(G,
     if (verbose >= 2) {
       cat(
         important(
-          "  Population assignments not detected, individuals assigned
-                    to a single population labelled 'pop1'\n"
+          "  Population assignments not detected, individuals assigned to a single population labelled 'pop1'\n"
         )
       )
     }
@@ -197,14 +207,18 @@ gl.grm.network <- function(G,
     return(-1)
   }
   
-  if (!(method == "fr" ||
-        method == "kk" ||
-        method == "gh" || 
-        method == "mds")) {
-    if(verbose>0) cat(warn(
-      "Warning: Layout method must be one of fr, or kk, gh or mds, set to fr\n"
+  method <- match.arg(method, c("fr", "kk", "gh", "mds"))
+
+  # G must be a square matrix labelled with the individuals of x; otherwise
+  # the network silently gains isolated nodes or fails deep inside igraph
+  G <- as.matrix(G)
+  if (nrow(G) != ncol(G) || is.null(rownames(G)) || is.null(colnames(G)) ||
+      !setequal(rownames(G), indNames(x)) ||
+      !setequal(colnames(G), indNames(x))) {
+    stop(error(
+      "  G must be a square matrix whose row and column names are the",
+      "individual names of x (indNames(x))\n"
     ))
-    method <- "fr"
   }
   
   # DO THE JOB
@@ -225,8 +239,9 @@ gl.grm.network <- function(G,
   }
   
   if(isFALSE(standardise)){
-    colnames(links) <- c("from","to","kinship")
-    links_tmp <- links
+    # off-diagonal elements are relatedness coefficients (2 x kinship)
+    links$kinship <- links$weight / 2
+    links_tmp <- links[,c(1,2,4)]
   }
 
   links_tmp <- rbind(links_tmp,
@@ -247,7 +262,9 @@ gl.grm.network <- function(G,
   links_plot <- rbind(links_plot_2,links_plot_3)
   # one row per individual: keep the strongest relationship so the merge
   # below doesn't duplicate a node with 2+ above-threshold relationships
-  links_plot <- aggregate(kinship ~ label.node, data = links_plot, FUN = max)
+  if (nrow(links_plot) > 0) {
+    links_plot <- aggregate(kinship ~ label.node, data = links_plot, FUN = max)
+  }
   
   nodes <- data.frame(cbind(indNames(x), as.character(pop(x))))
   colnames(nodes) <- c("name", "pop")
@@ -362,7 +379,14 @@ gl.grm.network <- function(G,
     }
     color_layer <- list(
       aes(color = cat),
-      scale_color_manual(name = "Kinship", values = color.categories)
+      # named so each category keeps its documented colour whichever
+      # categories are present
+      scale_color_manual(name = "Kinship",
+                         values = stats::setNames(
+                           color.categories,
+                           c("Same Individual",
+                             "Full Siblings\nParent-Offspring",
+                             "Half Siblings")))
     )
   } else {
     color_layer <- list(
@@ -430,5 +454,5 @@ gl.grm.network <- function(G,
   
   # RETURN
   
-  return(invisible(list(p1, links_matrix)))
+  return(invisible(list(plot = p1, kinship = links_matrix)))
 }
