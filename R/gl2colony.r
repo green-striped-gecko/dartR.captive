@@ -5,9 +5,11 @@
 #'  \code{genlight} object containing parental and offspring information
 #'  stored in the individual metadata.
 #'
-#' @param x A \code{genlight} object with individual metadata columns
-#' 'offspring', 'mother', and 'father' indicating 'yes'/'no' for each sample
-#' [required].
+#' @param x A \code{genlight} object with SNP data and individual metadata
+#' columns 'offspring', 'mother', and 'father' indicating 'yes'/'no' for each
+#' sample. Column names and values are matched ignoring case. A missing column
+#' is filled with 'yes' (offspring) or 'no' (mother, father). Individual names
+#' must not contain whitespace [required].
 #' @param outfile File name of the output file (including extension)
 #' [default "colony2.dat"].
 #' @param outpath Path where to save the output file [default global working 
@@ -32,46 +34,50 @@
 #' @param polygamy.female 0 = polygamy; 1 = monogamy for females [default 0].
 #' @param clone.inference 0 = no clone inference; 1 = infer clones [default 1].
 #' @param scale.shibship 0 = do not scale full sibship; 1 = scale [default 1].
-#' @param sibship.prior 0–4 specifying sibship prior strength (No, Weak,
-#' Medium, Strong, Optimal) [default 0].
-#' @param known.allele.freq 0 = unknown allele frequencies; 1 = known
+#' @param sibship.prior Sibship prior; only 0 (no prior) is supported, because
+#' other values require mean sibship sizes that this function does not write
 #' [default 0].
+#' @param known.allele.freq 0 = unknown allele frequencies. Known
+#' frequencies (1) are not supported [default 0].
 #' @param num.runs Number of runs [default 1].
-#' @param length.run 1–4 specifying run length (short, medium, long, very
+#' @param length.run 1-4 specifying run length (short, medium, long, very
 #' long) [default 2].
 #' @param monitor.method 0 = monitor by iteration number; 1 = monitor by time
 #'  (seconds) [default 0].
 #' @param monitor.interval Interval for monitoring (either iteration count or
 #'  seconds) [default 10000].
 #' @param windows.gui 0 = no Windows GUI; 1 = use Windows GUI [default 0].
-#' @param likelihood 0–2 specifying likelihood scoring (PairLikelihood,
+#' @param likelihood 0-2 specifying likelihood scoring (PairLikelihood,
 #' FullLikelihood, FPLS) [default 0].
-#' @param precision.fl 0–3 specifying precision level for full-likelihood (Low,
+#' @param precision.fl 0-3 specifying precision level for full-likelihood (Low,
 #'  Medium, High, VeryHigh) [default 2].
-#' @param marker.id Marker IDs string for all loci [default 'mk@'].
-#' @param marker.type Marker types string for all loci (0@ for codominant, 1@
-#' for dominant) [default '0@'].
-#' @param allelic.dropout Allelic dropout rate string per locus
-#' [default '0.000@'].
-#' @param other.typ.err Other typing error rate string per locus
-#' [default '0.05@'].
-#' @param paternity.exclusion.threshold Threshold for paternity exclusion
-#' ("0 0") [default '0 0'].
-#' @param maternity.exclusion.threshold Threshold for maternity exclusion
-#' ("0 0") [default '0 0'].
-#' @param paternal.sibship Number of known paternal sibships [default 0].
-#' @param maternal.sibship Number of known maternal sibships [default 0].
-#' @param excluded.paternity Number of offspring with excluded paternity
-#' [default 0].
-#' @param excluded.maternity Number of offspring with excluded maternity
-#'  [default 0].
-#' @param excluded.paternal.sibships Number of excluded paternal sibships
-#'  [default 0].
-#' @param excluded.maternity.sibships Number of excluded maternal sibships
-#' [default 0].
+#' @param marker.id Marker IDs string; a trailing '@' applies one value to
+#' all loci [default 'mk@'].
+#' @param marker.type Marker types string (0@ for codominant) [default '0@'].
+#' @param allelic.dropout Allelic dropout rate string; a single value without
+#' '@' (e.g. '0.01') is applied to all loci [default '0.000@'].
+#' @param other.typ.err Other typing error rate string; a single value without
+#' '@' is applied to all loci [default '0.05@'].
+#' @param paternity.exclusion.threshold Number of offspring with known father
+#' and the exclusion threshold. Only a count of 0 is supported, because other
+#' values require a list of offspring-father pairs [default '0 0'].
+#' @param maternity.exclusion.threshold Number of offspring with known mother
+#' and the exclusion threshold. Only a count of 0 is supported [default '0 0'].
+#' @param paternal.sibship Number of known paternal sibships; only 0 is
+#' supported [default 0].
+#' @param maternal.sibship Number of known maternal sibships; only 0 is
+#' supported [default 0].
+#' @param excluded.paternity Number of offspring with excluded paternity; only
+#' 0 is supported [default 0].
+#' @param excluded.maternity Number of offspring with excluded maternity; only
+#' 0 is supported [default 0].
+#' @param excluded.paternal.sibships Number of excluded paternal sibships; only
+#' 0 is supported [default 0].
+#' @param excluded.maternity.sibships Number of excluded maternal sibships;
+#' only 0 is supported [default 0].
 #' @param verbose Verbosity: 0, silent or fatal errors; 1, begin and end; 2,
-#'  progress log ; 3, progress and results summary; 5, full report
-#'  [default 2 or as specified using gl.set.verbosity].
+#'  progress log; 3, progress and results summary; 5, full report
+#'  [default 2, unless specified using gl.set.verbosity].
 #'
 #' @details
 #' This function formats and writes a COLONY2-compatible text file, including
@@ -83,27 +89,28 @@
 #' Invisibly returns the output filename.
 #'
 #' @author
-#' Jesús Castrejón-Figueroa, Diana A. Robledo-Ruiz -- Post to
-#' \url{https://groups.google.com/d/forum/dartr}
+#' Author(s): Jesús Castrejón-Figueroa, Diana A. Robledo-Ruiz. Custodian: Luis
+#' Mijangos -- Post to \url{https://groups.google.com/d/forum/dartr}
 #'
 #' @examples
-#' \dontrun{
-#' if (isTRUE(getOption("dartR_fbm"))) platypus.gl <- gl.gen2fbm(platypus.gl)
-#' gl2colony(x = platypus.gl,
-#'             project.name = "parentage_fish_2022",
-#'             output.name = "parentage_fish_jul_2022",
-#'             seed = 1234,
-#'             probability.father = 0.6,
-#'             probability.mother = 0.4,
-#'             update.allele.freq = 1,
-#'             allelic.dropout = '0.01',
-#'             other.typ.err = '0.001')
-#' }
+#' t1 <- testset.gl[1:30, 1:50]
+#' t1@other$ind.metrics$offspring <- rep(c("yes", "no", "no"), each = 10)
+#' t1@other$ind.metrics$father <- rep(c("no", "yes", "no"), each = 10)
+#' t1@other$ind.metrics$mother <- rep(c("no", "no", "yes"), each = 10)
+#' gl2colony(x = t1,
+#'           outpath = tempdir(),
+#'           seed = 1234,
+#'           probability.father = 0.6,
+#'           probability.mother = 0.4,
+#'           allelic.dropout = '0.01',
+#'           other.typ.err = '0.001')
 #'
 #' @references
-#' Wang, J. (2011). COLONY: a program for parentage and sibship inference
-#' from multilocus genotype data. Molecular Ecology Resources 10: 551–555.
+#' Jones, O. R., & Wang, J. (2010). COLONY: a program for parentage and
+#' sibship inference from multilocus genotype data. Molecular Ecology
+#' Resources, 10(3), 551-555.
 #'
+#' @family captive management
 #' @importFrom utils write.table
 #' @export
 
@@ -154,34 +161,97 @@ gl2colony <- function(x,
   
   # FLAG SCRIPT START
   funname <- match.call()[[1]]
-  utils.flag.start(func = funname,
-                   build = "Jody",
-                   verbose = verbose)
+  utils.flag.start(func = funname, verbose = verbose)
   
   # CHECK DATATYPE
   datatype <- utils.check.datatype(x, verbose = verbose)
+  
+  # FUNCTION SPECIFIC ERROR CHECKING
+  # COLONY codes codominant genotypes; presence/absence would be exported as
+  # heterozygotes
+  if (datatype == "SilicoDArT") {
+    stop(error(
+      "  Only SNP data are supported; x contains SilicoDArT data\n"
+    ))
+  }
+  
+  # COLONY reads whitespace-delimited records, so a space in a name shifts
+  # every allele of that individual by one position
+  bad.names <- indNames(x)[grepl("[[:space:]]", indNames(x))]
+  if (length(bad.names) > 0) {
+    stop(error(
+      "  Individual names must not contain whitespace. Rename:",
+      paste(shQuote(bad.names), collapse = ", "), "\n"
+    ))
+  }
+  
+  # these settings need extra data blocks (sibship sizes, allele
+  # frequencies, lists of known or excluded relatives) that this function
+  # does not write; COLONY rejects the file without them
+  known.counts <- c(
+    paternity.exclusion.threshold = as.numeric(
+      strsplit(trimws(paternity.exclusion.threshold), "[[:space:]]+")[[1]][1]),
+    maternity.exclusion.threshold = as.numeric(
+      strsplit(trimws(maternity.exclusion.threshold), "[[:space:]]+")[[1]][1]),
+    paternal.sibship = paternal.sibship,
+    maternal.sibship = maternal.sibship,
+    excluded.paternity = excluded.paternity,
+    excluded.maternity = excluded.maternity,
+    excluded.paternal.sibships = excluded.paternal.sibships,
+    excluded.maternity.sibships = excluded.maternity.sibships
+  )
+  unsupported <- c(
+    if (sibship.prior != 0) "sibship.prior",
+    if (known.allele.freq != 0) "known.allele.freq",
+    names(known.counts)[is.na(known.counts) | known.counts != 0]
+  )
+  if (length(unsupported) > 0) {
+    stop(error(
+      "  Not supported by gl2colony (COLONY needs extra data for them); set",
+      "to 0:", paste(unsupported, collapse = ", "), "\n"
+    ))
+  }
+  
+  # a single value without '@' would be read by COLONY as the value of the
+  # first locus only
+  at.all.loci <- function(s) {
+    s <- trimws(s)
+    if (!grepl("@", s) && !grepl("[[:space:]]", s)) paste0(s, "@") else s
+  }
+  marker.id <- at.all.loci(marker.id)
+  marker.type <- at.all.loci(marker.type)
+  allelic.dropout <- at.all.loci(allelic.dropout)
+  other.typ.err <- at.all.loci(other.typ.err)
   
   # SET RANDOM SEED
   if (is.null(seed)) {
     seed <- sample.int(65535, 1)
   }
-  cat(code(sprintf('Random seed set to %d', seed)), "\n")
+  if (verbose >= 2) {
+    cat(report(sprintf("  Random seed set to %d\n", seed)))
+  }
   
-  if(any(!c("offspring","mother","father") %in% 
-         colnames(x$other$ind.metrics))){
-  x$other$ind.metrics$offspring <- "yes"
-  x$other$ind.metrics$mother <- "no"
-  x$other$ind.metrics$father <- "no"
-  
-  cat(warn(
-    "  The colums offspring, mother and father were not found in the genligth object. Setting all the individuals as offspring.\n"
+  # ROLE COLUMNS: add only the missing ones, matching names ignoring case
+  if (is.null(x@other$ind.metrics)) {
+    x@other$ind.metrics <- data.frame(id = indNames(x))
+  }
+  role.defaults <- c(offspring = "yes", mother = "no", father = "no")
+  missing.roles <- setdiff(names(role.defaults),
+                           tolower(colnames(x@other$ind.metrics)))
+  for (role in missing.roles) {
+    x@other$ind.metrics[[role]] <- role.defaults[[role]]
+  }
+  if (length(missing.roles) > 0 && verbose >= 1) {
+    cat(warn(
+      "  Warning: column(s)", paste(missing.roles, collapse = ", "),
+      "not found in ind.metrics; set to",
+      paste0(missing.roles, " = '", role.defaults[missing.roles], "'",
+             collapse = ", "), "for all individuals\n"
     ))
   }
   
-  x$other$ind.metrics$id <- indNames(x)
-  
   # EXTRACT PARENTAL IDS
-  ids <- parental.ids(x)
+  ids <- utils.colony.parental.ids(x)
   offspring.ids <- ids$offs
   dad.ids       <- ids$dad
   mum.ids       <- ids$mum
@@ -193,14 +263,10 @@ gl2colony <- function(x,
   loci        <- nLoc(x)
   n.total     <- n.offspring + n.dads + n.mums
   
-  cat(report(
-    sprintf(
-      '%d offspring, %d fathers, %d mothers detected.',
-      n.offspring,
-      n.dads,
-      n.mums
-    )
-  ), "\n")
+  if (verbose >= 2) {
+    cat(report(sprintf("  %d offspring, %d fathers, %d mothers detected.\n",
+                       n.offspring, n.dads, n.mums)))
+  }
   
   # WARN IF OFFSPRING MISSING
   if (n.offspring == 0) {
@@ -208,8 +274,10 @@ gl2colony <- function(x,
   }
   
   # CONVERT TO STRUCTURE FORMAT
-  cat(report('Exporting genlight object to COLONY2 format...'), "\n")
-  struct.mat <- gl2structure(x)
+  if (verbose >= 2) {
+    cat(report("  Exporting genlight object to COLONY2 format\n"))
+  }
+  struct.mat <- utils.colony.genotypes(x)
   
   # SUBSET GENOTYPES
   offspring.gen <- struct.mat[offspring.ids, , drop = FALSE]
@@ -289,13 +357,12 @@ gl2colony <- function(x,
   )
   
   # WRITE HEADER
-  sink(outfilespec)
-  cat(project.name, '\n')
-  cat(output.name, '\n')
+  cat(project.name, '\n', file = outfilespec)
+  cat(output.name, '\n', file = outfilespec, append = TRUE)
   for (i in seq_along(head.values)) {
-    cat(head.values[[i]], '\t', head.comments[i], '\n')
+    cat(head.values[[i]], '\t', head.comments[i], '\n',
+        file = outfilespec, append = TRUE)
   }
-  sink()
   
   # WRITE OFFSPRING
   write.table(
@@ -307,21 +374,21 @@ gl2colony <- function(x,
   )
   
   # WRITE CANDIDATE PROBABILITIES
-  sink(outfilespec, append = TRUE)
-  cat('\n')
+  cat('\n', file = outfilespec, append = TRUE)
   cat(
     paste(probability.father, probability.mother),
     '\t',
     '! Parental inclusion probabilities',
-    '\n'
+    '\n',
+    file = outfilespec, append = TRUE
   )
-  cat(paste(n.dads, n.mums), '\t', '! Number of candidates', '\n')
-  cat('\n')
-  sink()
+  cat(paste(n.dads, n.mums), '\t', '! Number of candidates', '\n',
+      file = outfilespec, append = TRUE)
+  cat('\n', file = outfilespec, append = TRUE)
   
   # WRITE DADS
   if (n.dads > 0) {
-    cat(report('Writing paternal genotypes...'), "\n")
+    if (verbose >= 2) cat(report("  Writing paternal genotypes\n"))
     write.table(
       dad.gen,
       file = outfilespec,
@@ -333,7 +400,7 @@ gl2colony <- function(x,
   
   # WRITE MUMS
   if (n.mums > 0) {
-    cat(report('Writing maternal genotypes...'), "\n")
+    if (verbose >= 2) cat(report("  Writing maternal genotypes\n"))
     write.table(
       mum.gen,
       file = outfilespec,
@@ -370,15 +437,11 @@ gl2colony <- function(x,
     excluded.paternal.sibships,
     excluded.maternity.sibships
   )
-  sink(outfilespec, append = TRUE)
-  cat('\n')
+  cat('\n', file = outfilespec, append = TRUE)
   for (i in seq_along(last.values)) {
-    cat(last.values[[i]], '\t', last.comments[i], '\n')
+    cat(last.values[[i]], '\t', last.comments[i], '\n',
+        file = outfilespec, append = TRUE)
   }
-  sink()
-  
-  # COMPLETION MESSAGE
-  cat(report('(100%) COLONY2 file successfully exported!'), "\n")
   
   if (verbose >= 3) {
     cat(report(paste(
@@ -388,35 +451,33 @@ gl2colony <- function(x,
   
   # FLAG SCRIPT END
   if (verbose >= 1) {
-    cat(report('\nCompleted:, ', funname, '\n'))
+    cat(report("Completed:", funname, "\n"))
   }
   
   return(invisible(outfilespec))
 }
 
 
-######################### Define function parental.ids #########################
+###################### Define function utils.colony.parental.ids ##################
 ## This function extracts parental information in a list of 3 elements (vectors
-## with offspring, dads and mums IDs, respectively)
-parental.ids <- function(gen.data) {
-  # Read metadata and convert to lowercase
+## with offspring, dads and mums IDs, respectively). IDs are taken from
+## indNames(x), not from an ind.metrics id column, so they always match the
+## genotype matrix row names.
+utils.colony.parental.ids <- function(gen.data) {
+  # Read metadata and convert column names to lowercase
   indv.metadata <- gen.data@other$ind.metrics
   names(indv.metadata) <- tolower(names(indv.metadata))
   
-  # Remove leading/trailing white spaces
-  indv.metadata$mother    <- tolower(indv.metadata$mother)
-  indv.metadata$father    <- tolower(indv.metadata$father)
-  indv.metadata$offspring <- tolower(indv.metadata$offspring)
+  # TRUE where a role column says "yes", ignoring case and surrounding spaces
+  is.yes <- function(v) {
+    v <- trimws(tolower(as.character(v)))
+    !is.na(v) & v == "yes"
+  }
   
-  # Subset metadata
-  mum.ids  <- indv.metadata[indv.metadata$mother    %in% c("yes", " yes", "yes "), 'id']
-  dad.ids  <- indv.metadata[indv.metadata$father    %in% c("yes", " yes", "yes "), 'id']
-  offs.ids <- indv.metadata[indv.metadata$offspring %in% c("yes", " yes", "yes "), 'id']
-  
-  # Make them vectors
-  mum.ids  <- as.vector(na.omit(mum.ids))
-  dad.ids  <- as.vector(na.omit(dad.ids))
-  offs.ids <- as.vector(na.omit(offs.ids))
+  ind.ids <- indNames(gen.data)
+  mum.ids  <- ind.ids[is.yes(indv.metadata$mother)]
+  dad.ids  <- ind.ids[is.yes(indv.metadata$father)]
+  offs.ids <- ind.ids[is.yes(indv.metadata$offspring)]
   
   # Make a list with the 3 vectors
   x = list(offs = offs.ids, dad = dad.ids, mum = mum.ids)
@@ -425,10 +486,11 @@ parental.ids <- function(gen.data) {
 ################################################################################
 
 
-######################### Define function gl2structure #########################
+###################### Define function utils.colony.genotypes #####################
 ## This function converts gl matrix to Structure format and from 2-row-per-ind
-## to 1-row-per-ind
-gl2structure <- function(x,
+## to 1-row-per-ind. Not dartR.base::gl2structure, which has a different
+## signature and output.
+utils.colony.genotypes <- function(x,
                          addtlColumns = NULL,
                          ploidy = 2,
                          exportMarkerNames = FALSE) {
