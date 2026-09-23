@@ -207,6 +207,8 @@ behaviour.
   equal to `r(1,2)` (was: halved on `dev` since PR #97).
 - Not in this change: the NAMESPACE drift on `dev` (`dnorm`, `qnorm`),
   reverted as in PR #98.
+- PR #100 (`review-gl.run.EMIBD9` -> `dev`); the `gl.grm.network` half of
+  change 8 is PR #101 (`fix-grm-network-kinship` -> `dev`).
 
 ```json
 {
@@ -230,6 +232,6 @@ behaviour.
   ],
   "coverage_skipped": ["parallel/MPI and Windows: no binaries", "DAT6: no FBM fixture"],
   "status": "pr-open",
-  "pr": null
+  "pr": 100
 }
 ```
