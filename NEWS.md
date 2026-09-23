@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+* `gl.report.parent.offspring()`: pairs are now assessed on the
+  proportion of pedigree-inconsistent loci among loci genotyped in both
+  individuals (new columns `n.loci` and `prop`), so individuals with much
+  missing data are no longer flagged as relatives of many others.
+  p-values were computed on the wrong scale and are now
+  `pnorm(zscore)` (larger than before). `range` below 1.5 now flags more
+  pairs, as documented. SilicoDArT input now errors. Faster on large
+  datasets; nothing printed at `verbose = 0`.
 * `gl.run.EMIBD9()`: a run in which EMIBD9 fails now stops with EMIBD9's
   message; previously the results of the previous call in the same
   session could be returned. `OutAlleleFre = TRUE` no longer crashes

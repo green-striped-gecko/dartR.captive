@@ -1,11 +1,12 @@
 #' @name gl.report.parent.offspring
 #' @title Identifies putative parent offspring within a population
 #' @description
-#' This script examines the frequency of pedigree inconsistent loci, that is,
+#' This script examines the proportion of pedigree inconsistent loci, that is,
 #' those loci that are homozygotes in the parent for the reference allele, and
 #' homozygous in the offspring for the alternate allele. This condition is not
 #' consistent with any pedigree, regardless of the (unknown) genotype of the
-#' other parent. The pedigree inconsistent loci are counted as an indication of
+#' other parent. The pedigree inconsistent loci are counted, as a proportion of
+#' the loci genotyped in both individuals, as an indication of
 #' whether or not it is reasonable to propose the two individuals are in a
 #' parent-offspring relationship.
 #' @param x Name of the genlight object containing the SNP genotypes [required].
@@ -19,20 +20,25 @@
 #' @param plot_theme Theme for the plot. See Details for options
 #'  [default theme_dartR()].
 #' @param plot_colors List of two color names for the borders and fill of the
-#'  plots [default gl.colors(2)].
+#'  plots [default NULL, which uses gl.colors(2)].
 #' @param plot.dir Directory to save the plot RDS files [default as specified
 #' by the global working directory or tempdir()]
 #' @param plot.file Name for the RDS binary file to save (base name only,
-#' exclude extension) [default NULL] Creates a plot that shows the sex linked markers.
+#' exclude extension) [default NULL].
 #' @param verbose Verbosity: 0, silent or fatal errors; 1, begin and end; 2,
 #' progress log; 3, progress and results summary; 5, full report
 #' [default 2, unless specified using gl.set.verbosity].
 #' @details
 #' If two individuals are in a parent offspring relationship, the true number of
 #' pedigree inconsistent loci should be zero, but SNP calling is not infallible.
-#' Some loci will be miss-called. The problem thus becomes one of determining
-#' if the two focal individuals have a count of pedigree inconsistent loci less
-#' than would be expected of typical unrelated individuals. There are some quite
+#' Some loci will be miscalled. The problem thus becomes one of determining
+#' if the two focal individuals have a proportion of pedigree inconsistent
+#' loci lower than would be expected of typical unrelated individuals. The
+#' proportion is taken over the loci genotyped in both individuals, so
+#' individuals with much missing data are not flagged merely because fewer
+#' loci could be compared. Pairs are flagged when their proportion lies
+#' strictly below the first quartile minus range times the interquartile
+#' range of all pairs. There are some quite
 #' sophisticated software packages available to formally apply likelihoods to
 #' the decision, but we use a simple outlier comparison.
 #' 
@@ -60,15 +66,18 @@
 #' individuals in a parent offspring relationship.
 #' 
 #' Note that if your dataset does not contain RepAvg or rdepth among the locus
-#' metrics, the filters for reproducibility and read depth are no used.
+#' metrics, the filters for reproducibility and read depth are not used.
 #'  Examples of other themes that can be used can be consulted in \itemize{
 #'  \item \url{https://ggplot2.tidyverse.org/reference/ggtheme.html} and \item
 #'  \url{https://yutannihilation.github.io/allYourFigureAreBelongToUs/ggthemes/}
 #'  }
-#' @return A data frame of individual pairs in parent-offspring relationship
-#' (columns Outlier, ind1, ind2, zscore, p). An empty data frame with the same
-#' columns if no parent-offspring relationships were found.
-#' @author Custodian: Arthur Georges (Post to
+#' @return A data frame of putative parent-offspring pairs, ordered by prop,
+#' with columns: Outlier, the number of pedigree inconsistent loci; ind1 and
+#' ind2, the two individuals; n.loci, the number of loci genotyped in both;
+#' prop, Outlier / n.loci; zscore, the standardised prop; and p, the
+#' one-sided (lower tail) normal probability of zscore. An empty data frame
+#' with the same columns if no parent-offspring relationships were found.
+#' @author Author(s): Arthur Georges. Custodian: Arthur Georges (Post to
 #' \url{https://groups.google.com/d/forum/dartr})
 #' @examples
 #' if (isTRUE(getOption("dartR_fbm"))) testset.gl <- gl.gen2fbm(testset.gl)
@@ -86,7 +95,7 @@ gl.report.parent.offspring <- function(x,
                                        range = 1.5,
                                        plot.filters = FALSE,
                                        plot_theme = theme_dartR(),
-                                       plot_colors = gl.colors(2),
+                                       plot_colors = NULL,
                                        plot.dir = NULL,
                                        plot.file = NULL,
                                        verbose = NULL) {
@@ -98,36 +107,38 @@ gl.report.parent.offspring <- function(x,
 
   # FLAG SCRIPT START
   funname <- match.call()[[1]]
-  utils.flag.start(
-    func = funname,
-    build = "Jody",
-    verbose = verbose
-  )
+  utils.flag.start(func = funname, verbose = verbose)
 
   # CHECK DATATYPE
   datatype <- utils.check.datatype(x, verbose = verbose)
 
+  # FUNCTION SPECIFIC ERROR CHECKING
+  # presence/absence data cannot show opposing homozygotes (0 vs 2)
+  if (datatype == "SilicoDArT") {
+    stop(error(
+      "  Only SNP data are supported; x contains SilicoDArT data\n"
+    ))
+  }
+  if (is.null(plot_colors)) {
+    plot_colors <- gl.colors(2, verbose = 0)
+  }
+
   # DO THE JOB
 
-  # Generate null expectation for pedigree inconsistency, and outliers
   if (verbose >= 2) {
-    cat(
-      report(
-        "  Generating null expectation for distribution of counts of
-                pedigree incompatibility\n"
-      )
-    )
+    cat(report(
+      "  Generating null expectation for the distribution of pedigree",
+      "incompatibility\n"
+    ))
   }
-  # Assign individuals as populations
-  pop(x) <- x$ind.names
   # Filter stringently on reproducibility to minimize miscalls
   if (is.null(x@other$loc.metrics$RepAvg)) {
-    if(verbose>0) cat(
-      warn(
-        "  Dataset does not include RepAvg among the locus metrics,
-                therefore the reproducibility filter was not used\n"
-      )
-    )
+    if (verbose >= 1) {
+      cat(warn(
+        "  Dataset does not include RepAvg among the locus metrics,",
+        "therefore the reproducibility filter was not used\n"
+      ))
+    }
   } else {
     x <-
       gl.filter.reproducibility(x,
@@ -138,167 +149,96 @@ gl.report.parent.offspring <- function(x,
   }
   # Filter stringently on read depth, to further minimize miscalls
   if (is.null(x@other$loc.metrics$rdepth)) {
-    if(verbose>0) cat(
-      warn(
-        "  Dataset does not include rdepth among the locus metrics,
-                therefore the read depth filter was not used\n"
-      )
-    )
+    if (verbose >= 1) {
+      cat(warn(
+        "  Dataset does not include rdepth among the locus metrics,",
+        "therefore the read depth filter was not used\n"
+      ))
+    }
   } else {
     x <- gl.filter.rdepth(x, lower = min.rdepth, verbose = 0,
                           plot.display = plot.filters)
   }
-  
-  pairwise_table <- function(x,
-                             pw_fun,
-                             dec = 4) {
-    ind_names <- indNames(x)
-    x <- as.matrix(x)
-    ix <- setNames(seq_along(ind_names), ind_names)
-    pp <- outer(ix[-1L], ix[-length(ix)],
-                function(ivec, jvec) {
-                  vapply(seq_along(ivec),
-                         function(k) {
-                           i <- ivec[k]
-                           j <- jvec[k]
-                           if (i > j) {
-                             pw_fun(x = x[i, ], y = x[j, ])
-                           } else{
-                             NA_real_
-                           }
-                         }, numeric(1))
-                })
-    return(pp)
-    
-  }
-  
-  fun <- function(x, y) {
-    vect <- (x * 10) + y
-    homalts <- sum(vect == 2 | vect == 20, na.rm = T)
-  }
-  
-  count <- pairwise_table(x = x, pw_fun = fun)
-  
-  # Prepare for plotting
-  
+
+  # Pedigree-inconsistent loci: one individual homozygous for the reference
+  # allele (0) and the other for the alternate allele (2). Counted for all
+  # pairs at once with matrix products, and divided by the number of loci
+  # typed in both individuals, so pairs with missing data are not flagged
+  # merely because fewer loci could be compared.
+  genmat <- as.matrix(x)
+  typed <- !is.na(genmat)
+  hom.ref <- (genmat == 0) & typed
+  hom.alt <- (genmat == 2) & typed
+  hom.ref[is.na(hom.ref)] <- FALSE
+  hom.alt[is.na(hom.alt)] <- FALSE
+  storage.mode(hom.ref) <- storage.mode(hom.alt) <- "double"
+  storage.mode(typed) <- "double"
+  count.mat <- tcrossprod(hom.ref, hom.alt) + tcrossprod(hom.alt, hom.ref)
+  n.mat <- tcrossprod(typed)
+  dimnames(count.mat) <- dimnames(n.mat) <- list(indNames(x), indNames(x))
+
+  pairs.idx <- which(lower.tri(count.mat), arr.ind = TRUE)
+  pairs <- data.frame(
+    Outlier = count.mat[pairs.idx],
+    ind1 = rownames(count.mat)[pairs.idx[, "row"]],
+    ind2 = colnames(count.mat)[pairs.idx[, "col"]],
+    n.loci = n.mat[pairs.idx],
+    stringsAsFactors = FALSE
+  )
+  pairs$prop <- ifelse(pairs$n.loci > 0, pairs$Outlier / pairs$n.loci,
+                       NA_real_)
+
   if (verbose >= 2) {
-    cat(
-      report(
-        "  Identifying outliers with lower than expected counts of
-                pedigree inconsistencies\n"
-      )
-    )
+    cat(report(
+      "  Identifying pairs with lower than expected proportions of",
+      "pedigree inconsistent loci\n"
+    ))
   }
-  title <-
-    paste0("SNP data (DArTSeq)\nCounts of pedigree incompatible loci per
-               pair")
-  
-  counts_plot <- as.vector(unlist(unname(count)))
-  counts_plot <- counts_plot[!is.na(counts_plot)]
-  counts_plot <- data.frame(count = counts_plot)
-  
+  # lower outliers: strictly below the first quartile minus range x IQR
+  prop <- pairs$prop
+  cutoff <- stats::quantile(prop, 0.25, na.rm = TRUE) -
+    range * stats::IQR(prop, na.rm = TRUE)
+  pairs$zscore <- (prop - mean(prop, na.rm = TRUE)) / sd(prop, na.rm = TRUE)
+  # zscore is standardised, so the p-value comes from the standard normal
+  pairs$p <- stats::pnorm(pairs$zscore)
+  df <- pairs[!is.na(prop) & prop < cutoff,
+              c("Outlier", "ind1", "ind2", "n.loci", "prop", "zscore", "p")]
+  df <- df[order(df$prop, df$Outlier), ]
+  rownames(df) <- NULL
+
+  title <- "SNP data (DArTSeq)\nProportion of pedigree incompatible loci per pair"
+  counts_plot <- data.frame(prop = prop[!is.na(prop)])
+
   # Boxplot
   p1 <-
-    ggplot(counts_plot, aes(y = count)) +
-    geom_boxplot(color = plot_colors[1], fill = plot_colors[2]) +
+    ggplot(counts_plot, aes(y = prop)) +
+    geom_boxplot(color = plot_colors[1], fill = plot_colors[2],
+                 coef = range) +
     coord_flip() +
     plot_theme +
     xlim(range = c(-1, 1)) +
-    ylim(min(count), max(count)) +
     ylab(" ") +
     theme(axis.text.y = element_blank(), axis.ticks.y = element_blank()) +
     ggtitle(title)
-  
-  outliers_temp <- ggplot_build(p1)$data[[1]]$outliers[[1]]
-  
-  lower.extremes <-
-    outliers_temp[outliers_temp < stats::median(count,
-                                                na.rm = T)]
-  if (length(lower.extremes) == 0) {
-    outliers <- NULL
-  } else {
-    outliers <- data.frame(Outlier = lower.extremes)
-  }
-  
-  outliers <- unique(outliers)
-  
-  # Ascertain the identity of the pairs
-  if (verbose >= 2) {
-    cat(report("  Identifying outlying pairs\n"))
-  }
-  if (length(lower.extremes) > 0) {
-    tmp <- count
-    # tmp[lower.tri(tmp)] <- t(tmp)[lower.tri(tmp)]
-    outliers_df <- NULL
-    for (i in 1:length(outliers$Outlier)) {
-      # Identify
-      tmp2 <- which(tmp == outliers$Outlier[i],
-                    arr.ind = T)
-      ind1 <- rownames(count)[tmp2[, "row"]]
-      ind2 <- colnames(count)[tmp2[, "col"]]
-      # Z-scores
-      zscore <-
-        (mean(count, na.rm = TRUE) - outliers$Outlier[i]) /
-        sd(count, na.rm = TRUE)
-      zscore <- zscore * -1
-      outliers_p <-
-        round(pnorm(
-          mean = mean(count, na.rm = TRUE),
-          sd = sd(count, na.rm = TRUE),
-          q = zscore
-        ), 8)
-      outliers_df_tmp <- data.frame(
-        Outlier = rep(outliers$Outlier[i], length(ind1)),
-        ind1 = ind1,
-        ind2 = ind2,
-        zscore = zscore,
-        p = outliers_p
-      )
-      outliers_df <- rbind(outliers_df, outliers_df_tmp)
-    }
-    # ordering by number of outliers
-    outliers_df <- outliers_df[order(outliers_df$Outlier,
-                                     decreasing = T),]
-  }
-  
-  # Extract the quantile threshold
-  iqr <- stats::IQR(count, na.rm = TRUE)
-  qth <- quantile(count, 0.25, na.rm = TRUE)
-  cutoff <- qth - iqr * range
-  
+
   # Histogram
   p2 <-
-    ggplot(counts_plot, aes(x = count)) +
+    ggplot(counts_plot, aes(x = prop)) +
     geom_histogram(bins = 50,
                    color = plot_colors[1],
                    fill = plot_colors[2]) +
     geom_vline(xintercept = cutoff,
                color = "red",
                linewidth = 1) +
-    coord_cartesian(xlim = c(min(count), max(count))) +
-    xlab("No. Pedigree incompatible") +
+    xlab("Proportion pedigree incompatible") +
     ylab("Count") +
     plot_theme
 
-  # Output the outlier loci
-  if (length(lower.extremes) == 0) {
-    # Return an empty data frame with the result's columns rather than NULL,
-    # so callers (e.g. the dartR GUI) can treat "no pairs found" as a result
-    # and write it out with headers.
-    df <- data.frame(
-      Outlier = numeric(0),
-      ind1 = character(0),
-      ind2 = character(0),
-      zscore = numeric(0),
-      p = numeric(0)
-    )
-    if(verbose>0) cat(important("  No outliers detected\n"))
-  }else{
-    outliers_df <- outliers_df[order(outliers_df$Outlier), ]
-    df <- outliers_df
-    df <- df[which(df$Outlier<=cutoff),]
+  if (nrow(df) == 0) {
+    if (verbose >= 1) cat(important("  No outliers detected\n"))
+  } else {
     if (verbose >= 3) {
-      print(outliers_df)
+      print(df)
     }
   }
 
