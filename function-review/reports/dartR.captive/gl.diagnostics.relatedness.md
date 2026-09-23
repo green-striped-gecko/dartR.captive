@@ -196,6 +196,7 @@ tests were replaced by tests of the approved behaviour.
   converting 0 and "" to NA before classifying; the attached-pedigree
   test now checks 1 full-sib, 6 parent-offspring and 98 unrelated pairs.
 - A1: `gl2related()` and `gl.grm()` called with `verbose = 0`.
+- PR #107 (`review-gl.diagnostics.relatedness` -> `dev`).
 - Not in this change: the EMIBD9 path was not run
   (no change to it beyond the shared merge).
 
@@ -219,6 +220,6 @@ tests were replaced by tests of the approved behaviour.
   ],
   "coverage_skipped": ["run.e9 path: EMIBD9 run not exercised (reviewed in PR #100)"],
   "status": "pr-open",
-  "pr": null
+  "pr": 107
 }
 ```
