@@ -189,6 +189,7 @@ replicates each:
   matches gl.run.EMIBD9; `@family`, `Author(s)`, ASCII.
 - Not in this change: the dartr2shiny call (`iseed =`, F6) still fails;
   the app also needs to show one element of the new return list.
+- PR #105 (`review-gl.sim.relatedness` -> `dev`).
 
 ```json
 {
@@ -210,6 +211,6 @@ replicates each:
   ],
   "coverage_skipped": ["Windows/parallel EMIBD9: no binaries"],
   "status": "pr-open",
-  "pr": null
+  "pr": 105
 }
 ```
