@@ -7,6 +7,19 @@
 - Baseline: tests/testthat/test-gl.grm.network.R (first-review tests plus four "baseline r2" tests captured pre-review)
 - First review: `function-review/reports/dartR.captive/gl.grm.network.md` (PR #87)
 
+## Correction (2026-09-23, after merge in PR #97)
+
+F3 and change 3(a) assumed that `gl.run.EMIBD9()$rel` is on the
+relatedness scale like `gl.grm()`. It is not: EMIBD9's `r(1,2)` equals the
+kinship coefficient (self-comparisons 0.5; `r(1,2) = D1 + (D3 + D5 +
+D7)/2 + D8/4` for all 45 pairs checked; see
+`function-review/reports/dartR.captive/gl.run.EMIBD9.md`). Halving it
+plotted EMIBD9 kinship at half its value. Fix (approved by Luis Mijangos,
+option (a) in the gl.run.EMIBD9 review): `gl.run.EMIBD9()` tags `rel` with
+`attr(rel, "scale") = "kinship"`, and `gl.grm.network()` uses tagged
+matrices as kinship without halving (and uses F = 2 x diag - 1 when
+`standardise = TRUE`). `gl.grm()` input is unchanged.
+
 ## Verdict
 
 **Standards: Needs work** — the first-review fixes hold, but one of them

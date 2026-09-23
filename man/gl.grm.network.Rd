@@ -29,10 +29,12 @@ gl.grm.network(
 )
 }
 \arguments{
-\item{G}{A square relationship matrix whose off-diagonal elements are
-relatedness coefficients (about twice the kinship), such as the output of
-gl.grm or the $rel element of gl.run.EMIBD9. Row and column names must be
-the individual names of x. Kinship is computed as G / 2 [required].}
+\item{G}{A square relationship matrix, such as the output of gl.grm or the
+$rel element of gl.run.EMIBD9. Row and column names must be the individual
+names of x. Off-diagonal elements are taken as relatedness coefficients
+(about twice the kinship) and kinship is computed as G / 2, unless G
+carries attr(G, "scale") = "kinship", as gl.run.EMIBD9 output does; then
+G is used as kinship directly [required].}
 
 \item{x}{A genlight object from which the matrix was generated [required].}
 
@@ -107,7 +109,7 @@ kinship among the specimens as a network diagram.
 The gl.grm.network function creates a network diagram that represents 
 genetic relationships among individuals in a dataset. Off-diagonal
 elements of G are relatedness coefficients, so they are divided by 2 to
-obtain the kinship values that are compared with kinship.threshold, used
+obtain the kinship values (not for G tagged as kinship, see G) that are compared with kinship.threshold, used
 for the categories and returned in the kinship matrix.
 
 \strong{Layout options}

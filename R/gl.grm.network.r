@@ -4,10 +4,12 @@
 #' This script takes a genomic relationship matrix and represents the
 #' kinship among the specimens as a network diagram.
 #'
-#' @param G A square relationship matrix whose off-diagonal elements are
-#' relatedness coefficients (about twice the kinship), such as the output of
-#' gl.grm or the $rel element of gl.run.EMIBD9. Row and column names must be
-#' the individual names of x. Kinship is computed as G / 2 [required].
+#' @param G A square relationship matrix, such as the output of gl.grm or the
+#' $rel element of gl.run.EMIBD9. Row and column names must be the individual
+#' names of x. Off-diagonal elements are taken as relatedness coefficients
+#' (about twice the kinship) and kinship is computed as G / 2, unless G
+#' carries attr(G, "scale") = "kinship", as gl.run.EMIBD9 output does; then
+#' G is used as kinship directly [required].
 #' @param x A genlight object from which the matrix was generated [required].
 #' @param standardise Whether to standardise matrix using Goudet et al method, 
 #' see details [default FALSE].
@@ -47,7 +49,7 @@
 #' The gl.grm.network function creates a network diagram that represents 
 #' genetic relationships among individuals in a dataset. Off-diagonal
 #' elements of G are relatedness coefficients, so they are divided by 2 to
-#' obtain the kinship values that are compared with kinship.threshold, used
+#' obtain the kinship values (not for G tagged as kinship, see G) that are compared with kinship.threshold, used
 #' for the categories and returned in the kinship matrix.
 #' 
 #'\strong{Layout options}
@@ -209,6 +211,10 @@ gl.grm.network <- function(G,
   
   method <- match.arg(method, c("fr", "kk", "gh", "mds"))
 
+  # gl.run.EMIBD9 returns kinship (EMIBD9's r(1,2)) and tags it; other
+  # inputs, such as gl.grm, are relatedness (2 x kinship)
+  G.is.kinship <- identical(attr(G, "scale"), "kinship")
+  
   # G must be a square matrix labelled with the individuals of x; otherwise
   # the network silently gains isolated nodes or fails deep inside igraph
   G <- as.matrix(G)
@@ -232,15 +238,18 @@ gl.grm.network <- function(G,
   if(isTRUE(standardise)){
     # using the average inbreeding coefficient (1-f) of the diagonal elements as
     #the reference value
-    MS <- mean(diag(G) - 1)
+    # on the kinship scale the diagonal is 0.5 (1 + F), so F = 2 x diag - 1
+    MS <- if (G.is.kinship) mean(2 * diag(G) - 1) else mean(diag(G) - 1)
     # the result of the GRM is the summation of the IBD of each allele .
-    links$kinship <- (links$weight / 2) - MS
+    links$kinship <- (if (G.is.kinship) links$weight else links$weight / 2) -
+      MS
     links_tmp <- links[,c(1,2,4)]
   }
   
   if(isFALSE(standardise)){
-    # off-diagonal elements are relatedness coefficients (2 x kinship)
-    links$kinship <- links$weight / 2
+    # off-diagonal elements are relatedness coefficients (2 x kinship),
+    # unless G is tagged as kinship
+    links$kinship <- if (G.is.kinship) links$weight else links$weight / 2
     links_tmp <- links[,c(1,2,4)]
   }
 

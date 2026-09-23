@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+* `gl.grm.network()`: a `G` tagged `attr(G, "scale") = "kinship"` (as
+  returned by `gl.run.EMIBD9()`) is used as kinship without halving.
+  Since the previous change EMIBD9 kinship was halved, because EMIBD9's
+  `r(1,2)` is kinship, not relatedness.
 * `gl.run.colony()`: COLONY's output files are now written to `outpath`
   instead of the R working directory, and the function returns
   `list(files, best.config)`, where `best.config` is the COLONY best
