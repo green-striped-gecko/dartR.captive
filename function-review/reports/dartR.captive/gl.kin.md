@@ -237,7 +237,7 @@ filtering before `gl.kin` for kinship thresholds and classes. Docs only.
 - `gl.kin(testset2.gl, verbose = 3)` runs end to end; the examples of all
   13 kinship-series functions run without error on the changed code
   (values not re-checked; those functions are reviewed separately).
-- PR: pending.
+- PR: #108.
 
 ```json
 {
@@ -259,7 +259,7 @@ filtering before `gl.kin` for kinship thresholds and classes. Docs only.
     {"id": "F8", "severity": "LOW", "confidence": "medium", "rule": "DOC5", "status": "approved", "change": 8}
   ],
   "coverage_skipped": ["DAT6: no FBM fixture", "gl.report.kin.classes not run; breaks applied directly"],
-  "status": "approved-applied",
-  "pr": null
+  "status": "pr-open",
+  "pr": 108
 }
 ```

@@ -12,4 +12,4 @@ gl.sim.relatedness,dartR.captive,analysis,Claude,pr-open#105
 gl.run.EMIBD9,dartR.captive,io,Claude,done#100
 gl.report.parent.offspring,dartR.captive,report,Claude,done#102
 gl.filter.parent.offspring,dartR.captive,modify,Claude,done#103
-gl.kin,dartR.captive,analysis,Claude,in-apply
+gl.kin,dartR.captive,analysis,Claude,pr-open#108
