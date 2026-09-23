@@ -11,7 +11,7 @@ gl.report.parent.offspring(
   range = 1.5,
   plot.filters = FALSE,
   plot_theme = theme_dartR(),
-  plot_colors = gl.colors(2),
+  plot_colors = NULL,
   plot.dir = NULL,
   plot.file = NULL,
   verbose = NULL
@@ -35,38 +35,47 @@ delimiting outliers [default 1.5 interquartile ranges].}
 [default theme_dartR()].}
 
 \item{plot_colors}{List of two color names for the borders and fill of the
-plots [default gl.colors(2)].}
+plots [default NULL, which uses gl.colors(2)].}
 
 \item{plot.dir}{Directory to save the plot RDS files [default as specified
 by the global working directory or tempdir()]}
 
 \item{plot.file}{Name for the RDS binary file to save (base name only,
-exclude extension) [default NULL] Creates a plot that shows the sex linked markers.}
+exclude extension) [default NULL].}
 
 \item{verbose}{Verbosity: 0, silent or fatal errors; 1, begin and end; 2,
 progress log; 3, progress and results summary; 5, full report
 [default 2, unless specified using gl.set.verbosity].}
 }
 \value{
-A data frame of individual pairs in parent-offspring relationship
-(columns Outlier, ind1, ind2, zscore, p). An empty data frame with the same
-columns if no parent-offspring relationships were found.
+A data frame of putative parent-offspring pairs, ordered by prop,
+with columns: Outlier, the number of pedigree inconsistent loci; ind1 and
+ind2, the two individuals; n.loci, the number of loci genotyped in both;
+prop, Outlier / n.loci; zscore, the standardised prop; and p, the
+one-sided (lower tail) normal probability of zscore. An empty data frame
+with the same columns if no parent-offspring relationships were found.
 }
 \description{
-This script examines the frequency of pedigree inconsistent loci, that is,
+This script examines the proportion of pedigree inconsistent loci, that is,
 those loci that are homozygotes in the parent for the reference allele, and
 homozygous in the offspring for the alternate allele. This condition is not
 consistent with any pedigree, regardless of the (unknown) genotype of the
-other parent. The pedigree inconsistent loci are counted as an indication of
+other parent. The pedigree inconsistent loci are counted, as a proportion of
+the loci genotyped in both individuals, as an indication of
 whether or not it is reasonable to propose the two individuals are in a
 parent-offspring relationship.
 }
 \details{
 If two individuals are in a parent offspring relationship, the true number of
 pedigree inconsistent loci should be zero, but SNP calling is not infallible.
-Some loci will be miss-called. The problem thus becomes one of determining
-if the two focal individuals have a count of pedigree inconsistent loci less
-than would be expected of typical unrelated individuals. There are some quite
+Some loci will be miscalled. The problem thus becomes one of determining
+if the two focal individuals have a proportion of pedigree inconsistent
+loci lower than would be expected of typical unrelated individuals. The
+proportion is taken over the loci genotyped in both individuals, so
+individuals with much missing data are not flagged merely because fewer
+loci could be compared. Pairs are flagged when their proportion lies
+strictly below the first quartile minus range times the interquartile
+range of all pairs. There are some quite
 sophisticated software packages available to formally apply likelihoods to
 the decision, but we use a simple outlier comparison.
 
@@ -94,7 +103,7 @@ The function \code{\link{gl.filter.parent.offspring}} will filter out those
 individuals in a parent offspring relationship.
 
 Note that if your dataset does not contain RepAvg or rdepth among the locus
-metrics, the filters for reproducibility and read depth are no used.
+metrics, the filters for reproducibility and read depth are not used.
  Examples of other themes that can be used can be consulted in \itemize{
  \item \url{https://ggplot2.tidyverse.org/reference/ggtheme.html} and \item
  \url{https://yutannihilation.github.io/allYourFigureAreBelongToUs/ggthemes/}
@@ -109,7 +118,7 @@ out <- gl.report.parent.offspring(testset.gl[1:10, 1:100])
  \code{\link{gl.filter.parent.offspring}}
 }
 \author{
-Custodian: Arthur Georges (Post to
+Author(s): Arthur Georges. Custodian: Arthur Georges (Post to
 \url{https://groups.google.com/d/forum/dartr})
 }
 \concept{report functions}
