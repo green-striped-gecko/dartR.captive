@@ -8,6 +8,14 @@
   of two. `categorise` colours now follow the documented order. `G` must
   match `indNames(x)`; an invalid `method` now errors. The return value
   is a named list (`plot`, `kinship`).
+* `gl2colony()`: stops with an error, instead of writing a file COLONY
+  rejects or misreads, when individual names contain whitespace, the data
+  are SilicoDArT, or `sibship.prior`, `known.allele.freq`, or any
+  known/excluded count is non-zero. A missing offspring/mother/father
+  column no longer resets the other two; column names and values are
+  matched ignoring case. A single `allelic.dropout`/`other.typ.err` value
+  without `@` now applies to all loci. Progress messages follow
+  `verbose`.
 
 * `gl.assign.pca()` moved out of dartR.captive: the successor in
   dartR.popgen is the newer revision (April 2026 bug fixes and CL

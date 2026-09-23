@@ -84,6 +84,7 @@ Other captive management:
 \code{\link{gl.report.mate.suitability}()},
 \code{\link{gl.report.repro.targets}()},
 \code{\link{gl.select.pairs}()},
+\code{\link{gl2colony}()},
 \code{\link{utils.kin.check}()},
 \code{\link{utils.kin.dgd}()}
 }
