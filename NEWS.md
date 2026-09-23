@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+* `gl.sim.relatedness()`: `rel = "full.sib"` returned the average
+  parent-offspring kinship; it now simulates two full siblings. The
+  reported interval was the confidence interval of the mean; it is now
+  the range holding the central `conf` proportion of simulated kinship
+  values, with the CI of the mean returned separately. The function now
+  returns a list (`values`, `mean`, `interval`, `ci.mean`, `plot`)
+  instead of printing, no longer requires the `related` package, and
+  runs EMIBD9 quietly without per-replicate heatmaps.
+
 * `gl.filter.parent.offspring()`: `method = "best"` removed the member of
   each pair with fewer missing genotypes (counts compared as text); it
   now keeps the better-genotyped individual, as documented. Pairs now
