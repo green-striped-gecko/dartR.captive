@@ -80,6 +80,7 @@ head(tg[order(-tg$target), ])
 \code{\link{gl.report.mate.suitability}}
 
 Other captive management: 
+\code{\link{gl.diagnostics.relatedness}()},
 \code{\link{gl.kin}()},
 \code{\link{gl.plot.network}()},
 \code{\link{gl.report.gd.projection}()},

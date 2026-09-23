@@ -104,6 +104,7 @@ res.gs <- gl.report.kin.classes(testset2.gs, kin = gl.kin(testset2.gs))
 \code{\link{gl.report.parent.offspring}}
 
 Other captive management: 
+\code{\link{gl.diagnostics.relatedness}()},
 \code{\link{gl.kin}()},
 \code{\link{gl.plot.network}()},
 \code{\link{gl.report.gd.projection}()},
