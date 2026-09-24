@@ -50,6 +50,15 @@
 #' possible. The baseline is also unreliable with few individuals: at least
 #' three are required, and fewer than ten produce a warning.
 #'
+#' Missing genotypes pull kinship toward 0: gl.kin fills them with the locus
+#' mean (see gl.kin), so pairs involving individuals with a low call rate are
+#' pushed into more distant classes. On testset2.gl the 24 captive-bred
+#' individuals have call rates of 0.70-0.80, and 19 of the 48 recorded
+#' parent-offspring links are called second-degree; after
+#' gl.filter.callrate(method = "loc", threshold = 0.95) only 5 are. The
+#' function warns when any individual's call rate is below 0.8; filter on
+#' call rate before gl.kin when classes are to be trusted.
+#'
 #' Pairs with missing (NA) kinship are ignored when computing the baseline,
 #' are given class NA, and are returned only when all.pairs = TRUE.
 #'
@@ -90,9 +99,14 @@
 #' # The known captive full sibs classify as full-sib
 #' res$pairs[res$pairs$id1 == "CB_AB_01" & res$pairs$id2 == "CB_AB_02", ]
 #' # Recorded parent-offspring links whose genomic class disagrees; here
-#' # they are links between individuals from different source populations,
-#' # pushed down a class by population structure (see Details)
+#' # mostly because the captive-bred individuals have low call rates, which
+#' # pulls their kinships down a class (see Details)
 #' head(res$conflicts)
+#' # After filtering loci on call rate, most of those conflicts resolve
+#' xf <- gl.filter.callrate(testset2.gl, method = "loc", threshold = 0.95,
+#'                          verbose = 0)
+#' res.f <- gl.report.kin.classes(xf, kin = gl.kin(xf))
+#' nrow(res.f$conflicts)
 #' # Tag P/A data (no PO/FS split possible)
 #' res.gs <- gl.report.kin.classes(testset2.gs, kin = gl.kin(testset2.gs))
 
@@ -140,6 +154,18 @@ gl.report.kin.classes <- function(x,
     if (nInd(x) < 10 && verbose >= 1) {
         cat(warn("  Warning: Only", nInd(x),
                  "individuals; the median baseline is unreliable and classes may be shifted\n"))
+    }
+    # Mean imputation of missing genotypes (gl.kin) pulls kinship toward 0,
+    # so low-call-rate individuals drop a class
+    ind.cr <- 1 - vapply(x@gen, function(e) length(e@NA.posi), numeric(1)) /
+        nLoc(x)
+    if (any(ind.cr < 0.8) && verbose >= 1) {
+        cat(warn(paste0("  Warning: ", sum(ind.cr < 0.8),
+                        " individuals have call rate below 0.8 (lowest ",
+                        round(min(ind.cr), 3),
+                        "); missing genotypes pull their kinships toward 0 ",
+                        "and their pairs into more distant classes. Consider ",
+                        "filtering on call rate before gl.kin (see Details)\n")))
     }
     # A pooled-frequency kinship shifts within- and between-population
     # pairs in opposite directions; one baseline cannot correct both

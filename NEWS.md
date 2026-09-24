@@ -11,9 +11,12 @@
   pair's own kinship, so it was always "unrelated"), and fewer than ten
   give a warning. With more than one population in `x` the function now
   warns that population structure inflates within-population classes and
-  deflates between-population ones; on `testset2.gl` this explains the 19
-  of 48 recorded parent-offspring links called second-degree, all across
-  source populations.
+  deflates between-population ones. It also warns when any individual's
+  call rate is below 0.8: missing genotypes pull kinship toward 0, which
+  is the main reason 19 of 48 recorded parent-offspring links in
+  `testset2.gl` are called second-degree (5 after filtering loci at call
+  rate 0.95). An earlier version of this entry attributed those 19 to
+  population structure.
 * Kinship series: mean kinship (MK) and the gene diversity of a whole
   group need kinship estimated on a wider reference than the group, because
   `gl.kin()` centres kinship on the individuals it is given (each row

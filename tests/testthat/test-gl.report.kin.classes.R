@@ -83,6 +83,18 @@ test_that("population-structure warning at verbose >= 1 only", {
   expect_false(any(grepl("populations in x", out)))
 })
 
+test_that("low call rate warns; filtering resolves most conflicts", {
+  skip_if_not_installed("rrBLUP")
+  skip_without_testset2()
+  x <- testset2.gl
+  kin <- gl.kin(x, verbose = 0)
+  expect_output(gl.report.kin.classes(x, kin = kin, verbose = 1),
+                "24 individuals have call rate below 0.8")
+  xf <- gl.filter.callrate(x, method = "loc", threshold = 0.95, verbose = 0)
+  r <- gl.report.kin.classes(xf, kin = gl.kin(xf, verbose = 0), verbose = 0)
+  expect_equal(nrow(r$conflicts), 5)
+})
+
 test_that("conflicts is a zero-row data frame when there are none", {
   skip_if_not_installed("rrBLUP")
   skip_without_testset2()
