@@ -100,8 +100,10 @@
 #' @export
 #' @return A square numeric kinship matrix with dimnames = indNames(x),
 #' diagonal 0.5*(1+F), off-diagonal pairwise kinship, and attributes 'method',
-#' 'datatype', 'nLoc' and 'scale' (= "kinship", which gl.grm.network reads to
-#' plot the matrix without rescaling), returned invisibly.
+#' 'datatype', 'nLoc', 'scale' (= "kinship", which gl.grm.network reads to
+#' plot the matrix without rescaling) and 'ref.ids' (the individuals the
+#' kinship was estimated on, which the management functions use to detect a
+#' self-referenced matrix), returned invisibly.
 #'
 # ----------------------
 # Function
@@ -202,6 +204,9 @@ gl.kin <- function(x,
     attr(kin, "datatype") <- datatype
     attr(kin, "nLoc") <- nLoc(x)
     attr(kin, "scale") <- "kinship"
+    # the reference set: kinship is centred on these individuals, so mean
+    # kinship over exactly this set is ~0 (see utils.kin.check)
+    attr(kin, "ref.ids") <- indNames(x)
 
     # Pairs above 0.5 are beyond any relationship other than identity
     n.high <- sum(kin[upper.tri(kin)] > 0.5, na.rm = TRUE)

@@ -11,9 +11,12 @@
 #' of the PMx studbook-management software.
 #' @param x Name of the genlight object containing the SNP or presence/absence
 #' (SilicoDArT) data [required].
-#' @param kin Pairwise kinship matrix with row and column names identical to
-#' indNames(x), as produced by gl.kin(); if NULL, computed internally with
-#' gl.kin() [default NULL].
+#' @param kin Kinship matrix estimated on a wider set of individuals than x,
+#' for example gl.kin() on a dataset that includes the source populations;
+#' it may cover more individuals than x and is restricted to indNames(x).
+#' Kinship estimated on x alone (including kin = NULL) is an error, because
+#' mean kinship over the individuals it was estimated on is 0 by
+#' construction [required].
 #' @param n.pairs Number of pairs to select [default NULL, resolving to
 #' min(#males x max.per.sire, #females x max.per.dam), capped at the number of
 #' distinct male x female pairings].
@@ -110,7 +113,8 @@ gl.select.pairs <- function(x,
 
 # FUNCTION SPECIFIC ERROR CHECKING ----------------
     # Kinship matrix
-    kin <- utils.kin.check(x, kin, verbose = verbose)
+    kin <- utils.kin.check(x, kin, verbose = verbose,
+                           need.reference = TRUE)
 
     # Sexes
     if (is.null(x@other$ind.metrics$sex)) {

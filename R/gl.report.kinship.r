@@ -149,6 +149,19 @@ gl.report.kinship <- function(x,
         }
         pop(x) <- factor(rep("pop1", nInd(x)))
     }
+    # With one population, MK is taken over the set kinship was estimated on
+    # and is ~0 for everyone unless kin comes from a wider reference
+    if (nPop(x) == 1 && verbose >= 1) {
+        ref.ids <- attr(kin, "ref.ids")
+        self <- (!is.null(ref.ids) && setequal(ref.ids, indNames(x))) ||
+            all(abs(rowMeans(kin, na.rm = TRUE)) < 1e-10)
+        if (self) {
+            cat(warn("  Warning: one population and kinship estimated on these",
+                     "individuals only, so MK is ~0 for everyone and MKrank is",
+                     "not informative; supply kin estimated on a wider dataset",
+                     "(e.g. kin = gl.kin(full.dataset))\n"))
+        }
+    }
 
     # DO THE JOB ----------------------
 

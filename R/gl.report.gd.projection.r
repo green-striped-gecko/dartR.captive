@@ -19,9 +19,12 @@
 #' @param years Projection horizon in years [default 100].
 #' @param gd.target Target proportion of current gene diversity to retain
 #' [default 0.9].
-#' @param kin Kinship matrix with both dimnames identical to indNames(x), as
-#' produced by gl.kin; if NULL and x is supplied, computed internally with
-#' gl.kin [default NULL].
+#' @param kin Used when x is supplied: kinship matrix estimated on a wider set
+#' of individuals than x, for example gl.kin() on a dataset that includes the
+#' source populations; it may cover more individuals than x and is
+#' restricted to indNames(x). Kinship estimated on x alone (including
+#' kin = NULL) is an error, because the gene diversity of the individuals it
+#' was estimated on is 1 by construction [default NULL].
 #' @param plot.display If TRUE, resultant plots are displayed in the plot window
 #' [default TRUE].
 #' @param plot.theme Theme for the plot. See Details for options
@@ -73,8 +76,10 @@
 #' \url{https://groups.google.com/d/forum/dartr}
 
 #' @examples
-#' # From a genlight object (kinship computed internally)
-#' proj <- gl.report.gd.projection(testset2.gl, ne = 50, years = 100)
+#' # Captive colony, kinship estimated on the full dataset as the reference
+#' cb <- gl.keep.pop(testset2.gl, pop.list = "EmmacCaptBred", verbose = 0)
+#' proj <- gl.report.gd.projection(cb, kin = gl.kin(testset2.gl), ne = 50,
+#'                                 years = 100)
 #' proj$summary
 #' # Direct gene-diversity input, no genlight required
 #' gl.report.gd.projection(gd.now = 0.3, ne = 25, years = 50)
@@ -149,20 +154,10 @@ gl.report.gd.projection <- function(x = NULL,
         # CHECK DATATYPE
         datatype <- utils.check.datatype(x, verbose = verbose)
 
-        # KINSHIP MATRIX
-        if (is.null(kin)) {
-            if (verbose >= 2) {
-                cat(report("  No kinship matrix supplied; computing with gl.kin\n"))
-            }
-            kin <- gl.kin(x, verbose = 0)
-        }
-        if (!is.matrix(kin) || nrow(kin) != ncol(kin) ||
-            !identical(rownames(kin), indNames(x)) ||
-            !identical(colnames(kin), indNames(x))) {
-            stop(error(
-                "Fatal Error: kin must be a square matrix with both dimnames identical to indNames(x)\n"
-            ))
-        }
+        # KINSHIP MATRIX: GD of the whole of x needs kinship estimated on a
+        # wider reference (self-referenced kinship gives GD = 1)
+        kin <- utils.kin.check(x, kin, verbose = verbose,
+                               need.reference = TRUE)
         gd.now <- 1 - mean(kin)
     }
 

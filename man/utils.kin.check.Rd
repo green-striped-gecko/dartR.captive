@@ -4,19 +4,23 @@
 \alias{utils.kin.check}
 \title{Checks (and if necessary computes) a kinship matrix for a genlight object}
 \usage{
-utils.kin.check(x, kin = NULL, verbose = 0)
+utils.kin.check(x, kin = NULL, verbose = 0, need.reference = FALSE)
 }
 \arguments{
 \item{x}{Name of the genlight object containing the SNP or presence/absence
 (SilicoDArT) data [required].}
 
 \item{kin}{A kinship matrix following the series contract (numeric matrix,
-dimnames = indNames(x)), as produced by gl.kin [default NULL, computed
-internally with gl.kin].}
+dimnames = indNames(x), or a superset of them), as produced by gl.kin
+[default NULL, computed internally with gl.kin].}
 
 \item{verbose}{Verbosity, already resolved by the caller's
 gl.check.verbosity(); the only gated output is the verbose >= 2 progress
 line announcing the internal gl.kin call [default 0].}
+
+\item{need.reference}{TRUE for callers whose results depend on mean
+kinship or on the gene diversity of the whole of x; the matrix must then
+have been estimated on a wider set of individuals than x [default FALSE].}
 }
 \value{
 The validated kinship matrix (the supplied kin, or the matrix
@@ -30,10 +34,13 @@ OUTCOMES.
 
 The shared kin-validation gate of the captive management series. If no
 kinship matrix is supplied (kin = NULL), one is computed with gl.kin using
-the default method for the datatype. A supplied matrix tagged
+the default method for the datatype, unless the caller needs a reference
+(see need.reference). A supplied matrix tagged
 attr(kin, "scale") = "relatedness" (such as gl.grm output) is halved to
-kinship; an untagged matrix is assumed to be kinship. The matrix is then
-validated against the series contract: a base numeric matrix with row
+kinship; an untagged matrix is assumed to be kinship. A matrix covering
+more individuals than x (for example, kinship estimated on a dataset that
+includes the source populations) is restricted to indNames(x). The result
+is validated against the series contract: a base numeric matrix with row
 and column names both identical to indNames(x). Consumer functions call
 this once, immediately after their standard preamble, in place of a local
 validation stanza.
@@ -47,6 +54,14 @@ value through. Validation failure is a fatal error: kin must be a base
 numeric matrix whose rownames and colnames are each identical() to
 indNames(x) — the same order, not merely the same set — so that all
 downstream row/column indexing by individual id is sound.
+
+Genomic kinship is centred on the individuals it was estimated on: each
+row averages about 0 over that set (exactly 0 for gl.kin method 'grm'),
+so mean kinship and whole-set gene diversity computed on the same set
+carry no information. With need.reference = TRUE the matrix is rejected
+as self-referenced when kin is NULL, when its 'ref.ids' attribute (set by
+gl.kin) equals indNames(x), or when its row means over x are all within
+1e-10 of 0.
 }
 \examples{
 # Examples for testing

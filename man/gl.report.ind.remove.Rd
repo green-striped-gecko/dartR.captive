@@ -10,9 +10,12 @@ gl.report.ind.remove(x, kin = NULL, n.best = NULL, verbose = NULL)
 \item{x}{Name of the genlight object containing the SNP or presence/absence
 (SilicoDArT) data [required].}
 
-\item{kin}{Kinship matrix as returned by \code{gl.kin}, with row and column
-names identical to \code{indNames(x)}; if NULL, computed internally with
-\code{gl.kin} [default NULL].}
+\item{kin}{Kinship matrix estimated on a wider set of individuals than x,
+for example gl.kin() on a dataset that includes the source populations;
+it may cover more individuals than x and is restricted to indNames(x).
+Kinship estimated on x alone (including kin = NULL) is an error, because
+mean kinship over the individuals it was estimated on is 0 by
+construction [required].}
 
 \item{n.best}{Maximum number of individuals in the greedy removal set; if
 NULL, removals continue until no single removal increases gene diversity
@@ -72,9 +75,9 @@ cb <- gl.keep.pop(testset2.gl, pop.list = "EmmacCaptBred", verbose = 0)
 res <- gl.report.ind.remove(cb, kin = kin[indNames(cb), indNames(cb)])
 head(res$ranking)  # most-inbred/most-redundant sibs rank first
 res$removal.set
-# Tag P/A data (SilicoDArT; kinship computed internally)
+# Tag P/A data (SilicoDArT): the full-dataset kinship is restricted to cb.gs
 cb.gs <- gl.keep.pop(testset2.gs, pop.list = "EmmacCaptBred", verbose = 0)
-res.gs <- gl.report.ind.remove(cb.gs, n.best = 3)
+res.gs <- gl.report.ind.remove(cb.gs, kin = gl.kin(testset2.gs), n.best = 3)
 
 }
 \seealso{
