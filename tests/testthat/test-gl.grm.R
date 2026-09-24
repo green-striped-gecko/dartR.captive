@@ -55,3 +55,17 @@ test_that("gl.grm assigns a default population when none is set", {
   G <- gl.grm(sub, plotheatmap = FALSE, verbose = 0)
   expect_equal(dim(G), c(10, 10))
 })
+
+test_that("single-copy loci are kept, so the matrix is platform independent", {
+  # value from x86 Linux/Windows; arm64 macOS gave 0.943133 before the
+  # tolerance because mean() put some single-copy loci below 1/(2n)
+  x <- platypus.gl[1:12, 1:200]
+  G <- gl.grm(x, plotheatmap = FALSE, verbose = 0)
+  expect_equal(round(unname(G["T27", c("T27", "T35", "SDS4", "SDS12")]), 6),
+               c(0.985509, -0.173415, -0.098468, -0.090907))
+  # a user-supplied min.MAF is passed through unchanged
+  G2 <- gl.grm(x, plotheatmap = FALSE, verbose = 0, min.MAF = 0.1)
+  expect_equal(unclass(G2)[, ], rrBLUP::A.mat(as.matrix(x) - 1,
+                                               min.MAF = 0.1)[, ],
+               ignore_attr = TRUE)
+})
