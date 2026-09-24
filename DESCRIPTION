@@ -1,9 +1,9 @@
 Package: dartR.captive
 Type: Package
 Title: Analysing 'SNP' Data to Support Captive Breeding
-Version: 1.2.2
+Version: 1.2.6
 Revision: Elastic Elapid
-Date: 2026-02-20
+Date: 2026-09-24
 Authors@R: c(
             person("Bernd",  "Gruber", email="bernd.gruber@canberra.edu.au", role=c("aut","cre")), 
             person("Arthur", "Georges", email="georges@aerg.edu.au", role="aut"),
