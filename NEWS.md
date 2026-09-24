@@ -2,6 +2,22 @@
 
 ## Unreleased
 
+* `gl.relatedness()` (new on `dev`; Coancestry estimators through the
+  closed-source `dartR.coancestry` engine): the engine is fetched with
+  `getExportedValue()`, so R CMD check no longer warns about an
+  undeclared dependency. A pair of individuals that shares no called
+  locus now gets `NA` for every estimator (the engine returned 0, i.e.
+  "unrelated", for the moment estimators and `NaN` for the likelihood
+  ones), with a warning; with `n.boots > 0`, individuals dropped by the
+  pre-filter keep `NA` rows, so the matrices always cover `indNames(x)`.
+  The matrices are tagged `attr(, "scale") = "relatedness"`, so the
+  kinship functions halve them when they are passed as `kin`. Arguments
+  are checked before the engine runs (an invalid `plot.stat` used to stop
+  only after the run). The heatmap is saved whenever `plot.file` is
+  given; the result is returned invisibly. Details document that `wang`
+  and `lynchli` sit above `related::coancestry` by a small-sample term
+  (+0.047 and +0.018 on 30 platypus), while `lynchrd`, `ritland` and
+  `quellergt` match it.
 * `gl.select.pairs()`: a warning when any individual has call rate below
   0.8, and Details on why: missing genotypes shrink kinship while `f.max`
   is fixed, so on the `testset2.gl` captive colony one of the 10 pairs

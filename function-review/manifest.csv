@@ -22,4 +22,5 @@ gl.report.ind.remove,dartR.captive,report,Claude,done#123
 gl.report.repro.targets,dartR.captive,report,Claude,done#127
 gl.report.kin.sets,dartR.captive,report,Claude,done#125
 gl.report.mate.suitability,dartR.captive,report,Claude,done#126
-gl.select.pairs,dartR.captive,report,Claude,pr-open#128
+gl.select.pairs,dartR.captive,report,Claude,done#128
+gl.relatedness,dartR.captive,analysis,Claude,pr-open#129
