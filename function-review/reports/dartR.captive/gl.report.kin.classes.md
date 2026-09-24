@@ -169,7 +169,7 @@ rate is below 0.8. Messages and documentation only; no numerical change.
 - Snapshot: 3 baseline expectations changed, all mapped to changes 2 and 3; tests updated, 28 expectations pass. Example runs; `verbose = 3` run end to end on testset2.gl.
 - `devtools::document()` also dropped two stale `importFrom(stats, dnorm/qnorm)` lines from NAMESPACE that no roxygen tag produces; reverted to keep this PR to one function.
 - NEWS entry added. PR: #114
-- Addendum A1 (follow-up PR, #114 had merged): missing-data paragraph and filtered example in `@details`/`@examples`, call-rate warning (24 individuals on testset2.gl), example comment and NEWS corrected. Call rate is read from the genlight NA positions, without densifying. Test: 5 conflicts after filtering at 0.95; 30 expectations pass.
+- Addendum A1 (follow-up PR #116, #114 had merged): missing-data paragraph and filtered example in `@details`/`@examples`, call-rate warning (24 individuals on testset2.gl), example comment and NEWS corrected. Call rate is read from the genlight NA positions, without densifying. Test: 5 conflicts after filtering at 0.95; 30 expectations pass.
 
 ```json
 {
