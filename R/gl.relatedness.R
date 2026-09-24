@@ -98,7 +98,8 @@ gl.relatedness <- function(x,
   # CHECK DATATYPE
   datatype <- utils.check.datatype(x, verbose = verbose)
 
-  if (!is(x, "dartR")) class(x) <- "dartR"
+  # as() adds the fbm slot; class<- only relabels and gives an invalid object
+  if (!is(x, "dartR")) x <- methods::as(x, "dartR")
 
   # FUNCTION-SPECIFIC ERROR CHECKING ---------------------------------
   if (datatype != "SNP")
