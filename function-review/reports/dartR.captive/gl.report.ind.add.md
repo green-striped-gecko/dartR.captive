@@ -117,7 +117,7 @@ SilicoDArT path, and the input coming back identical.
 - Change 5: `build =` dropped; `verbose >= 3` summary through `report()`.
 - Snapshot: 2 baseline expectations changed (NA test, duplicate test), mapped to changes 1 and 4; values, order and founders-last unchanged. 18 expectations pass; example runs.
 - Full suite: 6 failures in `test-gl.grm.R` and `test-gl.assign.grm.R`, identical on clean `origin/dev` (d6e62f2), so pre-existing and not caused by this change; all `utils.kin.dgd` callers' tests pass.
-- NEWS entry added. PR: (pending)
+- NEWS entry added. PR: #120
 
 ```json
 {
@@ -136,7 +136,7 @@ SilicoDArT path, and the input coming back identical.
     {"id": "F5", "severity": "LOW", "confidence": "high", "rule": "FS3,VRB2", "status": "approved", "change": 5}
   ],
   "coverage_skipped": ["DAT6: no FBM fixture", "forum/issues: no release history"],
-  "status": "in-apply",
-  "pr": null
+  "status": "pr-open",
+  "pr": 120
 }
 ```
