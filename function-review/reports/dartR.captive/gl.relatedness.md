@@ -180,7 +180,7 @@ SilicoDArT and non-diploid guards stop; unknown estimators stop.
 - Change 6: the heatmap is built when `plot.out` or `plot.file` asks for it, drawn on a null device when not displayed; `gl.colors(verbose = 0)`. With `plot.out = FALSE, plot.file = "h"` one file is saved and no device is left open.
 - Change 7: `build =` dropped, `invisible(out)`, DOC2 `verbose` text, `Author(s):` in `@author`.
 - Snapshot: the 10 pre-existing tests pass unchanged; the characterization expectations changed only for approved changes (2: NA and matrix size, 4: scale tag, 5: argument errors, 6: saved file, 7: visibility). 56 expectations pass; 11 warnings come from `dartR.base::utils.heatmap` (a `dendextend` message, also seen in the `gl.run.EMIBD9` tests). Full suite 599 pass, 0 fail. The documented example runs at `verbose = 3`.
-- NEWS entry added. PR: pending
+- NEWS entry added. PR: #129
 
 ## Addendum
 
@@ -211,7 +211,7 @@ awaiting approval.
     {"id": "A1", "severity": "LOW", "confidence": "high", "rule": "VRB1", "status": "pending", "change": null}
   ],
   "coverage_skipped": ["engine internals: closed-source", "trioml vs related: random reference trios", "DAT6: no FBM fixture", "forum/issues: unreleased"],
-  "status": "awaiting-approval",
-  "pr": null
+  "status": "pr-open",
+  "pr": 129
 }
 ```
