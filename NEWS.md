@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+* `gl.report.kin.sets()`: a single-population `x` now needs kinship
+  estimated on a wider reference (`kin = NULL` or kinship estimated on
+  `x` gave `GD.w = 1` and `meanMK = 0` by construction; multi-population
+  calls are unchanged). Missing kinship values are ignored in the block
+  means with a warning (one `NA` pair voided a population's statistics
+  and its 60 Fst values). A warning when individuals have call rate
+  below 0.8. Details now describe the upward self-kinship term in the
+  kinship Fst (random halves of one population give 0.0098) and the
+  SilicoDArT `meanF` of 0; `@param kin` follows the #113 wording.
+
 * `gl.report.ind.add()`: missing kinship values are ignored in the gene
   diversity means with a warning (one `NA` in the target block made
   every `dgd` `NA`); duplicated candidates are evaluated once; a warning
