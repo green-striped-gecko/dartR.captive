@@ -171,7 +171,7 @@ dataset-wide MK carries no information for sample-centred kinship.
 - Specification tests: tests/testthat/test-gl.report.kinship.R, 30
   expectations, 0 failures. `gl.report.kinship(testset2.gl, verbose = 3)`
   runs end to end; the example runs.
-- PR: pending.
+- PR: #112.
 
 ```json
 {
@@ -190,7 +190,7 @@ dataset-wide MK carries no information for sample-centred kinship.
     {"id": "A1", "severity": "LOW", "confidence": "high", "rule": "DOC5", "status": "approved", "change": "A1"}
   ],
   "coverage_skipped": ["DAT6: operates on the kinship matrix"],
-  "status": "approved-applied",
-  "pr": null
+  "status": "pr-open",
+  "pr": 112
 }
 ```
