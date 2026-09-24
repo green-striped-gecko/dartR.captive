@@ -120,7 +120,7 @@ SilicoDArT path runs.
 - Change 4: running-sum greedy. Identical removal set and `gd.after` on the colony (baseline expectations unchanged). Timing: 0.021 / 0.057 / 0.081 / 0.171 s at 60 / 120 / 200 / 270 individuals (was 0.032 / 0.327 / 1.603 s at 60 / 120 / 200).
 - Change 5: `build =` dropped, `report()` in the summary, stale pre-#113 paragraph replaced by a pointer to `@param kin`.
 - Snapshot: 2 baseline expectations changed (NA crash, `n.best = 0`), mapped to changes 1 and 3; everything else unchanged. 21 expectations pass; example runs.
-- NEWS entry added. PR: (pending)
+- NEWS entry added. PR: #123
 
 ```json
 {
@@ -139,7 +139,7 @@ SilicoDArT path runs.
     {"id": "F5", "severity": "LOW", "confidence": "high", "rule": "FS3,VRB2", "status": "approved", "change": 5}
   ],
   "coverage_skipped": ["DAT6: no FBM fixture", "forum/issues: no release history", "timing at n=500/1000 extrapolated"],
-  "status": "in-apply",
-  "pr": null
+  "status": "pr-open",
+  "pr": 123
 }
 ```
