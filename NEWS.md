@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+* `gl.report.mate.suitability()`: a warning when any individual has call
+  rate below 0.8, and Details on why: missing genotypes shrink kinship
+  while the No Way point is fixed, so on the `testset2.gl` captive colony
+  17 of the 48 pairings that are 'NoWay' after filtering loci at call rate
+  0.95 are rated 4-6 unfiltered; the example now filters first. Missing
+  kinship values are ignored in the means with a warning, and a pairing
+  with `NA` kinship gets MSI `NA` (one `NA` gave "missing value where
+  TRUE/FALSE needed"); an `NA` sex counts as unknown (it gave "subscript
+  out of bounds"); an out-of-range `f.noway` is now an error (it was
+  reset to 0.125). Delta gene diversity uses a closed form with identical
+  results: 0.04 s instead of 1.7 s for 200 individuals.
 * `gl.report.kin.sets()`: a single-population `x` now needs kinship
   estimated on a wider reference (`kin = NULL` or kinship estimated on
   `x` gave `GD.w = 1` and `meanMK = 0` by construction; multi-population
