@@ -183,7 +183,7 @@ of the approved behaviour.
     {"id": "F8", "severity": "INFO", "confidence": "high", "rule": "none", "status": "noted", "change": null}
   ],
   "coverage_skipped": [],
-  "status": "pr-open",
+  "status": "done",
   "pr": 106
 }
 ```

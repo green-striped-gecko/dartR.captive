@@ -259,7 +259,7 @@ filtering before `gl.kin` for kinship thresholds and classes. Docs only.
     {"id": "F8", "severity": "LOW", "confidence": "medium", "rule": "DOC5", "status": "approved", "change": 8}
   ],
   "coverage_skipped": ["DAT6: no FBM fixture", "gl.report.kin.classes not run; breaks applied directly"],
-  "status": "pr-open",
+  "status": "done",
   "pr": 108
 }
 ```

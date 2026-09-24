@@ -237,7 +237,7 @@ behaviour.
     {"id": "F8", "severity": "INFO", "confidence": "low", "rule": "none", "status": "noted", "change": null}
   ],
   "coverage_skipped": ["Windows/Linux executables: no binaries available"],
-  "status": "pr-open",
+  "status": "done",
   "pr": 99
 }
 ```

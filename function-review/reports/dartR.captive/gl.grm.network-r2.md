@@ -234,7 +234,7 @@ tests of the approved behaviour; the first-round tests pass unchanged.
     {"id": "F7", "severity": "INFO", "confidence": "high", "rule": "DOC6", "status": "approved", "change": 7}
   ],
   "coverage_skipped": ["DAT6: not applicable"],
-  "status": "pr-open",
+  "status": "done",
   "pr": 97
 }
 ```

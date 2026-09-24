@@ -237,7 +237,7 @@ of the approved behaviour; the default-layout baseline passes unchanged.
     {"id": "F8", "severity": "INFO", "confidence": "high", "rule": "none (gl.run.colony)", "status": "noted", "change": null}
   ],
   "coverage_skipped": ["DAT6: no FBM fixture", "Google Group search: no access"],
-  "status": "pr-open",
+  "status": "done",
   "pr": 98
 }
 ```
