@@ -100,6 +100,25 @@ minimum 0.0050, threshold 0.005). `gl.grm` input is halved through the
 scale tag and gives the same classes as `gl.kin`. Factor `sire`/`dam`
 columns and a self-listed parent do not break the cross-check.
 
+**F6 [HIGH, confidence: high] — addendum, correcting F1: missing data, not structure, drives most conflicts (DOC5, proposed rule)**
+Found while reviewing `gl.report.kin.confidence`. F1 attributed the 19 of
+48 conflicting parent-offspring links to population structure. That is
+mostly wrong. All 24 captive-bred individuals have call rates of
+0.70-0.80, and `gl.kin` fills missing genotypes with the locus mean,
+which pulls their kinships toward 0. After
+`gl.filter.callrate(method = "loc", threshold = 0.95)` (438 loci) only 5
+conflicts remain, all `CB_Y_*` x `CB_AB_02`, a cross-lineage link.
+Structure bias is still real: after filtering, 640 of 641 full-sib calls
+are pairs within a population. The F1 warning stands, but the example
+comment and the NEWS entry from #114 named the wrong cause.
+Failure scenario: a user follows the #114 example comment and blames
+population structure for conflicts that filtering on call rate would
+remove.
+Proposed change (addendum A1): correct the example comment and the NEWS
+entry, add a missing-data paragraph to `@details` and an example with a
+filtered dataset, and warn at `verbose >= 1` when any individual's call
+rate is below 0.8. Messages and documentation only; no numerical change.
+
 ## Proposed changes
 
 1. Document the population-structure bias in `@details`, add a
@@ -138,6 +157,7 @@ columns and a self-listed parent do not break the cross-check.
 | 3 | approved | Luis | consequence (two-individual call errors) approved |
 | 4 | approved | Luis | |
 | 5 | approved | Luis | consequence (`conflicts` no longer NULL) approved |
+| A1 | approved | Luis | addendum after #114 merged; follow-up PR |
 
 ## Outcome
 
@@ -149,6 +169,7 @@ columns and a self-listed parent do not break the cross-check.
 - Snapshot: 3 baseline expectations changed, all mapped to changes 2 and 3; tests updated, 28 expectations pass. Example runs; `verbose = 3` run end to end on testset2.gl.
 - `devtools::document()` also dropped two stale `importFrom(stats, dnorm/qnorm)` lines from NAMESPACE that no roxygen tag produces; reverted to keep this PR to one function.
 - NEWS entry added. PR: #114
+- Addendum A1 (follow-up PR #116, #114 had merged): missing-data paragraph and filtered example in `@details`/`@examples`, call-rate warning (24 individuals on testset2.gl), example comment and NEWS corrected. Call rate is read from the genlight NA positions, without densifying. Test: 5 conflicts after filtering at 0.95; 30 expectations pass.
 
 ```json
 {
@@ -164,7 +185,8 @@ columns and a self-listed parent do not break the cross-check.
     {"id": "F2", "severity": "HIGH", "confidence": "high", "rule": "DAT", "status": "approved", "change": 2},
     {"id": "F3", "severity": "LOW", "confidence": "medium", "rule": "DOC5", "status": "approved", "change": 3},
     {"id": "F4", "severity": "LOW", "confidence": "high", "rule": "FS3,VRB2,DAT6", "status": "approved", "change": 4},
-    {"id": "F5", "severity": "INFO", "confidence": "high", "rule": "API1", "status": "approved", "change": 5}
+    {"id": "F5", "severity": "INFO", "confidence": "high", "rule": "API1", "status": "approved", "change": 5},
+    {"id": "F6", "severity": "HIGH", "confidence": "high", "rule": "DOC5", "status": "approved", "change": "A1"}
   ],
   "coverage_skipped": ["DAT6: no FBM fixture", "forum/issues: function has no release history"],
   "status": "pr-open",
