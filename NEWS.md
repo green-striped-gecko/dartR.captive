@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+* `gl.report.kin.groups()` now needs kinship estimated on a wider
+  reference than `x` (as `gl.report.ind.remove()` and the other
+  functions in #113): group MK averages over all individuals, so with
+  kinship estimated on `x` itself (including `kin = NULL`) every group
+  had MK = 0 and GD = 1. The #113 audit listed this function as
+  unaffected; that was wrong. Missing kinship values are ignored in the
+  block means with a warning (one NA made MK and GD NA), and individuals
+  with call rate below 0.8 give a warning: missing genotypes pull kinship
+  and inbreeding toward 0 (captive cohorts in `testset2.gl`: meanF -0.25
+  to -0.38, and -0.15 to +0.01 after filtering loci at call rate 0.95).
+
 * `gl.report.kin.confidence()`: the standard errors now describe the
   estimator `gl.kin()` returns. For SNP data each resample is `G/2`; it
   still subtracted `mean(diag(G) - 1)`, the centring #108 removed from

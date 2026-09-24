@@ -13,18 +13,33 @@
 #' @param group.col Name of a column in x@@other$ind.metrics defining the
 #' management group of each individual; if NULL, groups are taken from pop(x)
 #' [default NULL].
-#' @param kin Kinship matrix with both dimnames identical to indNames(x), as
-#' produced by gl.kin; if NULL, computed internally with gl.kin [default NULL].
+#' @param kin Kinship matrix estimated on a wider set of individuals than x,
+#' for example gl.kin() on a dataset that includes the source populations;
+#' it may cover more individuals than x and is restricted to indNames(x).
+#' Kinship estimated on x alone (including kin = NULL) is an error, because
+#' group mean kinship over the individuals it was estimated on is 0 and gene
+#' diversity 1 by construction [required].
 #' @param verbose Verbosity: 0, silent or fatal errors; 1, begin and end; 2,
 #' progress log; 3, progress and results summary; 5, full report
 #' [default NULL, adopting the global verbosity set by gl.set.verbosity(),
 #' or 2 if no global is set].
 
 #' @details
-#' Kinship should be estimated on the most inclusive dataset available and the
-#' matrix subset to the managed group; computing kinship on a small family
-#' group alone inflates estimates (the allele-frequency reference collapses
-#' onto the family itself).
+#' Kinship must be estimated on a wider reference than x, for example the most
+#' inclusive dataset available, and is restricted to the managed individuals.
+#' gl.kin centres kinship on the individuals it is estimated on, so over
+#' those individuals every row of the matrix averages 0: every group MK would
+#' be 0 and GD 1, whatever the data. Such a matrix (including kin = NULL) is
+#' rejected with an error.
+#'
+#' Missing genotypes pull kinship and self-kinship toward 0, because gl.kin
+#' fills them with the locus mean. Groups of individuals with low call rates
+#' therefore show negative meanF, lower MK and higher GD: on the testset2.gl
+#' captive cohorts (call rates 0.70-0.80) meanF is -0.25 to -0.38, and -0.15
+#' to +0.01 after gl.filter.callrate(method = "loc", threshold = 0.95). The
+#' function warns when any individual's call rate is below 0.8; filter on
+#' call rate before gl.kin. Pairs with missing (NA) kinship are ignored in
+#' the block means, with a warning.
 #'
 #' Many species are managed as groups (herds, flocks, tanks, enclosures) within
 #' which parentage is unobserved, so individual-level pedigree management as
@@ -53,6 +68,8 @@
 #'
 #' The mean inbreeding coefficient reported per group is derived from the
 #' kinship diagonal, F_i = 2 * kin[i,i] - 1, averaged over group members.
+#' Under the dominant (SilicoDArT) kinship estimator the diagonal is fixed at
+#' 0.5, so meanF is 0 by construction.
 
 #' @author Author(s): Arthur Georges. Custodian: Arthur Georges -- Post to
 #' \url{https://groups.google.com/d/forum/dartr}
@@ -72,7 +89,7 @@
 #' @export
 #' @return Invisibly, a list with three components: groups, a data frame with
 #' columns group, n, MK (size-weighted group mean kinship) and meanF (mean
-#' inbreeding of members); kin.groups, the group-by-group kinship matrix; and
+#' inbreeding of members; 0 by construction for SilicoDArT data); kin.groups, the group-by-group kinship matrix; and
 #' gd, the group-level gene diversity of the managed population.
 #'
 # ----------------------
@@ -87,15 +104,28 @@ gl.report.kin.groups <- function(x,
 
     # FLAG SCRIPT START
     funname <- match.call()[[1]]
-    utils.flag.start(func = funname,
-                     build = "v.2026.1",
-                     verbose = verbose)
+    utils.flag.start(func = funname, verbose = verbose)
 
     # CHECK DATATYPE
     datatype <- utils.check.datatype(x, verbose = verbose)
 
-    # KINSHIP MATRIX
-    kin <- utils.kin.check(x, kin, verbose = verbose)
+    # KINSHIP MATRIX -- MK and GD are means over all individuals, so a
+    # self-referenced matrix (rows averaging 0) would give MK 0 and GD 1
+    kin <- utils.kin.check(x, kin, verbose = verbose,
+                           need.reference = TRUE)
+
+    # Mean imputation of missing genotypes (gl.kin) pulls kinship and
+    # self-kinship toward 0 for individuals with low call rates
+    ind.cr <- 1 - vapply(x@gen, function(e) length(e@NA.posi), numeric(1)) /
+        nLoc(x)
+    if (any(ind.cr < 0.8) && verbose >= 1) {
+        cat(warn(paste0("  Warning: ", sum(ind.cr < 0.8),
+                        " individuals have call rate below 0.8 (lowest ",
+                        round(min(ind.cr), 3),
+                        "); missing genotypes pull their kinship and ",
+                        "inbreeding toward 0. Consider filtering on call ",
+                        "rate before gl.kin (see Details)\n")))
+    }
 
     # FUNCTION SPECIFIC ERROR CHECKING -- group membership
     if (is.null(group.col)) {
@@ -136,13 +166,20 @@ gl.report.kin.groups <- function(x,
         cat(report("  Aggregating kinship over", G, "groups,", N, "individuals\n"))
     }
 
+    n.na <- sum(is.na(kin[upper.tri(kin)]))
+    if (n.na > 0 && verbose >= 1) {
+        cat(warn("  Warning:", n.na,
+                 "pairs have missing kinship and are ignored in the block means\n"))
+    }
+
     # Group kinship matrix: block means of the individual kinship matrix
     # (self blocks include the diagonal)
     f <- matrix(NA_real_, nrow = G, ncol = G, dimnames = list(levs, levs))
     idx <- split(seq_along(grp), grp)
     for (g in seq_len(G)) {
         for (h in seq_len(G)) {
-            f[g, h] <- mean(kin[idx[[levs[g]]], idx[[levs[h]]], drop = FALSE])
+            f[g, h] <- mean(kin[idx[[levs[g]]], idx[[levs[h]]], drop = FALSE],
+                            na.rm = TRUE)
         }
     }
 
@@ -152,7 +189,7 @@ gl.report.kin.groups <- function(x,
 
     # Mean inbreeding per group from the kinship diagonal
     Fi <- 2 * diag(kin) - 1
-    meanF <- as.numeric(tapply(Fi, grp, mean)[levs])
+    meanF <- as.numeric(tapply(Fi, grp, mean, na.rm = TRUE)[levs])
 
     groups <- data.frame(group = levs,
                          n = n.g,
@@ -162,11 +199,11 @@ gl.report.kin.groups <- function(x,
 
     # Printing outputs -----------
     if (verbose >= 3) {
-        cat("  Group-level kinship summary\n")
-        cat(paste("    Groups            :", G), "\n")
-        cat(paste("    Individuals       :", N), "\n")
-        cat(paste("    Gene diversity    :", round(gd, 4)), "\n")
-        cat("  Per-group mean kinship and inbreeding\n")
+        cat(report("  Group-level kinship summary\n"))
+        cat(report("    Groups            :", G, "\n"))
+        cat(report("    Individuals       :", N, "\n"))
+        cat(report("    Gene diversity    :", round(gd, 4), "\n"))
+        cat(report("  Per-group mean kinship and inbreeding\n"))
         print(data.frame(group = groups$group,
                          n = groups$n,
                          MK = round(groups$MK, 4),

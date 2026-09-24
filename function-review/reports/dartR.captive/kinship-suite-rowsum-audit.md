@@ -32,8 +32,13 @@ is then restricted to the managed group. The series computes `kin` from
 | `gl.report.gd.projection` (from `x`) | `gd.now = 1` | 0.934 |
 | `gl.report.kin.sets` | `meanMK` ~1e-18 for every set (dataset-wide row means averaged per set); `GD.w` correct (block-based) | — |
 
-Not affected: `gl.report.ind.add`, `gl.report.ind.move`,
-`gl.report.kin.groups` (use population blocks), `gl.report.kin.classes`,
+`gl.report.kin.groups`: listed here as not affected when this audit was
+written; that was wrong. Its group MK averages each group over all
+groups, which recovers the dataset-wide row means, so self-referenced
+kinship gives MK = 0 for every group and GD = 1 (see
+gl.report.kin.groups.md, F1; fixed with need.reference = TRUE).
+
+Not affected: `gl.report.ind.add`, `gl.report.ind.move`, `gl.report.kin.classes`,
 `gl.report.kin.confidence` (pairwise values or genotypes). Pairwise
 quantities (offspring inbreeding `f.off`, kinship classes) are valid in
 every function.
