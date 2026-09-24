@@ -148,7 +148,7 @@ columns and a self-listed parent do not break the cross-check.
 - Change 5: `conflicts` is a zero-row data frame with the documented columns.
 - Snapshot: 3 baseline expectations changed, all mapped to changes 2 and 3; tests updated, 28 expectations pass. Example runs; `verbose = 3` run end to end on testset2.gl.
 - `devtools::document()` also dropped two stale `importFrom(stats, dnorm/qnorm)` lines from NAMESPACE that no roxygen tag produces; reverted to keep this PR to one function.
-- NEWS entry added. PR: (pending)
+- NEWS entry added. PR: #114
 
 ```json
 {
@@ -167,7 +167,7 @@ columns and a self-listed parent do not break the cross-check.
     {"id": "F5", "severity": "INFO", "confidence": "high", "rule": "API1", "status": "approved", "change": 5}
   ],
   "coverage_skipped": ["DAT6: no FBM fixture", "forum/issues: function has no release history"],
-  "status": "in-apply",
-  "pr": null
+  "status": "pr-open",
+  "pr": 114
 }
 ```
