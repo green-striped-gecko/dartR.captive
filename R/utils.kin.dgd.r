@@ -99,6 +99,10 @@ utils.kin.dgd <- function(kin,
     }
 
     # (b) Append virtual offspring, one per row of add.pairs, in row order ----
+    # an empty table of pairs adds no offspring
+    if (!is.null(add.pairs) && NROW(add.pairs) == 0) {
+        add.pairs <- NULL
+    }
     if (!is.null(add.pairs)) {
         if (is.data.frame(add.pairs)) {
             add.pairs <- as.matrix(add.pairs)

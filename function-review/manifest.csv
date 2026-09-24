@@ -24,3 +24,6 @@ gl.report.kin.sets,dartR.captive,report,Claude,done#125
 gl.report.mate.suitability,dartR.captive,report,Claude,done#126
 gl.select.pairs,dartR.captive,report,Claude,done#128
 gl.relatedness,dartR.captive,analysis,Claude,done#129
+utils.kin.check,dartR.captive,utility,luis,pr-open
+utils.kin.dgd,dartR.captive,utility,luis,pr-open
+utils.kin.dominant,dartR.captive,utility,luis,pr-open
