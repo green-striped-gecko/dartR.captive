@@ -1,5 +1,5 @@
 #' Setting up dartR.captive
-#' @importFrom utils packageVersion read.csv read.delim read.table write.csv write.table
+#' @importFrom utils head modifyList packageVersion read.csv read.delim read.table write.csv write.table
 #' @importFrom methods getPackageName is new
 #' @importFrom grDevices rainbow hcl
 #' @importFrom graphics lines par
@@ -33,7 +33,7 @@ code <- crayon::cyan
 }
 
 # Fix error using . as placeholder 
-if(getRversion() >= "2.15.1") utils::globalVariables(".")
+if(getRversion() >= "2.15.1") utils::globalVariables(c(".", "prop.retained"))
 
 ## returns NULL if the 'fbm' slot is missing OR is NULL
 .fbm_or_null <- function(x) {
