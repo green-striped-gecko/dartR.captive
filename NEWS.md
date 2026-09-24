@@ -2,6 +2,11 @@
 
 ## dartR.captive 1.2.6
 
+* `gl.kin()` on presence/absence data no longer prints "Starting" and
+  "Completed" lines for its internal estimator `utils.kin.dominant()` at
+  `verbose >= 1`. The internal `utils.kin.dgd()` accepts an empty table of
+  parent pairs (no current caller passes one). No results change.
+
 * `gl.relatedness()` (new on `dev`; Coancestry estimators through the
   closed-source `dartR.coancestry` engine): the engine is fetched with
   `getExportedValue()`, so R CMD check no longer warns about an

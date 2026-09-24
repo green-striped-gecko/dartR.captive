@@ -68,11 +68,8 @@ utils.kin.dominant <- function(x,
     # SET VERBOSITY
     verbose <- gl.check.verbosity(verbose)
 
-    # FLAG SCRIPT START
-    funname <- match.call()[[1]]
-    utils.flag.start(func = funname,
-                     build = "v.2026.1",
-                     verbose = verbose)
+    # Internal engine of gl.kin: no Starting/Completed lines of its own, so
+    # they do not appear nested inside gl.kin's
 
     # CHECK DATATYPE
     datatype <- utils.check.datatype(x,
@@ -137,12 +134,6 @@ utils.kin.dominant <- function(x,
                    round(min(off, na.rm = TRUE), 4), "to",
                    round(max(off, na.rm = TRUE), 4), "\n"))
     }
-
-    # FLAG SCRIPT END ---------------
-    if (verbose >= 1) {
-        cat(report("Completed:", funname, "\n"))
-    }
-    # ----------------------
 
     # RETURN
     invisible(kin)
