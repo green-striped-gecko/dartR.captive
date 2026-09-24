@@ -11,12 +11,18 @@ test_that("gl.grm output is numerically stable across repeat runs (baseline snap
   sub <- testset.gl[1:10, 1:100]
   G <- gl.grm(sub, plotheatmap = FALSE, verbose = 0)
 
-  # Baseline captured 2026-08-26 against dartR.captive commit bdb623d.
-  # This snapshots CURRENT behaviour, not asserted-correct behaviour.
-  expect_equal(unname(G[1, 1]), 0.10859585, tolerance = 1e-6)
-  expect_equal(unname(G[2, 2]), 2.10321355, tolerance = 1e-6)
-  expect_equal(unname(G[1, 2]), -0.17634953, tolerance = 1e-6)
-  expect_equal(range(diag(G)), c(0.07693525, 4.211809), tolerance = 1e-5)
+  # Snapshot of CURRENT behaviour, not asserted-correct behaviour.
+  # Values re-anchored 2026-09-24 to testset.gl from dartR.data >= 1.2.4
+  # (1.2.4 changed genotypes in this subset; the 2026-08-26 values came
+  # from an older testset.gl). The fingerprint separates a change in the
+  # test data from a change in gl.grm.
+  m <- as.matrix(sub)
+  expect_equal(c(sum(m, na.rm = TRUE), sum(is.na(m))), c(513, 111),
+               label = "testset.gl[1:10, 1:100] fingerprint (testset.gl changed?)")
+  expect_equal(unname(G[1, 1]), 0.02240585, tolerance = 1e-6)
+  expect_equal(unname(G[2, 2]), 0.96305974, tolerance = 1e-6)
+  expect_equal(unname(G[1, 2]), -0.03638501, tolerance = 1e-6)
+  expect_equal(range(diag(G)), c(0.0158735, 0.9630597), tolerance = 1e-5)
 })
 
 test_that("gl.grm errors on SilicoDArT data instead of returning a meaningless matrix (F1 fix)", {
