@@ -124,7 +124,7 @@ F1_AE elevated (shared sire)" holds: 0.082, the highest F1-F1 value.
 - Change 4: `@details` and `@return` state that SilicoDArT `meanF` is 0 by construction.
 - Change 5: `build =` dropped; `verbose >= 3` summary through `report()`.
 - Snapshot: 3 baseline tests errored, all from change 1 (tests passing a self-referenced `kin`); rewritten with a reference `kin`. Reference-kinship values (`MK`, `meanF`, `GD`, `kin.groups`) unchanged, which confirms changes 2, 4 and 5 leave output alone. 20 expectations pass; example runs.
-- NEWS entry added. PR: (pending)
+- NEWS entry added. PR: #119
 
 ```json
 {
@@ -143,7 +143,7 @@ F1_AE elevated (shared sire)" holds: 0.082, the highest F1-F1 value.
     {"id": "F5", "severity": "LOW", "confidence": "high", "rule": "FS3,VRB2", "status": "approved", "change": 5}
   ],
   "coverage_skipped": ["DAT6: no FBM fixture", "forum/issues: no release history"],
-  "status": "in-apply",
-  "pr": null
+  "status": "pr-open",
+  "pr": 119
 }
 ```
