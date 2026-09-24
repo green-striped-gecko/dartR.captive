@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+* `gl.report.kin.groups()` now needs kinship estimated on a wider
+  reference than `x` (as `gl.report.ind.remove()` and the other
+  functions in #113): group MK averages over all individuals, so with
+  kinship estimated on `x` itself (including `kin = NULL`) every group
+  had MK = 0 and GD = 1. The #113 audit listed this function as
+  unaffected; that was wrong. Missing kinship values are ignored in the
+  block means with a warning (one NA made MK and GD NA), and individuals
+  with call rate below 0.8 give a warning: missing genotypes pull kinship
+  and inbreeding toward 0 (captive cohorts in `testset2.gl`: meanF -0.25
+  to -0.38, and -0.15 to +0.01 after filtering loci at call rate 0.95).
 * `gl.grm()` passes `min.MAF = 1/(2n) - 1e-10` to `rrBLUP::A.mat()` unless
   `min.MAF` is given. With the default `1/(2n)`, a locus with a single
   minor-allele copy sat exactly on the cut-off, and rounding decided whether

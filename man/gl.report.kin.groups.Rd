@@ -14,8 +14,12 @@ gl.report.kin.groups(x, group.col = NULL, kin = NULL, verbose = NULL)
 management group of each individual; if NULL, groups are taken from pop(x)
 [default NULL].}
 
-\item{kin}{Kinship matrix with both dimnames identical to indNames(x), as
-produced by gl.kin; if NULL, computed internally with gl.kin [default NULL].}
+\item{kin}{Kinship matrix estimated on a wider set of individuals than x,
+for example gl.kin() on a dataset that includes the source populations;
+it may cover more individuals than x and is restricted to indNames(x).
+Kinship estimated on x alone (including kin = NULL) is an error, because
+group mean kinship over the individuals it was estimated on is 0 and gene
+diversity 1 by construction [required].}
 
 \item{verbose}{Verbosity: 0, silent or fatal errors; 1, begin and end; 2,
 progress log; 3, progress and results summary; 5, full report
@@ -25,7 +29,7 @@ or 2 if no global is set].}
 \value{
 Invisibly, a list with three components: groups, a data frame with
 columns group, n, MK (size-weighted group mean kinship) and meanF (mean
-inbreeding of members); kin.groups, the group-by-group kinship matrix; and
+inbreeding of members; 0 by construction for SilicoDArT data); kin.groups, the group-by-group kinship matrix; and
 gd, the group-level gene diversity of the managed population.
 }
 \description{
@@ -35,10 +39,21 @@ mean inbreeding of its members, and the group-level gene diversity of the
 whole managed population.
 }
 \details{
-Kinship should be estimated on the most inclusive dataset available and the
-matrix subset to the managed group; computing kinship on a small family
-group alone inflates estimates (the allele-frequency reference collapses
-onto the family itself).
+Kinship must be estimated on a wider reference than x, for example the most
+inclusive dataset available, and is restricted to the managed individuals.
+gl.kin centres kinship on the individuals it is estimated on, so over
+those individuals every row of the matrix averages 0: every group MK would
+be 0 and GD 1, whatever the data. Such a matrix (including kin = NULL) is
+rejected with an error.
+
+Missing genotypes pull kinship and self-kinship toward 0, because gl.kin
+fills them with the locus mean. Groups of individuals with low call rates
+therefore show negative meanF, lower MK and higher GD: on the testset2.gl
+captive cohorts (call rates 0.70-0.80) meanF is -0.25 to -0.38, and -0.15
+to +0.01 after gl.filter.callrate(method = "loc", threshold = 0.95). The
+function warns when any individual's call rate is below 0.8; filter on
+call rate before gl.kin. Pairs with missing (NA) kinship are ignored in
+the block means, with a warning.
 
 Many species are managed as groups (herds, flocks, tanks, enclosures) within
 which parentage is unobserved, so individual-level pedigree management as
@@ -67,6 +82,8 @@ the individual-level functions in this family.
 
 The mean inbreeding coefficient reported per group is derived from the
 kinship diagonal, F_i = 2 * kin[i,i] - 1, averaged over group members.
+Under the dominant (SilicoDArT) kinship estimator the diagonal is fixed at
+0.5, so meanF is 0 by construction.
 }
 \examples{
 # Captive cohorts as management groups; kinship estimated on the FULL
