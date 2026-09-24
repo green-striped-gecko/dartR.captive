@@ -18,10 +18,16 @@ test_that("gl.assign.grm output is numerically stable across repeat runs (baseli
   sub <- testset.gl[1:30, 1:200]
   res <- gl.assign.grm(sub, unknown = "UC_00126", verbose = 0)
 
-  # Baseline captured 2026-09-01 against dartR.captive commit 571d6a6.
-  # This snapshots CURRENT behaviour, not asserted-correct behaviour.
-  expect_equal(unname(res["EmmacBurdMist"]), 0.24418249, tolerance = 1e-6)
-  expect_equal(unname(res["EmmacCoopEulb"]), -0.44421730, tolerance = 1e-6)
+  # Snapshot of CURRENT behaviour, not asserted-correct behaviour.
+  # Values re-anchored 2026-09-24 to testset.gl from dartR.data >= 1.2.4
+  # (1.2.4 changed genotypes in this subset; the 2026-09-01 values came
+  # from an older testset.gl). The fingerprint separates a change in the
+  # test data from a change in gl.assign.grm.
+  m <- as.matrix(sub)
+  expect_equal(c(sum(m, na.rm = TRUE), sum(is.na(m))), c(3364, 772),
+               label = "testset.gl[1:30, 1:200] fingerprint (testset.gl changed?)")
+  expect_equal(unname(res["EmmacBurdMist"]), 0.13610218, tolerance = 1e-6)
+  expect_equal(unname(res["EmmacCoopEulb"]), -0.27070442, tolerance = 1e-6)
   expect_equal(unname(res[1]), max(res), tolerance = 1e-6) # sorted decreasing
 })
 
