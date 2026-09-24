@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+* Relationship matrices now carry their scale: `gl.grm()` output is tagged
+  `attr(, "scale") = "relatedness"` (`gl.run.EMIBD9()` and `gl.kin()`
+  already tag `"kinship"`). The kinship series (`gl.report.kin*`,
+  `gl.report.ind.*`, `gl.select.pairs`, ...) halves a `kin` tagged
+  `"relatedness"`, so passing `gl.grm()` output gives the same results as
+  `gl.kin()`; previously it was used as kinship, twice too large. A
+  matrix with any other tag is an error; untagged matrices are still
+  taken as kinship. `gl.grm()` documentation corrected: the diagonal can
+  be below 1, and the off-diagonal mean is `-mean(diag)/(n - 1)` with `n`
+  individuals, not loci.
+
 * `gl.grm.network(standardise = TRUE)` now follows Goudet et al. (2018):
   kinship relative to the average pair, `(theta - mean) / (1 - mean)`.
   It subtracted the mean inbreeding coefficient from every kinship, so

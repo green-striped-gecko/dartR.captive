@@ -6,10 +6,9 @@
 #'
 #' @param G A square relationship matrix, such as the output of gl.grm or the
 #' $rel element of gl.run.EMIBD9. Row and column names must be the individual
-#' names of x. Off-diagonal elements are taken as relatedness coefficients
-#' (about twice the kinship) and kinship is computed as G / 2, unless G
-#' carries attr(G, "scale") = "kinship", as gl.run.EMIBD9 output does; then
-#' G is used as kinship directly [required].
+#' names of x. The scale is read from attr(G, "scale"): a G tagged
+#' "kinship" is used as kinship directly; any other G (tagged "relatedness",
+#' or untagged) is taken as relatedness and halved [required].
 #' @param x A genlight object from which the matrix was generated [required].
 #' @param standardise Whether to standardise matrix using Goudet et al method, 
 #' see details [default FALSE].

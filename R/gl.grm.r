@@ -35,13 +35,15 @@
 #' While IBS does not necessarily imply IBD, using high-density SNP data 
 #' improves the estimation of IBD probabilities from IBS measures.
 #'
-#' This function also plots a heatmap, and a dendrogram, of IBD values where
-#' each diagonal element has a mean that equals 1+f, where f is the inbreeding
-#' coefficient (i.e. the probability that the two alleles at a randomly chosen
-#' locus are IBD from the base population). As this probability lies between 0
-#'  and 1, the diagonal elements range from 1 to 2. Because the inbreeding
-#'  coefficients are expressed relative to the current population, the mean of
-#'  the off-diagonal elements is -(1+f)/n, where n is the number of loci.
+#' The matrix is on the relatedness scale: each diagonal element estimates
+#' 1+f, where f is the inbreeding coefficient of the individual, and each
+#' off-diagonal element estimates twice the kinship of the pair. Both are
+#' relative to the allele frequencies of the supplied individuals, so f can
+#' be negative (diagonal below 1), and the matrix sums to zero: the mean of
+#' the off-diagonal elements is -(mean of the diagonal)/(n-1), where n is
+#' the number of individuals. For kinship (half these values), use gl.kin.
+#'
+#' This function also plots a heatmap, and a dendrogram, of the matrix.
 #'  Individual names are shown in the margins of the heatmap and colors
 #'  represent different populations.
 #'
@@ -50,7 +52,10 @@
 #'  suited to full-size FBM-backed objects, where densification defeats the
 #'  memory savings FBM backing is meant to provide.
 #'
-#' @return An identity by descent matrix
+#' @return A square genomic relationship matrix on the relatedness scale
+#' (diagonal 1+f, off-diagonal twice the kinship), with row and column names
+#' set to the individual names and attr(, "scale") = "relatedness", returned
+#' invisibly.
 #' @author Author(s): Arthur Georges. Custodian: Arthur Georges -- Post to
 #' \url{https://groups.google.com/d/forum/dartr}
 #' @references \itemize{
@@ -139,6 +144,9 @@ gl.grm <- function(x,
   # calculating the realized additive relationship matrix
 
   G <- rrBLUP::A.mat(as.matrix(x) - 1, ...)
+  # diagonal 1 + F, off-diagonal ~2 x kinship; consumers read this tag
+  # (utils.kin.as.kinship, gl.grm.network)
+  attr(G, "scale") <- "relatedness"
 
   if (plotheatmap == TRUE) {
     # check if package is installed
