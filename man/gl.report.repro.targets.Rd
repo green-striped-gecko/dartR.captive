@@ -22,9 +22,8 @@ each sex's individual targets sum to this value [default NULL, resolving to
 nInd(x), i.e. one-for-one replacement of the current population].}
 
 \item{verbose}{Verbosity: 0, silent or fatal errors; 1, begin and end; 2,
-progress log; 3, progress and results summary; 5, full report
-[default NULL, adopting the global verbosity set by gl.set.verbosity(),
-or 2 if no global is set].}
+brief progress messages; 3, progress and results summary; 5, full report
+[default 2, unless specified using gl.set.verbosity].}
 }
 \value{
 Invisibly, a data frame with one row per sexed individual: $id,
@@ -33,11 +32,11 @@ target; targets sum to n.target within each sex).
 }
 \description{
 Calculates a lifetime offspring target for each sexed individual in a
-genlight object such that founder-genome representation is equalised in the
-next generation: individuals with low mean kinship (carrying
-under-represented genomes) receive high targets, individuals with high mean
-kinship receive low targets, and each sex's targets sum to the total number
-of offspring sought. This is a SNP-based analogue of the Repro Goals screen
+genlight object that lowers the expected mean kinship of the next
+generation: individuals with low mean kinship (carrying under-represented
+genomes) receive high targets, individuals with high mean kinship receive
+low targets, and each sex's targets sum to the total number of offspring
+sought. This is a SNP-based analogue of the Repro Goals screen
 in the PMx studbook-management software.
 }
 \details{
@@ -65,17 +64,36 @@ n.target. Fractional targets are integerised by the largest-remainder
 method, so each sex's targets sum exactly to n.target; remainder ties are
 broken in favour of lower mean kinship, then by individual id.
 
+The allocation uses each individual's mean kinship only, not the kinship
+between the individuals it favours, so it does not reach the optimum. On
+the testset2.gl captive colony (unfiltered, n.target = nInd(x)), the
+expected mean kinship of the next generation is 0.0582, against 0.0667
+for equal contributions and 0.0560 for optimal (non-negative)
+contributions.
+
+Missing genotypes change the targets. gl.kin fills missing genotypes with
+the locus mean, which pulls kinship toward 0 for individuals with low call
+rates. On the same colony (call rates 0.70-0.80), filtering loci with
+gl.filter.callrate(method = "loc", threshold = 0.95) changes the target
+of 9 of 24 individuals (one goes from 2 offspring to 0). The function
+warns when any individual has call rate below 0.8; filter on call rate
+before gl.kin. Missing (NA) kinship values are ignored in the mean
+kinship, with a warning.
+
 Sexes are read from x@other$ind.metrics$sex (values 'Male', 'Female',
-'Unknown'); individuals of unknown sex are excluded (with a warning) and
+'Unknown'); individuals of any other or missing sex are excluded (with a
+warning) and
 receive no target, although the default n.target = nInd(x) still counts them
 as part of the population being replaced.
 }
 \examples{
-# Estimate kinship on the FULL dataset, then subset to the captive colony
-kin <- gl.kin(testset2.gl)
-cb <- gl.keep.pop(testset2.gl, pop.list = "EmmacCaptBred", verbose = 0)
-kin.cb <- kin[indNames(cb), indNames(cb)]
-tg <- gl.report.repro.targets(cb, kin = kin.cb, n.target = 12)
+# Filter on call rate, estimate kinship on the FULL dataset, and pass it
+# for the captive colony (it is restricted to the colony's individuals)
+tf <- gl.filter.callrate(testset2.gl, method = "loc", threshold = 0.95,
+                         verbose = 0)
+kin <- gl.kin(tf)
+cb <- gl.keep.pop(tf, pop.list = "EmmacCaptBred", verbose = 0)
+tg <- gl.report.repro.targets(cb, kin = kin, n.target = 12)
 head(tg[order(-tg$target), ])
 }
 \seealso{
