@@ -17,9 +17,9 @@ Kinship estimated on x alone (including kin = NULL) is an error, because
 mean kinship over the individuals it was estimated on is 0 by
 construction [required].}
 
-\item{n.best}{Maximum number of individuals in the greedy removal set; if
-NULL, removals continue until no single removal increases gene diversity
-[default NULL].}
+\item{n.best}{Maximum number of individuals in the greedy removal set, a
+single number >= 1 (values above nInd - 1 are clamped); if NULL, removals
+continue until no single removal increases gene diversity [default NULL].}
 
 \item{verbose}{Verbosity: 0, silent or fatal errors; 1, begin and end; 2,
 progress log; 3, progress and results summary; 5, full report
@@ -42,10 +42,8 @@ the population would produce, based on an empirical genomic kinship matrix,
 and constructs a greedy set of removals that maximises gene diversity.
 }
 \details{
-Kinship should be estimated on the most inclusive dataset available and the
-matrix subset to the managed group; computing kinship on a small family
-group alone inflates estimates (the allele-frequency reference collapses
-onto the family itself).
+Kinship must come from a wider reference than x (see the kin argument).
+
 This function is the genomic analogue of the culling (removal) analysis of
 the pedigree-management program PMx (Lacy, Ballou & Pollak 2012), in which
 individuals whose removal would increase gene diversity are flagged as
@@ -66,7 +64,18 @@ reduces the redundancy of the rest), the function also builds a greedy
 removal set: at each step the individual whose removal most increases the
 current gene diversity is removed and all dGD values are recomputed.
 Removal stops when no candidate yields a gain, or after \code{n.best}
-removals, whichever comes first (never beyond nInd - 1).
+removals, whichever comes first (never beyond nInd - 1). The search keeps
+running sums of the remaining kinship block, so each step costs O(n^2)
+rather than recomputing the full mean for every candidate.
+
+Pairs with missing (NA) kinship are ignored in the gene diversity means,
+with a warning. Missing genotypes pull kinship and self-kinship toward 0,
+because gl.kin fills them with the locus mean, so the removal set depends
+on call rate: for the testset2.gl captive colony (call rates 0.70-0.80)
+the greedy set has 7 animals, and 11 (6 of them different) after
+gl.filter.callrate(method = "loc", threshold = 0.95). The function warns
+when any individual has call rate below 0.8; filter on call rate before
+gl.kin.
 }
 \examples{
 # SNP data: kinship from the FULL dataset, subset to the captive colony
