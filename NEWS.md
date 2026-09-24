@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+* `gl.report.kin.confidence()`: the standard errors now describe the
+  estimator `gl.kin()` returns. For SNP data each resample is `G/2`; it
+  still subtracted `mean(diag(G) - 1)`, the centring #108 removed from
+  `gl.kin()`, which made standard errors about 17% too large (median
+  0.0258 against 0.0220 on `testset2.gl`). For SilicoDArT data each
+  resample uses the `dominant` estimator of `gl.kin()`; it used the
+  correlation of band profiles / 2, a different estimator (correlation
+  0.75 with `gl.kin()`). New warnings: individuals with call rate below
+  0.8, whose standard errors mean imputation shrinks (on `testset2.gl`,
+  all 24 captive-bred individuals), and a `kin` from a method other than
+  the one bootstrapped. `kin` is now computed only when `verbose >= 3`
+  uses it.
+
 * `gl.report.kin.classes()`: a missing (`NA`) kinship no longer turns
   every pair's class into `NA`; the median baseline ignores `NA`, only
   the affected pairs are classed `NA` (returned with `all.pairs = TRUE`),
