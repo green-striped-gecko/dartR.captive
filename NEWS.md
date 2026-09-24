@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+* `gl.report.kin.classes()`: a missing (`NA`) kinship no longer turns
+  every pair's class into `NA`; the median baseline ignores `NA`, only
+  the affected pairs are classed `NA` (returned with `all.pairs = TRUE`),
+  and a warning gives the count. `conflicts` is now a zero-row data frame
+  rather than `NULL` when there are no conflicts or no sire/dam columns.
+  At least three individuals are required (with two, the baseline is the
+  pair's own kinship, so it was always "unrelated"), and fewer than ten
+  give a warning. With more than one population in `x` the function now
+  warns that population structure inflates within-population classes and
+  deflates between-population ones; on `testset2.gl` this explains the 19
+  of 48 recorded parent-offspring links called second-degree, all across
+  source populations.
 * Kinship series: mean kinship (MK) and the gene diversity of a whole
   group need kinship estimated on a wider reference than the group, because
   `gl.kin()` centres kinship on the individuals it is given (each row

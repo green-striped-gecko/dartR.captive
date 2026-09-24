@@ -34,10 +34,11 @@ or 2 if no global is set].}
 \value{
 Invisibly, a list with two components: pairs, a data frame with
 columns id1, id2, kinship, kinship.adj and class (restricted to pairs with
-class != "unrelated" unless all.pairs = TRUE); and conflicts, a data frame
-of recorded parent-offspring links whose genomic class disagrees (columns
-offspring, parent, kinship, kinship.adj, class), or NULL if there are no
-conflicts or no sire/dam columns in ind.metrics.
+a class other than "unrelated" or NA unless all.pairs = TRUE); and
+conflicts, a data frame of recorded parent-offspring links whose genomic
+class disagrees (columns offspring, parent, kinship, kinship.adj, class),
+with zero rows if there are no conflicts or no sire/dam columns in
+ind.metrics.
 }
 \description{
 Assigns each pair of individuals to a relationship class (parent-offspring,
@@ -61,6 +62,20 @@ zero provided the majority of pairs in the dataset are indeed unrelated. If
 most pairs are close relatives (e.g. a single family), the baseline is
 biased and classes will be shifted downwards -- include unrelated
 individuals in the dataset where possible.
+
+A single baseline cannot absorb population structure. When kinship is
+estimated with allele frequencies pooled over several populations, pairs
+within a population sit above the pooled baseline and pairs between
+populations sit below it, so within-population pairs are pushed into
+closer classes and cross-population pairs (including parent-offspring
+links across source populations) into more distant ones. With more than
+one population in x the function warns; classify within one population
+(or a panmictic sample), with kin estimated from that sample, where
+possible. The baseline is also unreliable with few individuals: at least
+three are required, and fewer than ten produce a warning.
+
+Pairs with missing (NA) kinship are ignored when computing the baseline,
+are given class NA, and are returned only when all.pairs = TRUE.
 
 Adjusted kinships are assigned to the nearest of the theoretical class
 values 0.25 (first-degree), 0.125 (second-degree), 0.0625 (third-degree)
@@ -88,13 +103,16 @@ flagging possible pedigree errors, sample mix-ups, or genotyping problems.
 \examples{
 # SNP data -- run on the FULL dataset so the median baseline is set by
 # unrelated pairs (a family-only matrix biases it; see Details)
+# testset2.gl holds 31 populations, so the function warns about
+# population structure
 kin <- gl.kin(testset2.gl)
 res <- gl.report.kin.classes(testset2.gl, kin = kin)
 table(res$pairs$class)
 # The known captive full sibs classify as full-sib
 res$pairs[res$pairs$id1 == "CB_AB_01" & res$pairs$id2 == "CB_AB_02", ]
-# Recorded parent-offspring links whose genomic class disagrees; a few
-# near the class boundary are expected at this number of loci
+# Recorded parent-offspring links whose genomic class disagrees; here
+# they are links between individuals from different source populations,
+# pushed down a class by population structure (see Details)
 head(res$conflicts)
 # Tag P/A data (no PO/FS split possible)
 res.gs <- gl.report.kin.classes(testset2.gs, kin = gl.kin(testset2.gs))
