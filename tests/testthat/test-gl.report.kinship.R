@@ -54,8 +54,9 @@ test_that("overall row: GD and FGE NA; population rows unchanged", {
   expect_lt(abs(r$pop$meanMK[1]), 1e-12)
   expect_false(anyNA(r$pop$FGE[-1]))
   cbp <- r$pop[r$pop$pop == "EmmacCaptBred", ]
-  expect_equal(cbp$GD, 0.9336865, tolerance = 1e-6)
-  expect_equal(cbp$FGE, 7.539946, tolerance = 1e-6)
+  # min.MAF tolerance in gl.grm; was 0.9336865 / 7.539946 on arm64 macOS
+  expect_equal(cbp$GD, 0.9337007, tolerance = 1e-6)
+  expect_equal(cbp$FGE, 7.541562, tolerance = 1e-6)
   expect_equal(cbp$FGE, 1 / (2 * cbp$meanMK))
 })
 

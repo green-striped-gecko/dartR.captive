@@ -17,7 +17,9 @@ test_that("SNP structure, read-only, class counts", {
   expect_identical(x, x0)
   expect_named(r, c("pairs", "conflicts"))
   expect_named(r$pairs, c("id1", "id2", "kinship", "kinship.adj", "class"))
-  expect_equal(as.vector(table(r$pairs$class)), c(127, 30, 1000, 3233))
+  # min.MAF tolerance in gl.grm (single-copy loci kept on every platform):
+  # was 127, 30, 1000, 3233 on arm64 macOS
+  expect_equal(as.vector(table(r$pairs$class)), c(126, 30, 1001, 3231))
   expect_equal(names(table(r$pairs$class)),
                c("full-sib", "parent-offspring", "second-degree",
                  "third-degree"))
@@ -37,7 +39,9 @@ test_that("gl.grm input is halved to the same classes", {
   x <- testset2.gl
   g <- gl.grm(x, plotheatmap = FALSE, verbose = 0)
   r <- gl.report.kin.classes(x, kin = g, verbose = 0)
-  expect_equal(as.vector(table(r$pairs$class)), c(127, 30, 1000, 3233))
+  # min.MAF tolerance in gl.grm (single-copy loci kept on every platform):
+  # was 127, 30, 1000, 3233 on arm64 macOS
+  expect_equal(as.vector(table(r$pairs$class)), c(126, 30, 1001, 3231))
 })
 
 test_that("SilicoDArT keeps first-degree", {
