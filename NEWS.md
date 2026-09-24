@@ -11,6 +11,15 @@
   below 0.8. Details now describe the upward self-kinship term in the
   kinship Fst (random halves of one population give 0.0098) and the
   SilicoDArT `meanF` of 0; `@param kin` follows the #113 wording.
+* `gl.report.ind.remove()`: missing kinship values are ignored in the
+  gene diversity means with a warning (one `NA` crashed the function
+  with "missing value where TRUE/FALSE needed"); an invalid `n.best`
+  (0, negative, non-numeric) is now an error (it removed without limit:
+  `n.best = 0` returned 7 removals on the captive colony); a warning when
+  any individual has call rate below 0.8 (the greedy set goes from 7 to
+  11 animals after filtering loci at call rate 0.95). The greedy search
+  now keeps running sums, with identical results: 0.08 s instead of 1.6 s
+  for 200 individuals.
 * `gl.report.ind.move()`: missing kinship values are ignored in the gene
   diversity means with a warning (one `NA` pair inside a population made
   every move into or out of it `NA`: 70 of 92 moves in the example); a
