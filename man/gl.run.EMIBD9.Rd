@@ -79,8 +79,7 @@ A list with four elements:
 \itemize{
 \item rel -- a square matrix of pairwise kinship coefficients (theta; the
 EMIBD9 column r(1,2)), with self-comparisons on the diagonal
-(0.5 x (1 + F)). The matrix carries attr(rel, "scale") = "kinship", which
-gl.grm.network uses to plot it without rescaling.
+(0.5 x (1 + F)), tagged attr(rel, "scale") = "kinship".
 \item raw -- the raw EMIBD9 table, all pairs including self-comparisons,
 with numeric columns.
 \item processed -- the table without self-comparisons and redundant pairs
@@ -189,6 +188,7 @@ Other captive management:
 \code{\link{gl.select.pairs}()},
 \code{\link{gl.sim.relatedness}()},
 \code{\link{gl2colony}()},
+\code{\link{utils.kin.as.kinship}()},
 \code{\link{utils.kin.check}()},
 \code{\link{utils.kin.dgd}()},
 \code{\link{utils.kin.dominant}()}

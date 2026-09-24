@@ -43,11 +43,10 @@
 #' individuals, or before and after removals and additions, not as an
 #' absolute measure of diversity.
 #'
-#' Method 'grm' computes the genomic relationship matrix G with
-#' gl.grm (rrBLUP::A.mat, diagonal ~ 1+F, off-diagonal ~ twice the kinship)
-#' and returns kin = G/2, the same scale gl.grm.network uses by default: the
-#' diagonal is 0.5*(1+F) and the off-diagonal elements are pairwise kinship,
-#' both relative to the allele frequencies of the supplied dataset.
+#' Method 'grm' computes the genomic relationship matrix G with gl.grm,
+#' which is on the relatedness scale (see gl.grm), and returns kin = G/2:
+#' diagonal 0.5*(1+F), off-diagonal pairwise kinship, both relative to the
+#' allele frequencies of the supplied dataset.
 #' gl.grm imputes missing genotypes with the locus mean, which pulls kinship
 #' toward 0: on testset2.gl (15% missing) parent-offspring pairs average
 #' 0.19, and 0.25 after gl.filter.callrate(threshold = 0.95). Filter on call
@@ -56,10 +55,13 @@
 #'
 #' Method 'emibd9' runs the external EMIBD9 program (Wang 2022, Methods in
 #' Ecology and Evolution 13:2443-2462) via gl.run.EMIBD9 and symmetrises the
-#' populated triangle of the returned $rel matrix. $rel is EMIBD9's r(1,2),
-#' the kinship coefficient, so it is used without rescaling; where EMIBD9
+#' populated triangle of the returned $rel matrix, which is on the kinship
+#' scale (see gl.run.EMIBD9) and is returned without rescaling; where EMIBD9
 #' leaves the diagonal unpopulated it defaults to the non-inbred self-kinship
 #' 0.5. gl.run.EMIBD9 runs with Inbreed = FALSE, so the diagonal is 0.5.
+#'
+#' For both SNP methods the conversion to kinship follows the scale tag,
+#' attr(, "scale"), that gl.grm and gl.run.EMIBD9 set on their output.
 #' EMIBD9 must be installed separately; give its folder with emibd9.path (see
 #' gl.run.EMIBD9 for download details).
 #'
@@ -159,10 +161,11 @@ gl.kin <- function(x,
             stop(error(paste0("Fatal Error: gl.grm did not return a matrix; ",
                               "check that package rrBLUP is installed\n")))
         }
-        # G is on the relatedness scale (diagonal 1 + F, off-diagonal ~2x
-        # kinship). Subtracting the mean inbreeding from pairs would shift
-        # every kinship by the Wahlund and missing-data effects in diag(G)
-        kin <- G / 2
+        # G is tagged "relatedness" (diagonal 1 + F, off-diagonal ~2x
+        # kinship), so this halves it. Subtracting the mean inbreeding from
+        # pairs instead would shift every kinship by the Wahlund and
+        # missing-data effects in diag(G)
+        kin <- utils.kin.as.kinship(G)
     }
 
     if (method == "emibd9") {
@@ -177,9 +180,10 @@ gl.kin <- function(x,
         }
         # Merge the populated triangle(s) into a symmetric matrix
         kin <- pmax(m, t(m), na.rm = TRUE)
-        # $rel is EMIBD9's r(1,2), already the kinship coefficient (see
-        # gl.run.EMIBD9), so no rescaling. Diagonal 0.5*(1+F) where EMIBD9
-        # populated it, else the non-inbred self-kinship
+        # $rel is tagged "kinship" (EMIBD9's r(1,2)), so no rescaling.
+        # Diagonal 0.5*(1+F) where EMIBD9 populated it, else the non-inbred
+        # self-kinship
+        kin <- utils.kin.as.kinship(kin)
         d <- diag(kin)
         d[is.na(d)] <- 0.5
         diag(kin) <- d

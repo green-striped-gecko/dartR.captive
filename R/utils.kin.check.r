@@ -8,8 +8,10 @@
 #'
 #' The shared kin-validation gate of the captive management series. If no
 #' kinship matrix is supplied (kin = NULL), one is computed with gl.kin using
-#' the default method for the datatype. The matrix (supplied or computed) is
-#' then validated against the series contract: a base numeric matrix with row
+#' the default method for the datatype. A supplied matrix tagged
+#' attr(kin, "scale") = "relatedness" (such as gl.grm output) is halved to
+#' kinship; an untagged matrix is assumed to be kinship. The matrix is then
+#' validated against the series contract: a base numeric matrix with row
 #' and column names both identical to indNames(x). Consumer functions call
 #' this once, immediately after their standard preamble, in place of a local
 #' validation stanza.
@@ -55,6 +57,9 @@ utils.kin.check <- function(x,
         }
         kin <- gl.kin(x, verbose = 0)
     }
+
+    # Convert by scale tag (relatedness -> kinship; unknown tag is fatal)
+    kin <- utils.kin.as.kinship(kin, verbose = verbose)
 
     # Validate against the series contract ----------
     if (!is.matrix(kin) || !is.numeric(kin) ||

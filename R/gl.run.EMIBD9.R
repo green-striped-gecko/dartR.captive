@@ -102,8 +102,7 @@
 #' \itemize{
 #' \item rel -- a square matrix of pairwise kinship coefficients (theta; the
 #' EMIBD9 column r(1,2)), with self-comparisons on the diagonal
-#' (0.5 x (1 + F)). The matrix carries attr(rel, "scale") = "kinship", which
-#' gl.grm.network uses to plot it without rescaling.
+#' (0.5 x (1 + F)), tagged attr(rel, "scale") = "kinship".
 #' \item raw -- the raw EMIBD9 table, all pairs including self-comparisons,
 #' with numeric columns.
 #' \item processed -- the table without self-comparisons and redundant pairs
@@ -357,7 +356,8 @@ gl.run.EMIBD9 <- function(x,
   res <- res[order(as.integer(rownames(res))),
              order(as.integer(colnames(res))), drop = FALSE]
   dimnames(res) <- list(hold_names, hold_names)
-  # EMIBD9's r(1,2) is the kinship coefficient; gl.grm.network reads this
+  # EMIBD9's r(1,2) is the kinship coefficient; gl.kin, gl.grm.network and
+  # utils.kin.as.kinship read this tag
   attr(res, "scale") <- "kinship"
 
   # restore original individual names in the raw table
