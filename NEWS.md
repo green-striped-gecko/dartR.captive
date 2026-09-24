@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+* `gl.report.kinship()`: `MK` and `MKrank` are now computed within each
+  individual's population (PMx's managed population), ranked within
+  population and sex; they were taken over the whole dataset, so a
+  captive animal's rank depended on its kinship to wild individuals, and
+  with `gl.kin()` method `"grm"` every dataset-wide MK was 0 up to
+  rounding (each row of the centred matrix sums to 0), so the rank sorted
+  rounding noise. In the `overall`
+  row `GD` and `FGE` are NA: the full-matrix mean kinship is about 0 by
+  construction, which gave `GD = 1` and `FGE` around 1e17. NA, empty and
+  "Unknown" sexes form one rank group, and missing kinship values are
+  ignored in the means with a warning.
+
 * Relationship matrices now carry their scale: `gl.grm()` output is tagged
   `attr(, "scale") = "relatedness"` (`gl.run.EMIBD9()` and `gl.kin()`
   already tag `"kinship"`). The kinship series (`gl.report.kin*`,

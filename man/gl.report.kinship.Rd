@@ -47,40 +47,54 @@ or 2 if no global is set].}
 A list with two data frames, returned invisibly: $ind, the
 per-individual table (id, pop, sex, MK, MKrank, F); and $pop, the
 population summary (pop, n, meanMK, GD, FGE, meanF), with 'overall' as the
-first row.
+first row (GD and FGE NA, see Details).
 }
 \description{
 Produces the standard genetics overview used in captive management, in the
 style of the PMx software, from a molecular kinship matrix: a
-per-individual table of mean kinship (MK), MK rank within sex, and
-inbreeding coefficient F, and a population summary (overall and per
-population) of sample size, mean kinship, gene diversity (GD), founder
-genome equivalents (FGE) and mean F. If no kinship matrix is supplied, one
+per-individual table of mean kinship (MK) within the individual's
+population, MK rank within population and sex, and inbreeding coefficient
+F, and a population summary (overall and per population) of sample size,
+mean kinship, gene diversity (GD), founder genome equivalents (FGE) and
+mean F. If no kinship matrix is supplied, one
 is computed with gl.kin using the default method for the datatype (SNP:
 'grm'; SilicoDArT: 'dominant').
 }
 \details{
-Per-individual statistics follow the PMx conventions, computed from the
-kinship matrix over the full dataset: MK_i is the row mean of the kinship
-matrix including self-kinship; MKrank ranks individuals within their sex
-(ascending, so rank 1 is the lowest MK and hence the most genetically
-valuable individual of that sex; ties broken by order of appearance;
-individuals of unknown sex are ranked in their own group); and
-F = 2*diag(kin) - 1 recovers the inbreeding coefficient from the
-self-kinship. Sex is taken from the ind.metrics slot (column 'sex',
-matched case-insensitively) and is NA if absent. Note that under the
+Per-individual statistics follow the PMx conventions, where each
+population is treated as a managed population: MK_i is the mean kinship
+of individual i with the members of its own population, including itself
+(the row mean of that population's block of the kinship matrix); MKrank
+ranks individuals within their population and sex (ascending, so rank 1
+is the lowest MK and hence the most genetically valuable individual of
+that sex in that population; ties broken by order of appearance;
+individuals of unknown sex -- NA, empty or 'unknown' in any case -- are
+ranked in one group); and F = 2*diag(kin) - 1 recovers the inbreeding
+coefficient from the self-kinship. The kinship matrix itself is best
+estimated on the full dataset (see gl.kin), which is why MK is taken from
+blocks of it rather than re-estimated per population. A mean kinship over
+the whole dataset is not reported: genomic kinship is centred on the
+supplied individuals, so each row of the matrix averages about 0
+(exactly 0 for method 'grm'), whatever the individual. Sex is taken
+from the ind.metrics slot (column 'sex', matched case-insensitively) and
+is NA if absent. Note that under the
 dominant (SilicoDArT) kinship estimator the diagonal is fixed at 0.5, so F
 is 0 by construction.
 
 The population summary reports, for the overall dataset and for each
 population: n, meanMK = mean of that population's kinship block (full
-block including the diagonal), GD = 1 - meanMK, FGE = 1/(2*meanMK), and
-meanF. GD and FGE are the PMx identities and are internally consistent
-with meanMK within each block; because each population block is summarised
-on its own, per-population meanMK is not the average of the per-individual
-MK column, which is referenced to the whole dataset. Where a block's mean
-kinship is zero or negative (possible with centred GRM estimates), FGE is
-undefined and reported as NA.
+block including the diagonal, equal to the mean of the MK column for that
+population), GD = 1 - meanMK, FGE = 1/(2*meanMK), and meanF. GD and FGE
+are the PMx identities. In the 'overall' row GD and FGE are NA: genomic
+kinship is centred on the supplied individuals, so the mean of the full
+matrix is about 0 by construction (exactly 0 for method 'grm'), and GD =
+1 or an unbounded FGE would carry no information. Where a population
+block's mean kinship is zero or negative (within 1e-8), FGE is undefined
+and reported as NA.
+
+Missing kinship values (for example, pairs sharing no scored loci under
+the dominant estimator) are ignored in the means, with a warning giving
+the number of such pairs.
 
 The plot is a histogram of the off-diagonal pairwise kinship values with a
 dashed line at their mean. A color vector can be obtained with
@@ -99,8 +113,9 @@ head(res$ind)
 res$pop
 # Tag P/A data -- dominant kinship computed internally
 res.gs <- gl.report.kinship(testset2.gs)
-# Captive-bred individuals
-res$ind[res$ind$pop == "EmmacCaptBred", ][1:5, ]
+# Captive-bred individuals, most valuable first within each sex
+cb <- res$ind[res$ind$pop == "EmmacCaptBred", ]
+cb[order(cb$sex, cb$MKrank), ]
 }
 \seealso{
 \code{\link{gl.kin}}, \code{\link{gl.grm}},
