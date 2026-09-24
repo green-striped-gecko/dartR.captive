@@ -17,9 +17,12 @@ gl.report.kin.confidence(
 (SilicoDArT) data [required].}
 
 \item{kin}{Kinship matrix with both dimnames identical to indNames(x), as
-produced by gl.kin; used only for the verbose diagnostic of how many pairs
-are resolvable given their standard errors; if NULL, computed internally
-with gl.kin [default NULL].}
+produced by gl.kin; used only for the verbose >= 3 diagnostic of how many
+pairs are resolvable given their standard errors; if NULL and verbose >= 3,
+computed internally with gl.kin. The standard errors are always those of
+the gl.kin 'grm' (SNP) or 'dominant' (SilicoDArT) estimator, whatever
+method produced kin; a kin from another method (e.g. 'emibd9') gives a
+warning [default NULL].}
 
 \item{nboots}{Number of bootstrap resamples of the loci [default 100].}
 
@@ -57,17 +60,26 @@ resample using a light internal VanRaden (2008) genomic relationship matrix:
 allele frequencies p are taken from column means of dosage/2 on the ORIGINAL
 data, the dosage matrix is centred as Z = dosage - 2p (missing values mean
 imputed to zero after centring), G = ZZ'/(2*sum(p(1-p))) over the resampled
-columns, and kinship via the identical Goudet-style centring gl.kin applies
-for its grm method: MS = mean(diag(G) - 1), off-diagonals G/2 - MS,
-diagonal G/2 -- so the bootstrap distribution sits on the scale of the grm
-method. This is a close approximation of the rrBLUP A.mat engine used by
-gl.kin (which differs mainly in its treatment of missing data), and is
-adequate for estimating the dispersion of the estimates while being fast
-enough to run inside a bootstrap loop.
+columns, and kinship = G/2, as gl.kin returns for its 'grm' method. On the
+full set of loci this reproduces gl.kin (via gl.grm and rrBLUP A.mat)
+closely -- on testset2.gl off-diagonal values differ by at most 8e-5
+against a spread (SD) of 0.037, the diagonal by at most 0.007 -- and it
+is fast enough to run inside a bootstrap loop.
 
 For presence/absence (SilicoDArT) data, band columns are resampled with
-replacement and the dominant-marker estimator recomputed on each resample:
-kinship = correlation of band profiles between individuals divided by 2.
+replacement and gl.kin's 'dominant' estimator (utils.kin.dominant) is
+recomputed on each resample: band covariance standardised by the band
+frequencies of the ORIGINAL data, over the loci scored in both individuals,
+divided by 2, with monomorphic loci excluded and the diagonal fixed at 0.5.
+
+Missing data: both estimators fill missing calls with the locus mean, which
+pulls an individual's kinships toward 0 and also narrows their spread
+across resamples. An individual with a low call rate therefore gets
+SMALLER standard errors, although its kinships are the least reliable; the
+bootstrap measures sampling error over loci, not this bias. The function
+warns when any individual's call rate is below 0.8; filter individuals on
+call rate (gl.filter.callrate(method = "ind")) before interpreting the
+standard errors.
 
 Confidence-interval widths are computed from the bootstrap percentiles at
 (1-conf)/2 and 1-(1-conf)/2. This requires holding all bootstrap kinship
@@ -75,8 +87,9 @@ matrices in memory (nInd x nInd x nboots doubles, about 60 MB for 274
 individuals and 100 bootstraps); reduce nboots or subset individuals if
 memory is limiting.
 
-The kin matrix itself (supplied, or computed via gl.kin when NULL) plays no
-part in the standard errors; it is used only in the verbose >= 3 summary to
+The kin matrix itself (supplied, or computed via gl.kin when NULL at
+verbose >= 3) plays no part in the standard errors; it is used only in the
+verbose >= 3 summary to
 report the proportion of pairs whose kinship differs from the dataset
 baseline (median off-diagonal kinship) by more than two standard errors,
 i.e. the pairs whose relatedness the data can actually resolve.
@@ -86,7 +99,9 @@ i.e. the pairs whose relatedness the data can actually resolve.
 # small family groups), reduced bootstraps for speed
 res <- gl.report.kin.confidence(testset2.gl, nboots = 20)
 res$summary
-# SE for a known full-sib pair in the captive colony
+# SE for a known full-sib pair in the captive colony; the captive-bred
+# individuals have call rates of 0.70-0.80, so the function warns that
+# their SEs are underestimated (see Details)
 res$se["CB_AB_01", "CB_AB_02"]
 # Tag P/A data
 res.gs <- gl.report.kin.confidence(testset2.gs, nboots = 20)
