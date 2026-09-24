@@ -145,7 +145,7 @@ works. The memory cost (`nInd^2 x nboots` doubles) is documented.
 - Addendum correction to the verdict: the internal SNP matrix matches `gl.kin` closely, not exactly (off-diagonal at most 8e-5, diagonal at most 0.007); `@details` and the test state the measured bound.
 - Snapshot: 3 baseline values changed (SNP median SE, pair SE, SilicoDArT median SE), all mapped to changes 1 and 2; 17 expectations pass. Examples run.
 - `devtools::document()` again dropped stale `importFrom(stats, dnorm/qnorm)` from NAMESPACE; reverted to keep scope.
-- NEWS entry added. PR: (pending)
+- NEWS entry added. PR: #115
 
 ```json
 {
@@ -164,7 +164,7 @@ works. The memory cost (`nInd^2 x nboots` doubles) is documented.
     {"id": "F5", "severity": "LOW", "confidence": "high", "rule": "FS3,VRB2,STY1", "status": "approved", "change": 5}
   ],
   "coverage_skipped": ["EMIBD9 run: binary not used in tests", "DAT6: no FBM fixture", "forum/issues: no release history"],
-  "status": "in-apply",
-  "pr": null
+  "status": "pr-open",
+  "pr": 115
 }
 ```
