@@ -114,7 +114,7 @@ than two populations is an error, and the SilicoDArT path runs.
 - Change 3: `@details` paragraph on what `net` measures and rewards; example estimates `kin` on the full testset2.gl.
 - Change 4: `build =` dropped; `verbose >= 3` summary through `report()`.
 - Snapshot: 1 baseline expectation changed (the `NA` count), mapped to change 1; values, order and "9 of top 10 from EmmacCaptBred" unchanged. 32 expectations pass; example runs.
-- NEWS entry added. PR: (pending)
+- NEWS entry added. PR: #122
 
 ```json
 {
@@ -132,7 +132,7 @@ than two populations is an error, and the SilicoDArT path runs.
     {"id": "F4", "severity": "LOW", "confidence": "high", "rule": "FS3,VRB2", "status": "approved", "change": 4}
   ],
   "coverage_skipped": ["DAT6: no FBM fixture", "forum/issues: no release history"],
-  "status": "in-apply",
-  "pr": null
+  "status": "pr-open",
+  "pr": 122
 }
 ```
