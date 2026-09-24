@@ -13,6 +13,15 @@
   out of bounds"); an out-of-range `f.noway` is now an error (it was
   reset to 0.125). Delta gene diversity uses a closed form with identical
   results: 0.04 s instead of 1.7 s for 200 individuals.
+* `gl.report.kin.sets()`: a single-population `x` now needs kinship
+  estimated on a wider reference (`kin = NULL` or kinship estimated on
+  `x` gave `GD.w = 1` and `meanMK = 0` by construction; multi-population
+  calls are unchanged). Missing kinship values are ignored in the block
+  means with a warning (one `NA` pair voided a population's statistics
+  and its 60 Fst values). A warning when individuals have call rate
+  below 0.8. Details now describe the upward self-kinship term in the
+  kinship Fst (random halves of one population give 0.0098) and the
+  SilicoDArT `meanF` of 0; `@param kin` follows the #113 wording.
 * `gl.report.gd.projection()`: `summary` gains `years.to.target.source`
   and `ne.required.source`, the PMx goal read as a proportion of SOURCE
   gene diversity (after Soule et al. 1986). The existing

@@ -10,9 +10,11 @@ gl.report.kin.sets(x, kin = NULL, verbose = NULL)
 \item{x}{Name of the genlight object containing the SNP or presence/absence
 (SilicoDArT) data [required].}
 
-\item{kin}{Kinship matrix as returned by \code{gl.kin}, with row and column
-names identical to \code{indNames(x)}; if NULL, computed internally with
-\code{gl.kin} [default NULL].}
+\item{kin}{Kinship matrix as returned by \code{gl.kin}; it may cover more
+individuals than x (for example gl.kin() on a dataset that includes the
+source populations) and is restricted to indNames(x); if NULL, computed
+internally with \code{gl.kin} on x. When x holds a single population,
+kin must be estimated on a wider set than x (see Details) [default NULL].}
 
 \item{verbose}{Verbosity: 0, silent or fatal errors; 1, begin and end; 2,
 progress log; 3, progress and results summary; 5, full report
@@ -46,12 +48,14 @@ For each population s the function reports:
 \item n -- number of individuals;
 \item meanMK -- mean kinship within the set, mean(kin[s,s]) over the full
 block including the diagonal (so GD.w = 1 - meanMK). Mean kinship to the
-whole dataset is not reported: kinship is centred on the individuals of x,
-so each individual's mean over all of them is about 0;
+whole dataset is not reported: kinship estimated on x is centred on the
+individuals of x, so each individual's mean over all of them is about 0;
 \item GD.w -- within-set gene diversity, 1 - mean(kin[s,s]) taken over the
 full within-set block of the kinship matrix including the diagonal;
 \item meanF -- mean inbreeding, mean(2*k_ii - 1) over the diagonal entries
-of the set, since the diagonal of the kinship matrix is 0.5*(1+F).
+of the set, since the diagonal of the kinship matrix is 0.5*(1+F). Under
+the dominant (SilicoDArT) estimator the diagonal is fixed at 0.5, so meanF
+is 0 by construction.
 }
 
 For each pair of populations s and t the function reports:
@@ -67,6 +71,26 @@ GDt.pair = 1 - mean(kin) over the joint block of the two populations
 (both within-blocks and both cross-blocks, diagonal included). The
 diagonal of the Fst matrix is 0.
 }
+Because GDt.pair includes the self-kinships (about 0.5) of the pooled
+block and GDb.pair does not, Fst is positive even without
+differentiation, by roughly 1/(2*(n_s + n_t)): two random halves of the
+testset2.gl captive colony (12 + 12) give Fst = 0.0098, and for sets of
+about 10 individuals the term is about 0.025. Interpret small Fst values
+between small sets against that baseline.
+
+With a single population, the within-set block is the whole of x, so
+kinship estimated on x gives meanMK = 0 and GD.w = 1 by construction.
+A single-population x therefore needs kin estimated on a wider set
+(kin = NULL, or kin estimated on x alone, is an error). With several
+populations, kin estimated on x is accepted: the blocks are informative
+relative to the pooled sample.
+
+Missing genotypes pull kinship and self-kinship toward 0, because gl.kin
+fills them with the locus mean: the testset2.gl captive colony (call
+rates 0.70-0.80) has GD.w 0.934 and meanF -0.33, and 0.905 and -0.07
+after gl.filter.callrate(method = "loc", threshold = 0.95). The function
+warns when any individual has call rate below 0.8. Missing (NA) kinships
+are ignored in the block means, with a warning.
 
 Populations of n = 1 are reported but flagged with a warning: their
 within-set gene diversity is simply 1 minus the individual's

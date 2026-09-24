@@ -10,9 +10,11 @@
 #'
 #' @param x Name of the genlight object containing the SNP or presence/absence
 #' (SilicoDArT) data [required].
-#' @param kin Kinship matrix as returned by \code{gl.kin}, with row and column
-#' names identical to \code{indNames(x)}; if NULL, computed internally with
-#' \code{gl.kin} [default NULL].
+#' @param kin Kinship matrix as returned by \code{gl.kin}; it may cover more
+#' individuals than x (for example gl.kin() on a dataset that includes the
+#' source populations) and is restricted to indNames(x); if NULL, computed
+#' internally with \code{gl.kin} on x. When x holds a single population,
+#' kin must be estimated on a wider set than x (see Details) [default NULL].
 #' @param verbose Verbosity: 0, silent or fatal errors; 1, begin and end; 2,
 #' progress log; 3, progress and results summary; 5, full report
 #' [default NULL, adopting the global verbosity set by gl.set.verbosity(),
@@ -30,12 +32,14 @@
 #' \item n -- number of individuals;
 #' \item meanMK -- mean kinship within the set, mean(kin[s,s]) over the full
 #' block including the diagonal (so GD.w = 1 - meanMK). Mean kinship to the
-#' whole dataset is not reported: kinship is centred on the individuals of x,
-#' so each individual's mean over all of them is about 0;
+#' whole dataset is not reported: kinship estimated on x is centred on the
+#' individuals of x, so each individual's mean over all of them is about 0;
 #' \item GD.w -- within-set gene diversity, 1 - mean(kin[s,s]) taken over the
 #' full within-set block of the kinship matrix including the diagonal;
 #' \item meanF -- mean inbreeding, mean(2*k_ii - 1) over the diagonal entries
-#' of the set, since the diagonal of the kinship matrix is 0.5*(1+F).
+#' of the set, since the diagonal of the kinship matrix is 0.5*(1+F). Under
+#' the dominant (SilicoDArT) estimator the diagonal is fixed at 0.5, so meanF
+#' is 0 by construction.
 #' }
 #'
 #' For each pair of populations s and t the function reports:
@@ -51,6 +55,26 @@
 #' (both within-blocks and both cross-blocks, diagonal included). The
 #' diagonal of the Fst matrix is 0.
 #' }
+#' Because GDt.pair includes the self-kinships (about 0.5) of the pooled
+#' block and GDb.pair does not, Fst is positive even without
+#' differentiation, by roughly 1/(2*(n_s + n_t)): two random halves of the
+#' testset2.gl captive colony (12 + 12) give Fst = 0.0098, and for sets of
+#' about 10 individuals the term is about 0.025. Interpret small Fst values
+#' between small sets against that baseline.
+#'
+#' With a single population, the within-set block is the whole of x, so
+#' kinship estimated on x gives meanMK = 0 and GD.w = 1 by construction.
+#' A single-population x therefore needs kin estimated on a wider set
+#' (kin = NULL, or kin estimated on x alone, is an error). With several
+#' populations, kin estimated on x is accepted: the blocks are informative
+#' relative to the pooled sample.
+#'
+#' Missing genotypes pull kinship and self-kinship toward 0, because gl.kin
+#' fills them with the locus mean: the testset2.gl captive colony (call
+#' rates 0.70-0.80) has GD.w 0.934 and meanF -0.33, and 0.905 and -0.07
+#' after gl.filter.callrate(method = "loc", threshold = 0.95). The function
+#' warns when any individual has call rate below 0.8. Missing (NA) kinships
+#' are ignored in the block means, with a warning.
 #'
 #' Populations of n = 1 are reported but flagged with a warning: their
 #' within-set gene diversity is simply 1 minus the individual's
@@ -89,15 +113,33 @@ gl.report.kin.sets <- function(x,
 
   # FLAG SCRIPT START
   funname <- match.call()[[1]]
-  utils.flag.start(func = funname,
-                   build = "v.2026.1",
-                   verbose = verbose)
+  utils.flag.start(func = funname, verbose = verbose)
 
   # CHECK DATATYPE
   datatype <- utils.check.datatype(x, verbose = verbose)
 
   # FUNCTION SPECIFIC ERROR CHECKING
-  kin <- utils.kin.check(x, kin, verbose = verbose)
+  # With one population the only block is the whole reference, so
+  # self-referenced kinship would give meanMK 0 and GD.w 1
+  kin <- utils.kin.check(x, kin, verbose = verbose,
+                         need.reference = (nPop(x) == 1))
+
+  # Mean imputation of missing genotypes (gl.kin) pulls kinship and
+  # self-kinship toward 0 for individuals with low call rates
+  ind.cr <- 1 - vapply(x@gen, function(e) length(e@NA.posi), numeric(1)) /
+    nLoc(x)
+  if (any(ind.cr < 0.8) && verbose >= 1) {
+    cat(warn(paste0("  Warning: ", sum(ind.cr < 0.8),
+                    " individuals have call rate below 0.8 (lowest ",
+                    round(min(ind.cr), 3), "); missing genotypes pull ",
+                    "their kinship and inbreeding toward 0. Consider ",
+                    "filtering on call rate before gl.kin (see Details)\n")))
+  }
+  n.na <- sum(is.na(kin[upper.tri(kin, diag = TRUE)]))
+  if (n.na > 0 && verbose >= 1) {
+    cat(warn("  Warning:", n.na,
+             "missing kinship values (pairs or self-kinships) are ignored in the block means\n"))
+  }
 
   pops <- popNames(x)
   blocks <- split(indNames(x), pop(x))
@@ -129,9 +171,9 @@ gl.report.kin.sets <- function(x,
       n = length(ids),
       # mean of the set's own block: dataset-wide row means are ~0 by
       # construction (kinship is centred on the individuals of x)
-      meanMK = mean(kin[ids, ids, drop = FALSE]),
-      GD.w = 1 - mean(kin[ids, ids, drop = FALSE]),
-      meanF = mean(2 * self[ids] - 1),
+      meanMK = mean(kin[ids, ids, drop = FALSE], na.rm = TRUE),
+      GD.w = 1 - mean(kin[ids, ids, drop = FALSE], na.rm = TRUE),
+      meanF = mean(2 * self[ids] - 1, na.rm = TRUE),
       stringsAsFactors = FALSE
     )
   }))
@@ -147,17 +189,17 @@ gl.report.kin.sets <- function(x,
 
   for (s in seq_len(npop)) {
     ids.s <- blocks[[s]]
-    mkb[s, s] <- mean(kin[ids.s, ids.s, drop = FALSE])
+    mkb[s, s] <- mean(kin[ids.s, ids.s, drop = FALSE], na.rm = TRUE)
     if (s < npop) {
       for (t in (s + 1):npop) {
         ids.t <- blocks[[t]]
         # Between-set mean kinship: full cross-block, every s member x every t member
-        mkb.st <- mean(kin[ids.s, ids.t, drop = FALSE])
+        mkb.st <- mean(kin[ids.s, ids.t, drop = FALSE], na.rm = TRUE)
         mkb[s, t] <- mkb.st
         mkb[t, s] <- mkb.st
         # Kinship-based Fst = 1 - GDt.pair/GDb.pair (PMx: Fst = 1 - GDt/GDb)
         joint <- c(ids.s, ids.t)
-        gdt.pair <- 1 - mean(kin[joint, joint, drop = FALSE])
+        gdt.pair <- 1 - mean(kin[joint, joint, drop = FALSE], na.rm = TRUE)
         gdb.pair <- 1 - mkb.st
         fst.st <- 1 - gdt.pair / gdb.pair
         fst[s, t] <- fst.st
@@ -168,13 +210,13 @@ gl.report.kin.sets <- function(x,
 
   # Print out the results summary ---------------
   if (verbose >= 3) {
-    cat("  Per-population management-set statistics:\n")
+    cat(report("  Per-population management-set statistics:\n"))
     tmp <- sets
     tmp[, c("meanMK", "GD.w", "meanF")] <-
       round(tmp[, c("meanMK", "GD.w", "meanF")], 4)
     print(tmp, row.names = FALSE)
-    cat("  Between-set mean kinship (mkb) and kinship-based Fst (fst)\n")
-    cat("  returned as", npop, "x", npop, "matrices\n")
+    cat(report("  Between-set mean kinship (mkb) and kinship-based Fst (fst)\n"))
+    cat(report("  returned as", npop, "x", npop, "matrices\n"))
   }
 
   # FLAG SCRIPT END ---------------
