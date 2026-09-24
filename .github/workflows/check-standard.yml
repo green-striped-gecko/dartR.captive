@@ -45,6 +45,7 @@ jobs:
             any::rcmdcheck
             github::green-striped-gecko/dartR.base@dev
             github::green-striped-gecko/dartR.data@dev
+            github::green-striped-gecko/dartR.sim@dev
           needs: check
 
       - uses: r-lib/actions/check-r-package@v2
