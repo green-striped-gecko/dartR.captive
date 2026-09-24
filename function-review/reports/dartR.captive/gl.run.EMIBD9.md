@@ -231,7 +231,7 @@ behaviour.
     {"id": "F9", "severity": "INFO", "confidence": "medium", "rule": "none", "status": "noted", "change": null}
   ],
   "coverage_skipped": ["parallel/MPI and Windows: no binaries", "DAT6: no FBM fixture"],
-  "status": "pr-open",
+  "status": "done",
   "pr": 100
 }
 ```

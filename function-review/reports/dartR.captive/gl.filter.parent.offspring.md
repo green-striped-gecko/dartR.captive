@@ -182,7 +182,7 @@ baseline tests were replaced by tests of the approved behaviour.
     {"id": "A1", "severity": "MEDIUM", "confidence": "high", "rule": "DOC5", "status": "approved", "change": 3}
   ],
   "coverage_skipped": ["DAT6/FBM branch: no FBM fixture"],
-  "status": "pr-open",
+  "status": "done",
   "pr": 103
 }
 ```

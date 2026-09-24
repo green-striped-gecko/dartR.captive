@@ -210,7 +210,7 @@ replicates each:
     {"id": "F7", "severity": "LOW", "confidence": "high", "rule": "FS5", "status": "approved", "change": 6}
   ],
   "coverage_skipped": ["Windows/parallel EMIBD9: no binaries"],
-  "status": "pr-open",
+  "status": "done",
   "pr": 105
 }
 ```

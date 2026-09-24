@@ -219,7 +219,7 @@ tests were replaced by tests of the approved behaviour.
     {"id": "A1", "severity": "LOW", "confidence": "high", "rule": "VRB3", "status": "approved", "change": "A1"}
   ],
   "coverage_skipped": ["run.e9 path: EMIBD9 run not exercised (reviewed in PR #100)"],
-  "status": "pr-open",
+  "status": "done",
   "pr": 107
 }
 ```
