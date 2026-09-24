@@ -52,6 +52,27 @@ test_that("self-referenced kin is rejected when a reference is needed", {
   expect_identical(rownames(k), indNames(cb))
 })
 
+test_that("self-referenced SilicoDArT kin is rejected after hand subsetting", {
+  skip_without_testset2()
+  cb <- captive(testset2.gs)
+  msg <- "wider reference"
+  # estimated on x and stripped of ref.ids, rows in indNames(x) order (a
+  # reordered matrix is already caught as its own reference): row means
+  # are only near 0, so this is caught by re-estimating on x
+  k.self <- gl.kin(cb, verbose = 0)
+  ids <- indNames(cb)
+  k.bare <- unclass(k.self)[ids, ids]
+  attributes(k.bare) <- attributes(k.bare)[c("dim", "dimnames")]
+  expect_false(all(abs(rowMeans(k.bare)) < 1e-10))
+  expect_error(utils.kin.check(cb, k.bare, need.reference = TRUE), msg)
+  # full-dataset kinship restricted by hand is a valid reference
+  k.ref <- unclass(gl.kin(testset2.gs, verbose = 0))[indNames(cb),
+                                                     indNames(cb)]
+  attributes(k.ref) <- attributes(k.ref)[c("dim", "dimnames")]
+  expect_silent(k <- utils.kin.check(cb, k.ref, need.reference = TRUE))
+  expect_identical(rownames(k), indNames(cb))
+})
+
 test_that("missing individuals are an error", {
   skip_if_not_installed("rrBLUP")
   skip_without_testset2()

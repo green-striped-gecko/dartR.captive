@@ -67,9 +67,15 @@ stop, warn, managed-group argument, hold for the suite author).
 - Examples: the two that computed kinship internally
   (`gl.report.ind.remove` SilicoDArT, `gl.report.gd.projection`) now pass
   full-dataset kinship.
-- Known gap: a dominant (SilicoDArT) matrix estimated on `x`, subset by
-  hand so that `ref.ids` is lost, is not detected; its row means are near
-  0 (-0.006 to 0.0004), not exactly 0.
+- Closed gap: a dominant (SilicoDArT) matrix estimated on `x` and subset by
+  hand in `indNames(x)` order loses `ref.ids`, and its row means are only
+  near 0 (-0.010 to 0.006 on the 24 captive-bred individuals), so the
+  row-mean test misses it. `utils.kin.check()` now re-estimates dominant
+  kinship on `x` and rejects a matching matrix (off-diagonals equal within
+  1e-8). The dominant estimator is the only SilicoDArT method, so the match
+  is exact; the full-dataset matrix restricted by hand differs by up to
+  0.13 and is accepted. Before: accepted; after: rejected. (A reordered
+  matrix was already caught, as its own rows become the reference.)
 - Evidence: tests/testthat/test-utils.kin.check.R 27 pass; full suite 288
   expectations, 6 failures (the pre-existing gl.grm/gl.assign.grm
   snapshots); examples of all 17 kinship and GRM functions run. No callers

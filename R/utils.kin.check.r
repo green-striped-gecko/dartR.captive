@@ -117,6 +117,17 @@ utils.kin.check <- function(x,
     if (need.reference) {
         self <- (!is.null(ref.ids) && setequal(ref.ids, ids)) ||
             all(abs(rowMeans(kin, na.rm = TRUE)) < 1e-10)
+        # Dominant kinship has a fixed diagonal and pairwise-complete means,
+        # so its rows do not average exactly 0 and the test above misses an
+        # untagged matrix estimated on x (e.g. subset by hand, which drops
+        # ref.ids). It is the only SilicoDArT estimator, so re-estimating on
+        # x reproduces such a matrix exactly.
+        if (!self && all(ploidy(x) == 1)) {
+            own <- utils.kin.dominant(x, verbose = 0)
+            off <- upper.tri(own)
+            self <- isTRUE(all.equal(unname(kin[off]), unname(own[off]),
+                                     tolerance = 1e-8))
+        }
         if (self) {
             stop(error(ref.msg))
         }
