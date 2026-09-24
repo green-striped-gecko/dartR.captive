@@ -2,6 +2,22 @@
 
 ## Unreleased
 
+* Kinship series: mean kinship (MK) and the gene diversity of a whole
+  group need kinship estimated on a wider reference than the group, because
+  `gl.kin()` centres kinship on the individuals it is given (each row
+  averages 0). `gl.report.ind.remove()`, `gl.report.repro.targets()`,
+  `gl.select.pairs()`, `gl.report.mate.suitability()` and
+  `gl.report.gd.projection()` (when given `x`) now stop with an explanation
+  when `kin` is `NULL` or was estimated on `x` alone; previously their MK
+  was ~1e-17 for everyone and they ranked, allocated and paired on rounding
+  noise (or, for removals, on inbreeding alone). Every series function now
+  accepts a `kin` covering more individuals than `x`, e.g.
+  `gl.select.pairs(captive, kin = gl.kin(full.dataset))`. `gl.kin()`
+  output records the individuals it was estimated on (`attr(, "ref.ids")`).
+  `gl.report.kin.sets()` reports `meanMK` as the within-set mean kinship
+  (it averaged the ~0 dataset-wide values). `gl.report.kinship()` warns
+  when a single population is analysed with self-referenced kinship.
+
 * `gl.report.kinship()`: `MK` and `MKrank` are now computed within each
   individual's population (PMx's managed population), ranked within
   population and sex; they were taken over the whole dataset, so a

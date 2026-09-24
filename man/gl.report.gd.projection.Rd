@@ -40,9 +40,12 @@ alternative to x, and takes precedence if both are given [default NULL].}
 \item{gd.target}{Target proportion of current gene diversity to retain
 [default 0.9].}
 
-\item{kin}{Kinship matrix with both dimnames identical to indNames(x), as
-produced by gl.kin; if NULL and x is supplied, computed internally with
-gl.kin [default NULL].}
+\item{kin}{Used when x is supplied: kinship matrix estimated on a wider set
+of individuals than x, for example gl.kin() on a dataset that includes the
+source populations; it may cover more individuals than x and is
+restricted to indNames(x). Kinship estimated on x alone (including
+kin = NULL) is an error, because the gene diversity of the individuals it
+was estimated on is 1 by construction [default NULL].}
 
 \item{plot.display}{If TRUE, resultant plots are displayed in the plot window
 [default TRUE].}
@@ -108,8 +111,10 @@ plot directory (plot.dir) is specified, the ggplot binary is saved to that
 directory; otherwise to the tempdir().
 }
 \examples{
-# From a genlight object (kinship computed internally)
-proj <- gl.report.gd.projection(testset2.gl, ne = 50, years = 100)
+# Captive colony, kinship estimated on the full dataset as the reference
+cb <- gl.keep.pop(testset2.gl, pop.list = "EmmacCaptBred", verbose = 0)
+proj <- gl.report.gd.projection(cb, kin = gl.kin(testset2.gl), ne = 50,
+                                years = 100)
 proj$summary
 # Direct gene-diversity input, no genlight required
 gl.report.gd.projection(gd.now = 0.3, ne = 25, years = 50)

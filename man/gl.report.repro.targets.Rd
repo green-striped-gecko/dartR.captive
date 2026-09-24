@@ -10,9 +10,12 @@ gl.report.repro.targets(x, kin = NULL, n.target = NULL, verbose = NULL)
 \item{x}{Name of the genlight object containing the SNP or presence/absence
 (SilicoDArT) data [required].}
 
-\item{kin}{Pairwise kinship matrix with row and column names identical to
-indNames(x), as produced by gl.kin(); if NULL, computed internally with
-gl.kin() [default NULL].}
+\item{kin}{Kinship matrix estimated on a wider set of individuals than x,
+for example gl.kin() on a dataset that includes the source populations;
+it may cover more individuals than x and is restricted to indNames(x).
+Kinship estimated on x alone (including kin = NULL) is an error, because
+mean kinship over the individuals it was estimated on is 0 by
+construction [required].}
 
 \item{n.target}{Total number of offspring sought in the next generation;
 each sex's individual targets sum to this value [default NULL, resolving to
