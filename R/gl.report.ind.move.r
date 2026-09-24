@@ -43,6 +43,25 @@
 #' directly from \code{kin} -- no pedigree assumption that a transferred
 #' animal is unrelated to its new population is needed.
 #'
+#' What net measures: it is the unweighted sum of two populations' changes in
+#' gene diversity, not the change in gene diversity of all populations
+#' combined. Adding one individual to a population of n changes its GD by
+#' roughly 1/n, so moves into small populations score high, and so do movers
+#' with low kinship to the destination -- with pooled allele frequencies,
+#' individuals from a different lineage or of mixed ancestry. On testset2.gl
+#' the top-ranked moves send captive-bred animals descended from several
+#' drainages into single wild drainages. GD measures gene diversity only; it
+#' does not account for local adaptation or the genetic integrity of the
+#' destination, which a translocation decision also has to weigh.
+#'
+#' Missing genotypes pull kinship and self-kinship toward 0, because gl.kin
+#' fills them with the locus mean, so the ranking depends on call rate: on
+#' testset2.gl only 5 of the top 10 moves stay in the top 10 after
+#' gl.filter.callrate(method = "loc", threshold = 0.95). The function warns
+#' when any individual has call rate below 0.8; filter on call rate before
+#' gl.kin. Pairs with missing (NA) kinship are ignored in the gene diversity
+#' means, with a warning.
+#'
 #' Individuals whose source population contains only themselves receive
 #' dgd.source = NA (removing the sole member leaves no population to score);
 #' a warning lists the populations concerned. Moves are reported sorted by
@@ -52,11 +71,13 @@
 #' \url{https://groups.google.com/d/forum/dartr}
 #'
 #' @examples
-#' # SNP data: captive colony plus two wild populations
+#' # SNP data: captive colony plus two wild populations, with kinship
+#' # estimated on the full dataset
+#' kin <- gl.kin(testset2.gl)
 #' ex <- gl.keep.pop(testset2.gl,
 #'   pop.list = c("EmmacCaptBred", "EmmacMaclGeor", "EmmacBurnBara"),
 #'   verbose = 0)
-#' res <- gl.report.ind.move(ex)
+#' res <- gl.report.ind.move(ex, kin = kin)
 #' head(res)
 #' # Tag P/A data (SilicoDArT; kinship computed internally)
 #' ex.gs <- gl.keep.pop(testset2.gs,
@@ -81,9 +102,7 @@ gl.report.ind.move <- function(x,
 
   # FLAG SCRIPT START
   funname <- match.call()[[1]]
-  utils.flag.start(func = funname,
-                   build = "v.2026.1",
-                   verbose = verbose)
+  utils.flag.start(func = funname, verbose = verbose)
 
   # CHECK DATATYPE
   datatype <- utils.check.datatype(x, verbose = verbose)
@@ -107,6 +126,23 @@ gl.report.ind.move <- function(x,
     ))
   }
 
+  # Mean imputation of missing genotypes (gl.kin) pulls kinship and
+  # self-kinship toward 0 for individuals with low call rates
+  ind.cr <- 1 - vapply(x@gen, function(e) length(e@NA.posi), numeric(1)) /
+    nLoc(x)
+  if (any(ind.cr < 0.8) && verbose >= 1) {
+    cat(warn(paste0("  Warning: ", sum(ind.cr < 0.8),
+                    " individuals have call rate below 0.8 (lowest ",
+                    round(min(ind.cr), 3), "); missing genotypes pull ",
+                    "their kinship toward 0. Consider filtering on call ",
+                    "rate before gl.kin (see Details)\n")))
+  }
+  n.na <- sum(is.na(kin[upper.tri(kin)]))
+  if (n.na > 0 && verbose >= 1) {
+    cat(warn("  Warning:", n.na,
+             "pairs have missing kinship and are ignored in the gene diversity means\n"))
+  }
+
   # DO THE JOB ----------------------
   if (verbose >= 2) {
     cat(report("  Evaluating", nInd(x) * (length(pops) - 1), "candidate moves\n"))
@@ -114,7 +150,7 @@ gl.report.ind.move <- function(x,
 
   # Gene diversity of each population block, computed once
   gd.block <- vapply(blocks, function(ids) {
-    utils.kin.dgd(kin[ids, ids, drop = FALSE])
+    utils.kin.dgd(kin[ids, ids, drop = FALSE], na.rm = TRUE)
   }, numeric(1))
 
   out <- vector("list", length(pops))
@@ -128,7 +164,7 @@ gl.report.ind.move <- function(x,
       # Effect on the source block of removing the individual
       if (length(ids.s) > 1) {
         dgd.source <- utils.kin.dgd(kin[ids.s, ids.s, drop = FALSE],
-                                    drop = id) - gd.block[s]
+                                    drop = id, na.rm = TRUE) - gd.block[s]
       } else {
         dgd.source <- NA_real_
       }
@@ -136,7 +172,8 @@ gl.report.ind.move <- function(x,
       # row/column from the kinship matrix
       dgd.dest <- vapply(dests, function(t) {
         joint <- c(blocks[[t]], id)
-        utils.kin.dgd(kin[joint, joint, drop = FALSE]) - gd.block[t]
+        utils.kin.dgd(kin[joint, joint, drop = FALSE], na.rm = TRUE) -
+          gd.block[t]
       }, numeric(1))
       rows[[k]] <- data.frame(
         id = id,
@@ -156,7 +193,7 @@ gl.report.ind.move <- function(x,
 
   # Print out the results summary ---------------
   if (verbose >= 3) {
-    cat("  Top candidate moves by net change in gene diversity:\n")
+    cat(report("  Top candidate moves by net change in gene diversity:\n"))
     tmp <- head(res, 10)
     tmp[, c("dgd.source", "dgd.dest", "net")] <-
       round(tmp[, c("dgd.source", "dgd.dest", "net")], 4)
