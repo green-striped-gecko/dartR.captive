@@ -12,4 +12,5 @@ gl.sim.relatedness,dartR.captive,analysis,Claude,done#105
 gl.plot.network,dartR.captive,analysis,Claude,done#106
 gl.diagnostics.relatedness,dartR.captive,analysis,Claude,done#107
 gl.report.kinship,dartR.captive,report,Claude,done#112
+gl.report.kin.classes,dartR.captive,report,Claude,pr-open#114
 gl.report.kin.confidence,dartR.captive,report,Claude,pr-open#115
