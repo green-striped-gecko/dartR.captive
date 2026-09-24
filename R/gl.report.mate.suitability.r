@@ -32,9 +32,8 @@
 #' unknownness and on routine SNP missingness they dominate the score, so the
 #' default here is NULL [default NULL].
 #' @param verbose Verbosity: 0, silent or fatal errors; 1, begin and end; 2,
-#' progress log; 3, progress and results summary; 5, full report
-#' [default NULL, adopting the global verbosity set by gl.set.verbosity(),
-#' or 2 if no global is set].
+#' brief progress messages; 3, progress and results summary; 5, full report
+#' [default 2, unless specified using gl.set.verbosity].
 #' @details
 #' Kinship should be estimated on the most inclusive dataset available and the
 #' matrix subset to the managed group; computing kinship on a small family
@@ -106,28 +105,45 @@
 #' leaving the kinship estimates essentially unaffected. The penalty is
 #' therefore off by default and opt-in via unknown.breaks.
 #'
+#' Missing genotypes hide do-not-breed pairings. gl.kin fills missing
+#' genotypes with the locus mean, which pulls kinship toward 0 for
+#' individuals with low call rates, while the No Way point is a fixed value.
+#' On the testset2.gl captive colony (call rates 0.70-0.80), full sibs have
+#' F.off 0.214 unfiltered and 0.252 after gl.filter.callrate(method = "loc",
+#' threshold = 0.95); unfiltered, 17 of the 48 pairings that are 'NoWay'
+#' after filtering are rated 4-6 instead, and the MSI differs for 61 of 143
+#' pairings. The function warns when any individual has call rate below
+#' 0.8; filter on call rate before gl.kin.
+#'
+#' Missing (NA) kinship values are ignored in the gene diversity, mean
+#' kinship and mean F calculations, with a warning. A pairing whose own
+#' kinship is NA cannot be screened and gets MSI NA.
+#'
 #' Sexes are read from x@@other$ind.metrics$sex (values 'Male', 'Female',
-#' 'Unknown'); individuals of unknown sex are excluded from the pools with a
-#' warning (the PMx default treatment, Manual p. 112).
+#' 'Unknown'); individuals of any other or missing sex are excluded from the
+#' pools with a warning (the PMx default treatment, Manual p. 112).
 #' @author Author(s): Arthur Georges. Custodian: Arthur Georges -- Post to
 #' \url{https://groups.google.com/d/forum/dartr}
 #' @examples
-#' # Estimate kinship on the FULL dataset, then subset to the captive colony
-#' kin <- gl.kin(testset2.gl)
-#' cb <- gl.keep.pop(testset2.gl, pop.list = "EmmacCaptBred", verbose = 0)
-#' kin.cb <- kin[indNames(cb), indNames(cb)]
-#' res <- gl.report.mate.suitability(cb, kin = kin.cb)
+#' # Filter on call rate, estimate kinship on the FULL dataset, and pass it
+#' # for the captive colony (it is restricted to the colony's individuals)
+#' tf <- gl.filter.callrate(testset2.gl, method = "loc", threshold = 0.95,
+#'                          verbose = 0)
+#' kin <- gl.kin(tf)
+#' cb <- gl.keep.pop(tf, pop.list = "EmmacCaptBred", verbose = 0)
+#' res <- gl.report.mate.suitability(cb, kin = kin)
 #' table(res$msi)   # spans 1-6; kin pairings (F.off >= 0.125) score NoWay
-#' res$f.off["CB_AB_01", "CB_AB_02"]  # full sibs: ~0.23 -> 'NoWay'
+#' res$f.off["CB_AB_01", "CB_AB_02"]  # full sibs: 0.252 -> 'NoWay'
 #' # A low offspring F does not guarantee a good MSI: gene-diversity change
 #' # and mean-kinship difference also count
-#' res$f.off["CB_AB_01", "CB_CD_02"]  # across families: F.off ~0.01
-#' res$msi["CB_AB_01", "CB_CD_02"]    # yet detrimental: both well represented
+#' res$f.off["CB_AB_01", "CB_CD_02"]  # across families: F.off 0.016
+#' res$msi["CB_AB_01", "CB_CD_02"]    # yet MSI 5: both well represented
 #' @seealso \code{\link{gl.kin}}, \code{\link{gl.select.pairs}},
 #' \code{\link{gl.report.repro.targets}}
 #' @export
 #' @return Invisibly, a list of ten components, the matrices all males x
-#' females: $msi (character, '1'..'6' or 'NoWay'), $f.off, $dgd, $mkdiff and
+#' females: $msi (character, '1'..'6', 'NoWay', or NA for a pairing with
+#' missing kinship), $f.off, $dgd, $mkdiff and
 #' $completeness (numeric), $rank.dgd, $rank.mkdiff and $rank.f (integer bin
 #' ranks 1-6, NA for 'NoWay' pairs), $msi.base (numeric Tulsa score before the
 #' unknown-genome penalty, NA for 'NoWay' pairs), and $settings (list: the
@@ -147,9 +163,7 @@ gl.report.mate.suitability <- function(x,
 
     # FLAG SCRIPT START
     funname <- match.call()[[1]]
-    utils.flag.start(func = funname,
-                     build = "v.2026.1",
-                     verbose = verbose)
+    utils.flag.start(func = funname, verbose = verbose)
 
     # CHECK DATATYPE
     datatype <- utils.check.datatype(x, verbose = verbose)
@@ -168,8 +182,9 @@ gl.report.mate.suitability <- function(x,
     }
     ids <- indNames(x)
     sex <- as.character(x@other$ind.metrics$sex)
-    males <- ids[sex == "Male"]
-    females <- ids[sex == "Female"]
+    # %in% rather than ==, so that an NA sex counts as unknown
+    males <- ids[sex %in% "Male"]
+    females <- ids[sex %in% "Female"]
     n.unknown <- sum(!(sex %in% c("Male", "Female")))
     if (n.unknown > 0 && verbose >= 1) {
         cat(warn("  Warning:", n.unknown,
@@ -183,11 +198,10 @@ gl.report.mate.suitability <- function(x,
 
     # f.noway
     if (!is.numeric(f.noway) || length(f.noway) != 1 ||
-        f.noway <= 0 || f.noway > 0.5) {
-        if (verbose >= 1) {
-            cat(warn("  Warning: f.noway must be a single value in (0, 0.5]; resetting to 0.125\n"))
-        }
-        f.noway <- 0.125
+        is.na(f.noway) || f.noway <= 0 || f.noway > 0.5) {
+        stop(error(
+            "Fatal Error: f.noway must be a single value in (0, 0.5]\n"
+        ))
     }
 
     # unknown.breaks: NULL disables the unknown-genome penalty
@@ -205,6 +219,28 @@ gl.report.mate.suitability <- function(x,
     n.m <- length(males)
     n.f <- length(females)
 
+    # Individual call rates; gl.kin fills missing genotypes with the locus
+    # mean, which pulls kinship toward 0 for individuals with low call rates
+    cr <- 1 - vapply(x@gen, function(e) length(e@NA.posi), numeric(1)) /
+        nLoc(x)
+    names(cr) <- ids
+    if (any(cr < 0.8) && verbose >= 1) {
+        cat(warn(paste0("  Warning: ", sum(cr < 0.8),
+                        " individuals have call rate below 0.8 (lowest ",
+                        round(min(cr), 3), "); missing genotypes pull ",
+                        "their kinship toward 0, so pairings above the No ",
+                        "Way point can be rated. Consider filtering on ",
+                        "call rate before gl.kin (see Details)\n")))
+    }
+
+    # Missing kinship values are ignored in the means; a pairing whose own
+    # kinship is missing cannot be screened
+    n.na <- sum(is.na(kin[upper.tri(kin, diag = TRUE)]))
+    if (n.na > 0 && verbose >= 1) {
+        cat(warn("  Warning:", n.na, "missing (NA) kinship values ignored",
+                 "in the means; pairings with NA kinship get MSI NA\n"))
+    }
+
     # Component matrices ------------------------------------
 
     # (a) Prospective offspring inbreeding
@@ -215,32 +251,44 @@ gl.report.mate.suitability <- function(x,
         cat(report("  Computing delta gene diversity for", n.m * n.f,
                    "candidate pairings\n"))
     }
-    gd.base <- utils.kin.dgd(kin)
-    dgd <- matrix(NA_real_, nrow = n.m, ncol = n.f,
-                  dimnames = list(males, females))
-    for (m in males) {
-        for (f in females) {
-            dgd[m, f] <- utils.kin.dgd(kin,
-                                       add.pairs = matrix(c(m, f), nrow = 1)) - gd.base
+    if (n.na == 0) {
+        # Closed form of utils.kin.dgd for one virtual offspring: its row is
+        # the parents' mean row and its self-kinship 0.5 * (1 + kin[m, f]),
+        # so the augmented sum is S + rs[m] + rs[f] + 0.5 * (1 + kin[m, f])
+        n <- nrow(kin)
+        s.all <- sum(kin)
+        rs <- rowSums(kin)
+        dgd <- s.all / n^2 -
+            (s.all + outer(rs[males], rs[females], "+") +
+                 0.5 * (1 + kin[males, females, drop = FALSE])) / (n + 1)^2
+        dimnames(dgd) <- list(males, females)
+    } else {
+        gd.base <- utils.kin.dgd(kin, na.rm = TRUE)
+        dgd <- matrix(NA_real_, nrow = n.m, ncol = n.f,
+                      dimnames = list(males, females))
+        for (m in males) {
+            for (f in females) {
+                dgd[m, f] <- utils.kin.dgd(kin,
+                                           add.pairs = matrix(c(m, f), nrow = 1),
+                                           na.rm = TRUE) - gd.base
+            }
         }
     }
 
     # (c) Mean kinship difference (PMx defaults: Mean Kinship, Absolute Diffs)
-    mk <- rowMeans(kin)
+    mk <- rowMeans(kin, na.rm = TRUE)
     mkdiff <- abs(outer(mk[males], mk[females], "-"))
     dimnames(mkdiff) <- list(males, females)
 
     # (d) Completeness: the prospective offspring draws half its genome from
     # each parent, so its unknown (uncalled) fraction is the mean of the
     # parents' missing-call fractions; completeness = 1 - that
-    cr <- rowMeans(!is.na(as.matrix(x)))
-    names(cr) <- ids
     completeness <- outer(cr[males], cr[females], "+") / 2
     dimnames(completeness) <- list(males, females)
     unknown <- 1 - completeness
 
     # No Way point (raised automatically for inbred populations) -----------
-    f.mean <- mean(f.off)
+    f.mean <- mean(f.off, na.rm = TRUE)
     noway <- f.noway
     if (f.mean > 0.5) {
         noway <- max(noway, 1.0)
@@ -255,11 +303,12 @@ gl.report.mate.suitability <- function(x,
                  noway, "per the PMx rule for inbred populations\n"))
     }
 
-    noway.mask <- f.off >= noway
+    na.pair <- is.na(f.off)
+    noway.mask <- !na.pair & f.off >= noway
     if (!is.null(unknown.breaks)) {
         noway.mask <- noway.mask | (unknown > unknown.breaks[4])
     }
-    rated <- !noway.mask
+    rated <- !noway.mask & !na.pair
     if (!any(rated) && verbose >= 1) {
         cat(warn("  Warning: every candidate pairing is 'NoWay'; no pairings rated\n"))
     }
@@ -371,7 +420,8 @@ gl.report.mate.suitability <- function(x,
     if (verbose >= 3) {
         cat(report("  Mate Suitability Index summary (", n.m, "males x",
                    n.f, "females; No Way for F =", noway, "):\n"))
-        print(table(factor(msi, levels = c(as.character(1:6), "NoWay"))))
+        print(table(factor(msi, levels = c(as.character(1:6), "NoWay")),
+                    useNA = "ifany"))
     }
 
 # FLAG SCRIPT END ---------------
