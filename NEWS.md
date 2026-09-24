@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+* `gl.report.gd.projection()`: `summary` gains `years.to.target.source`
+  and `ne.required.source`, the PMx goal read as a proportion of SOURCE
+  gene diversity (after Soule et al. 1986). The existing
+  `years.to.target` and `ne.required` are relative to current gene
+  diversity and do not depend on the data. For the `testset2.gl` captive
+  colony at Ne = 50 the source-relative outputs are 3.7 years and
+  Ne 1360 (current-relative: 10.5 years, Ne 475); they are `NA`, with a
+  warning, when gene diversity is already at or below the target. The
+  plot adds the source-relative target line. Missing kinship values are
+  ignored in `gd.now` with a warning (one `NA` gave an opaque error), a
+  warning when individuals in `x` have call rate below 0.8, and scalar
+  arguments are checked before any kinship work.
+
 * `gl.report.ind.add()`: missing kinship values are ignored in the gene
   diversity means with a warning (one `NA` in the target block made
   every `dgd` `NA`); duplicated candidates are evaluated once; a warning

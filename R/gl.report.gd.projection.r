@@ -63,6 +63,32 @@
 #' proportion retained drops below gd.target is reported at verbose >= 3, and
 #' is NA if the target is never crossed within the horizon.
 #'
+#' These two outputs measure retention relative to CURRENT gene diversity, so
+#' they depend only on ne, gen.length, years and gd.target, not on the data.
+#' The PMx goal (after Soule et al. 1986) is a proportion of the gene
+#' diversity of the SOURCE population, and PMx reports current gene
+#' diversity as a proportion of source gene diversity. When gd.now comes
+#' from kinship estimated on a reference that includes the source
+#' populations it is on that scale (the reference itself has GD = 1), so two
+#' source-relative outputs are also reported: years.to.target.source =
+#' gen.length * log(gd.target/gd.now) / log(1 - 1/(2*ne)), the time until
+#' gene diversity itself falls to gd.target, and ne.required.source =
+#' 1/(2*(1 - (gd.target/gd.now)^(gen.length/years))), the effective size that
+#' keeps it at or above gd.target over the horizon. Both are NA, with a
+#' warning, when gd.now is already at or below gd.target. For the testset2.gl
+#' captive colony (gd.now 0.934) at ne = 50 over 100 years, the
+#' current-relative outputs are 10.5 years and ne 475, the source-relative
+#' ones 3.7 years and ne 1360. The plot shows the current-relative target as
+#' a dashed line and the source-relative target (gd.target/gd.now on the
+#' retention axis) as a dot-dash line.
+#'
+#' Missing genotypes pull kinship toward 0, because gl.kin fills them with
+#' the locus mean, which inflates gd.now: for the captive colony (call rates
+#' 0.70-0.80) gd.now is 0.934, and 0.905 after
+#' gl.filter.callrate(method = "loc", threshold = 0.95). The function warns
+#' when any individual in x has call rate below 0.8. Missing (NA) kinships
+#' are ignored in gd.now, with a warning.
+#'
 #' If both x and gd.now are supplied, gd.now takes precedence and the genlight
 #' object is ignored, with a warning. If gd.now is supplied directly, no
 #' genlight machinery (datatype check, kinship computation) is invoked.
@@ -89,7 +115,9 @@
 #' @export
 #' @return Invisibly, a list with two components: projection, a data frame with
 #' columns year, gd and prop.retained; and summary, a named list with elements
-#' gd.now, ne, years.to.target and ne.required.
+#' gd.now, ne, years.to.target, ne.required (relative to current gene
+#' diversity), years.to.target.source and ne.required.source (relative to
+#' source gene diversity; see Details).
 #'
 # ----------------------
 # Function
@@ -129,44 +157,12 @@ gl.report.gd.projection <- function(x = NULL,
 
     # FLAG SCRIPT START
     funname <- match.call()[[1]]
-    utils.flag.start(func = funname,
-                     build = "v.2026.1",
-                     verbose = verbose)
+    utils.flag.start(func = funname, verbose = verbose)
 
-    # RESOLVE THE SOURCE OF CURRENT GENE DIVERSITY
-    # The datatype check is deferred deliberately: it runs only when a genlight
-    # object is actually consumed. A direct gd.now bypasses all genlight
-    # machinery.
-    if (is.null(x) && is.null(gd.now)) {
-        stop(error(
-            "Fatal Error: Supply either a genlight object (x) or a current gene diversity (gd.now)\n"
-        ))
-    }
-    if (!is.null(x) && !is.null(gd.now)) {
-        if (verbose >= 1) {
-            cat(warn(
-                "  Warning: Both x and gd.now supplied; using gd.now and ignoring the genlight object\n"
-            ))
-        }
-        x <- NULL
-    }
-    if (is.null(gd.now)) {
-        # CHECK DATATYPE
-        datatype <- utils.check.datatype(x, verbose = verbose)
-
-        # KINSHIP MATRIX: GD of the whole of x needs kinship estimated on a
-        # wider reference (self-referenced kinship gives GD = 1)
-        kin <- utils.kin.check(x, kin, verbose = verbose,
-                               need.reference = TRUE)
-        gd.now <- 1 - mean(kin)
-    }
-
-    # FUNCTION SPECIFIC ERROR CHECKING
+    # FUNCTION SPECIFIC ERROR CHECKING -- scalar arguments first, before
+    # any kinship work
     if (missing(ne) || !is.numeric(ne) || length(ne) != 1 || ne <= 0.5) {
         stop(error("Fatal Error: ne must be a single number greater than 0.5\n"))
-    }
-    if (!is.numeric(gd.now) || length(gd.now) != 1 || gd.now <= 0 || gd.now > 1) {
-        stop(error("Fatal Error: gd.now must be a single value in (0, 1]\n"))
     }
     if (!is.numeric(gen.length) || length(gen.length) != 1 || gen.length <= 0) {
         stop(error("Fatal Error: gen.length must be a single positive number\n"))
@@ -193,6 +189,57 @@ gl.report.gd.projection <- function(x = NULL,
         }
     }
 
+    # RESOLVE THE SOURCE OF CURRENT GENE DIVERSITY
+    # The datatype check is deferred deliberately: it runs only when a genlight
+    # object is actually consumed. A direct gd.now bypasses all genlight
+    # machinery.
+    if (is.null(x) && is.null(gd.now)) {
+        stop(error(
+            "Fatal Error: Supply either a genlight object (x) or a current gene diversity (gd.now)\n"
+        ))
+    }
+    if (!is.null(x) && !is.null(gd.now)) {
+        if (verbose >= 1) {
+            cat(warn(
+                "  Warning: Both x and gd.now supplied; using gd.now and ignoring the genlight object\n"
+            ))
+        }
+        x <- NULL
+    }
+    if (is.null(gd.now)) {
+        # CHECK DATATYPE
+        datatype <- utils.check.datatype(x, verbose = verbose)
+
+        # KINSHIP MATRIX: GD of the whole of x needs kinship estimated on a
+        # wider reference (self-referenced kinship gives GD = 1)
+        kin <- utils.kin.check(x, kin, verbose = verbose,
+                               need.reference = TRUE)
+
+        # Mean imputation of missing genotypes (gl.kin) pulls kinship
+        # toward 0 for individuals with low call rates, inflating gd.now
+        ind.cr <- 1 - vapply(x@gen, function(e) length(e@NA.posi),
+                             numeric(1)) / nLoc(x)
+        if (any(ind.cr < 0.8) && verbose >= 1) {
+            cat(warn(paste0("  Warning: ", sum(ind.cr < 0.8),
+                            " individuals have call rate below 0.8 (lowest ",
+                            round(min(ind.cr), 3), "); missing genotypes ",
+                            "pull kinship toward 0 and inflate gd.now. ",
+                            "Consider filtering on call rate before gl.kin ",
+                            "(see Details)\n")))
+        }
+        n.na <- sum(is.na(kin[upper.tri(kin, diag = TRUE)]))
+        if (n.na > 0 && verbose >= 1) {
+            cat(warn("  Warning:", n.na,
+                     "missing kinship values (pairs or self-kinships) are ignored in gd.now\n"))
+        }
+        gd.now <- 1 - mean(kin, na.rm = TRUE)
+    }
+
+    # gd.now is checked once it is resolved
+    if (!is.numeric(gd.now) || length(gd.now) != 1 || gd.now <= 0 || gd.now > 1) {
+        stop(error("Fatal Error: gd.now must be a single value in (0, 1]\n"))
+    }
+
 # DO THE JOB ----------------------
     if (verbose >= 2) {
         cat(report("  Projecting gene diversity over", years, "years at Ne =", ne, "\n"))
@@ -212,37 +259,66 @@ gl.report.gd.projection <- function(x = NULL,
     years.to.target <- gen.length * log(gd.target) / log(lambda)
     ne.required <- 1 / (2 * (1 - gd.target^(gen.length / years)))
 
+    # Source-relative outputs: the PMx goal is a proportion of source gene
+    # diversity, and gd.now from reference kinship is on that scale
+    if (gd.now > gd.target) {
+        years.to.target.source <- gen.length * log(gd.target / gd.now) /
+            log(lambda)
+        ne.required.source <-
+            1 / (2 * (1 - (gd.target / gd.now)^(gen.length / years)))
+    } else {
+        years.to.target.source <- NA_real_
+        ne.required.source <- NA_real_
+        if (verbose >= 1) {
+            cat(warn("  Warning: gd.now (", round(gd.now, 4),
+                     ") is already at or below gd.target; the source-relative goal is missed\n",
+                     sep = ""))
+        }
+    }
+
     sumry <- list(gd.now = gd.now,
                   ne = ne,
                   years.to.target = years.to.target,
-                  ne.required = ne.required)
+                  ne.required = ne.required,
+                  years.to.target.source = years.to.target.source,
+                  ne.required.source = ne.required.source)
 
     # Printing outputs -----------
     if (verbose >= 3) {
-        cat("  Gene diversity projection\n")
-        cat(paste("    Current gene diversity     :", round(gd.now, 4)), "\n")
-        cat(paste("    Effective size (Ne)        :", ne), "\n")
+        cat(report("  Gene diversity projection\n"))
+        cat(report("    Current gene diversity     :", round(gd.now, 4), "\n"))
+        cat(report("    Effective size (Ne)        :", ne, "\n"))
         if (!is.null(n)) {
-            cat(paste("    Census size (N), Ne/N      :", n, ",",
-                      round(ne / n, 3)), "\n")
+            cat(report("    Census size (N), Ne/N      :", n, ",",
+                       round(ne / n, 3), "\n"))
         }
-        cat(paste("    Generation length (years)  :", gen.length), "\n")
-        cat(paste("    Target retention           :", gd.target), "\n")
-        cat(paste("    Retained at year", years, "        :",
-                  round(projection$prop.retained[years + 1], 4)), "\n")
+        cat(report("    Generation length (years)  :", gen.length, "\n"))
+        cat(report("    Target retention           :", gd.target, "\n"))
+        cat(report("  Relative to current gene diversity\n"))
+        cat(report("    Retained at year", years, "        :",
+                   round(projection$prop.retained[years + 1], 4), "\n"))
         if (is.na(cross.year)) {
-            cat(paste("    Year target crossed        : not within horizon (exact:",
-                      round(years.to.target, 1), "years )"), "\n")
+            cat(report("    Year target crossed        : not within horizon (exact:",
+                       round(years.to.target, 1), "years )\n"))
         } else {
-            cat(paste("    Year target crossed        :", cross.year,
-                      "( exact:", round(years.to.target, 1), "years )"), "\n")
+            cat(report("    Year target crossed        :", cross.year,
+                       "( exact:", round(years.to.target, 1), "years )\n"))
         }
-        cat(paste("    Ne required for target     :",
-                  round(ne.required, 1)), "\n")
+        cat(report("    Ne required for target     :",
+                   round(ne.required, 1), "\n"))
         if (ne >= ne.required) {
-            cat(paste("    The nominated Ne meets the retention target over the horizon\n"))
+            cat(report("    The nominated Ne meets the retention target over the horizon\n"))
         } else {
-            cat(paste("    The nominated Ne does NOT meet the retention target over the horizon\n"))
+            cat(report("    The nominated Ne does NOT meet the retention target over the horizon\n"))
+        }
+        cat(report("  Relative to source gene diversity (PMx goal)\n"))
+        if (is.na(years.to.target.source)) {
+            cat(report("    Gene diversity is already at or below the target\n"))
+        } else {
+            cat(report("    Years until GD falls to", gd.target, ":",
+                       round(years.to.target.source, 1), "\n"))
+            cat(report("    Ne required for target     :",
+                       round(ne.required.source, 1), "\n"))
         }
     }
 
@@ -257,6 +333,13 @@ gl.report.gd.projection <- function(x = NULL,
         ggtitle(paste0("Gene diversity retention (GD now = ",
                        round(gd.now, 3), ", Ne = ", ne, ")")) +
         plot.theme
+
+    # Source-relative target on the retention axis
+    if (!is.na(years.to.target.source)) {
+        p1 <- p1 + geom_hline(yintercept = gd.target / gd.now,
+                              linetype = "dotdash",
+                              color = plot.colors[2])
+    }
 
     if (!is.na(cross.year)) {
         p1 <- p1 + geom_vline(xintercept = years.to.target,

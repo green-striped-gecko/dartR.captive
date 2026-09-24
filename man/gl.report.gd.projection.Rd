@@ -70,7 +70,9 @@ or 2 if no global is set].}
 \value{
 Invisibly, a list with two components: projection, a data frame with
 columns year, gd and prop.retained; and summary, a named list with elements
-gd.now, ne, years.to.target and ne.required.
+gd.now, ne, years.to.target, ne.required (relative to current gene
+diversity), years.to.target.source and ne.required.source (relative to
+source gene diversity; see Details).
 }
 \description{
 Projects the proportion of current gene diversity (expected heterozygosity)
@@ -100,6 +102,32 @@ the given ne, years.to.target = gen.length * log(gd.target) /
 log(1 - 1/(2*ne)). The first whole year in the projection table at which the
 proportion retained drops below gd.target is reported at verbose >= 3, and
 is NA if the target is never crossed within the horizon.
+
+These two outputs measure retention relative to CURRENT gene diversity, so
+they depend only on ne, gen.length, years and gd.target, not on the data.
+The PMx goal (after Soule et al. 1986) is a proportion of the gene
+diversity of the SOURCE population, and PMx reports current gene
+diversity as a proportion of source gene diversity. When gd.now comes
+from kinship estimated on a reference that includes the source
+populations it is on that scale (the reference itself has GD = 1), so two
+source-relative outputs are also reported: years.to.target.source =
+gen.length * log(gd.target/gd.now) / log(1 - 1/(2*ne)), the time until
+gene diversity itself falls to gd.target, and ne.required.source =
+1/(2*(1 - (gd.target/gd.now)^(gen.length/years))), the effective size that
+keeps it at or above gd.target over the horizon. Both are NA, with a
+warning, when gd.now is already at or below gd.target. For the testset2.gl
+captive colony (gd.now 0.934) at ne = 50 over 100 years, the
+current-relative outputs are 10.5 years and ne 475, the source-relative
+ones 3.7 years and ne 1360. The plot shows the current-relative target as
+a dashed line and the source-relative target (gd.target/gd.now on the
+retention axis) as a dot-dash line.
+
+Missing genotypes pull kinship toward 0, because gl.kin fills them with
+the locus mean, which inflates gd.now: for the captive colony (call rates
+0.70-0.80) gd.now is 0.934, and 0.905 after
+gl.filter.callrate(method = "loc", threshold = 0.95). The function warns
+when any individual in x has call rate below 0.8. Missing (NA) kinships
+are ignored in gd.now, with a warning.
 
 If both x and gd.now are supplied, gd.now takes precedence and the genlight
 object is ignored, with a warning. If gd.now is supplied directly, no
