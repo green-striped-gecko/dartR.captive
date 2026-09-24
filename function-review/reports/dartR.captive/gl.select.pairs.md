@@ -170,7 +170,7 @@ message; SilicoDArT runs.
 - Change 6: `@details` on falling `dgd.cum`.
 - Change 7: `build =` dropped, DOC2 `verbose` text.
 - Snapshot: selections, `f.off`, `dgd.cum`, `gd.start` and `gd.projected` unchanged for all schemes. Baseline expectations changed only for invalid arguments (4), `NA` sex (3) and `NA` kinship (2). 51 expectations pass; full suite 583 pass, 0 fail; example runs.
-- NEWS entry added. PR: pending
+- NEWS entry added. PR: #128
 
 ```json
 {
@@ -191,7 +191,7 @@ message; SilicoDArT runs.
     {"id": "F7", "severity": "LOW", "confidence": "high", "rule": "FS3,DOC2", "status": "approved", "change": 7}
   ],
   "coverage_skipped": ["PMx manual: not available", "DAT6: no FBM fixture", "forum/issues: no release history"],
-  "status": "awaiting-approval",
-  "pr": null
+  "status": "pr-open",
+  "pr": 128
 }
 ```
