@@ -149,7 +149,7 @@ range limits and break points; SilicoDArT runs; unknown sex warns at
 - Change 5: closed-form `dgd` when `kin` has no `NA` (the `utils.kin.dgd` loop with `na.rm = TRUE` otherwise); call rate from `NA.posi`. 200 individuals: 0.04 s (was 1.7 s).
 - Change 6: `build =` dropped, DOC2 `verbose` text, example comments corrected.
 - Snapshot: MSI table, break points, `f.off` and the closed-form `dgd` check unchanged. Three baseline expectations changed, each mapped to an approved change: invalid `f.noway` (4), `NA` sex (3), `NA` kinship (2). 22 expectations pass; full suite 487 pass, 0 fail; example runs.
-- NEWS entry added. PR: pending
+- NEWS entry added. PR: #126
 
 ```json
 {
@@ -169,7 +169,7 @@ range limits and break points; SilicoDArT runs; unknown sex warns at
     {"id": "F6", "severity": "LOW", "confidence": "high", "rule": "FS3,DOC2,DOC5", "status": "approved", "change": 6}
   ],
   "coverage_skipped": ["PMx manual: not available", "DAT6: no FBM fixture", "forum/issues: no release history"],
-  "status": "awaiting-approval",
-  "pr": null
+  "status": "pr-open",
+  "pr": 126
 }
 ```
