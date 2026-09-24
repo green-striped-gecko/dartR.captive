@@ -12,6 +12,16 @@
   with call rate below 0.8 give a warning: missing genotypes pull kinship
   and inbreeding toward 0 (captive cohorts in `testset2.gl`: meanF -0.25
   to -0.38, and -0.15 to +0.01 after filtering loci at call rate 0.95).
+* `gl.grm()` passes `min.MAF = 1/(2n) - 1e-10` to `rrBLUP::A.mat()` unless
+  `min.MAF` is given. With the default `1/(2n)`, a locus with a single
+  minor-allele copy sat exactly on the cut-off, and rounding decided whether
+  it was kept: Apple Silicon Macs dropped it, and Linux and Windows kept it
+  unless the minor allele was the one counted as 2. Such loci are now kept
+  on every platform. Results change mostly on Apple Silicon (on
+  `platypus.gl[1:12, 1:200]` the T27 diagonal goes from 0.943 to 0.986),
+  and on Linux and Windows only for single-copy loci whose minor allele is
+  counted as 2 (2 of the 13 single-copy loci in `testset2.gl`).
+  Same fix as `dartR.spatial::gl.grm2()`.
 
 * `gl.report.kin.confidence()`: the standard errors now describe the
   estimator `gl.kin()` returns. For SNP data each resample is `G/2`; it

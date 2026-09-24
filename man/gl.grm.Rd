@@ -47,7 +47,9 @@ exclude extension); saved only when \code{plotheatmap = TRUE}
 progress log ; 3, progress and results summary; 5, full report
 [default 2 or as specified using gl.set.verbosity].}
 
-\item{...}{Parameters passed to function A.mat from package rrBLUP.}
+\item{...}{Parameters passed to function A.mat from package rrBLUP.
+Unless min.MAF is given, it is set to 1/(2n) - 1e-10, so loci with a
+single copy of the minor allele are kept on every platform.}
 }
 \value{
 A square genomic relationship matrix on the relatedness scale
