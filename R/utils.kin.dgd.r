@@ -23,6 +23,8 @@
 #' previously added virtual offspring from earlier rows. Row names, if
 #' supplied, become the ids of the virtual offspring, otherwise ids
 #' 'offspring_1', 'offspring_2', ... are generated [default NULL].
+#' @param na.rm If TRUE, missing (NA) kinships are ignored in the mean; if
+#' FALSE, any NA makes GD NA [default FALSE].
 #' @details
 #' Removals are applied first, then virtual offspring are appended one row of
 #' add.pairs at a time. For a virtual offspring v of parents a and b, kinship
@@ -64,7 +66,8 @@
 # Function
 utils.kin.dgd <- function(kin,
                           drop = NULL,
-                          add.pairs = NULL) {
+                          add.pairs = NULL,
+                          na.rm = FALSE) {
     # ARGUMENT VALIDATION (pure engine -- no verbosity machinery) ----------
     if (!is.matrix(kin) || !is.numeric(kin)) {
         stop(error("Fatal Error: kin must be a numeric matrix\n"))
@@ -148,7 +151,7 @@ utils.kin.dgd <- function(kin,
     }
 
     # GENE DIVERSITY over the full modified matrix, diagonal included ------
-    gd <- 1 - mean(kin)
+    gd <- 1 - mean(kin, na.rm = na.rm)
 
     # RETURN
     invisible(gd)

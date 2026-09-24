@@ -4,7 +4,7 @@
 \alias{utils.kin.dgd}
 \title{Gene diversity of a kinship matrix after removals and virtual offspring}
 \usage{
-utils.kin.dgd(kin, drop = NULL, add.pairs = NULL)
+utils.kin.dgd(kin, drop = NULL, add.pairs = NULL, na.rm = FALSE)
 }
 \arguments{
 \item{kin}{A square numeric kinship matrix with identical row and column
@@ -18,6 +18,9 @@ offspring appended per row, processed in row order; parents may be
 previously added virtual offspring from earlier rows. Row names, if
 supplied, become the ids of the virtual offspring, otherwise ids
 'offspring_1', 'offspring_2', ... are generated [default NULL].}
+
+\item{na.rm}{If TRUE, missing (NA) kinships are ignored in the mean; if
+FALSE, any NA makes GD NA [default FALSE].}
 }
 \value{
 A single numeric value: the gene diversity GD = 1 - mean of the
