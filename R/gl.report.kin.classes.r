@@ -39,6 +39,20 @@
 #' biased and classes will be shifted downwards -- include unrelated
 #' individuals in the dataset where possible.
 #'
+#' A single baseline cannot absorb population structure. When kinship is
+#' estimated with allele frequencies pooled over several populations, pairs
+#' within a population sit above the pooled baseline and pairs between
+#' populations sit below it, so within-population pairs are pushed into
+#' closer classes and cross-population pairs (including parent-offspring
+#' links across source populations) into more distant ones. With more than
+#' one population in x the function warns; classify within one population
+#' (or a panmictic sample), with kin estimated from that sample, where
+#' possible. The baseline is also unreliable with few individuals: at least
+#' three are required, and fewer than ten produce a warning.
+#'
+#' Pairs with missing (NA) kinship are ignored when computing the baseline,
+#' are given class NA, and are returned only when all.pairs = TRUE.
+#'
 #' Adjusted kinships are assigned to the nearest of the theoretical class
 #' values 0.25 (first-degree), 0.125 (second-degree), 0.0625 (third-degree)
 #' and 0 (unrelated), using the midpoints between adjacent values as
@@ -68,13 +82,16 @@
 #' @examples
 #' # SNP data -- run on the FULL dataset so the median baseline is set by
 #' # unrelated pairs (a family-only matrix biases it; see Details)
+#' # testset2.gl holds 31 populations, so the function warns about
+#' # population structure
 #' kin <- gl.kin(testset2.gl)
 #' res <- gl.report.kin.classes(testset2.gl, kin = kin)
 #' table(res$pairs$class)
 #' # The known captive full sibs classify as full-sib
 #' res$pairs[res$pairs$id1 == "CB_AB_01" & res$pairs$id2 == "CB_AB_02", ]
-#' # Recorded parent-offspring links whose genomic class disagrees; a few
-#' # near the class boundary are expected at this number of loci
+#' # Recorded parent-offspring links whose genomic class disagrees; here
+#' # they are links between individuals from different source populations,
+#' # pushed down a class by population structure (see Details)
 #' head(res$conflicts)
 #' # Tag P/A data (no PO/FS split possible)
 #' res.gs <- gl.report.kin.classes(testset2.gs, kin = gl.kin(testset2.gs))
@@ -85,10 +102,11 @@
 #' @export
 #' @return Invisibly, a list with two components: pairs, a data frame with
 #' columns id1, id2, kinship, kinship.adj and class (restricted to pairs with
-#' class != "unrelated" unless all.pairs = TRUE); and conflicts, a data frame
-#' of recorded parent-offspring links whose genomic class disagrees (columns
-#' offspring, parent, kinship, kinship.adj, class), or NULL if there are no
-#' conflicts or no sire/dam columns in ind.metrics.
+#' a class other than "unrelated" or NA unless all.pairs = TRUE); and
+#' conflicts, a data frame of recorded parent-offspring links whose genomic
+#' class disagrees (columns offspring, parent, kinship, kinship.adj, class),
+#' with zero rows if there are no conflicts or no sire/dam columns in
+#' ind.metrics.
 #'
 # ----------------------
 # Function
@@ -103,9 +121,7 @@ gl.report.kin.classes <- function(x,
 
     # FLAG SCRIPT START
     funname <- match.call()[[1]]
-    utils.flag.start(func = funname,
-                     build = "v.2026.1",
-                     verbose = verbose)
+    utils.flag.start(func = funname, verbose = verbose)
 
     # CHECK DATATYPE
     datatype <- utils.check.datatype(x, verbose = verbose)
@@ -118,8 +134,18 @@ gl.report.kin.classes <- function(x,
         oh.thresh < 0 || oh.thresh >= 1) {
         stop(error("Fatal Error: oh.thresh must be a single value in [0, 1)\n"))
     }
-    if (nInd(x) < 2) {
-        stop(error("Fatal Error: At least two individuals are required\n"))
+    if (nInd(x) < 3) {
+        stop(error("Fatal Error: At least three individuals are required; with two, the median baseline is the pair's own kinship\n"))
+    }
+    if (nInd(x) < 10 && verbose >= 1) {
+        cat(warn("  Warning: Only", nInd(x),
+                 "individuals; the median baseline is unreliable and classes may be shifted\n"))
+    }
+    # A pooled-frequency kinship shifts within- and between-population
+    # pairs in opposite directions; one baseline cannot correct both
+    if (nPop(x) > 1 && verbose >= 1) {
+        cat(warn("  Warning:", nPop(x),
+                 "populations in x; population structure inflates within-population classes and deflates between-population ones. Classify within one population where possible (see Details)\n"))
     }
 
     ids <- indNames(x)
@@ -127,7 +153,7 @@ gl.report.kin.classes <- function(x,
 # DO THE JOB ----------------------
     # Baseline adjustment: frequency-based estimators are relative to the
     # sample reference, so anchor "unrelated" at the median off-diagonal value
-    baseline <- stats::median(kin[row(kin) != col(kin)])
+    baseline <- stats::median(kin[row(kin) != col(kin)], na.rm = TRUE)
     if (verbose >= 2) {
         cat(report("  Baseline (median off-diagonal kinship):",
                    round(baseline, 4), "\n"))
@@ -141,6 +167,12 @@ gl.report.kin.classes <- function(x,
         kinship.adj = kin[ut] - baseline,
         stringsAsFactors = FALSE
     )
+
+    n.na <- sum(is.na(pairs.all$kinship))
+    if (n.na > 0 && verbose >= 1) {
+        cat(warn("  Warning:", n.na,
+                 "pairs have missing kinship; they are classed NA and returned only with all.pairs = TRUE\n"))
+    }
 
     # Classify to nearest of {0.25, 0.125, 0.0625, 0} via midpoint thresholds
     pairs.all$class <- as.character(cut(
@@ -158,7 +190,10 @@ gl.report.kin.classes <- function(x,
                 cat(report("  Splitting", length(fd),
                            "first-degree pairs into PO vs FS by opposite homozygotes\n"))
             }
-            mat <- as.matrix(x)
+            # Densify only the individuals in first-degree pairs
+            need <- unique(c(pairs.all$id1[fd], pairs.all$id2[fd]))
+            mat <- as.matrix(x[match(need, ids), ])
+            rownames(mat) <- need
             for (k in fd) {
                 gi <- mat[pairs.all$id1[k], ]
                 gj <- mat[pairs.all$id2[k], ]
@@ -188,7 +223,9 @@ gl.report.kin.classes <- function(x,
     }
 
     # Cross-check against recorded sire/dam links -----------
-    conflicts <- NULL
+    conflicts <- data.frame(offspring = character(0), parent = character(0),
+                            kinship = numeric(0), kinship.adj = numeric(0),
+                            class = character(0), stringsAsFactors = FALSE)
     im <- x@other$ind.metrics
     if (!is.null(im) && all(c("sire", "dam") %in% names(im))) {
         recorded <- data.frame(
@@ -214,6 +251,7 @@ gl.report.kin.classes <- function(x,
             recorded$class <- pairs.all$class[hit]
             expected <- if (datatype == "SNP") "parent-offspring" else "first-degree"
             bad <- which(recorded$class != expected)
+            # (pairs with NA kinship have class NA and are not flagged)
             if (length(bad) > 0) {
                 conflicts <- recorded[bad, , drop = FALSE]
                 rownames(conflicts) <- NULL
@@ -227,16 +265,17 @@ gl.report.kin.classes <- function(x,
 
     # Printing outputs -----------
     if (verbose >= 3) {
-        cat("  Relationship class counts (all pairs)\n")
-        tbl <- table(pairs.all$class)
-        for (cl in names(tbl)) {
-            cat(paste0("    ", format(cl, width = 16), ": ", tbl[[cl]]), "\n")
+        cat(report("  Relationship class counts (all pairs)\n"))
+        tbl <- table(pairs.all$class, useNA = "ifany")
+        for (i in seq_along(tbl)) {
+            cat(report(paste0("    ", format(names(tbl)[i], width = 16),
+                              ": ", tbl[[i]]), "\n"))
         }
-        if (is.null(conflicts)) {
-            cat("  Pedigree cross-check: no conflicts detected\n")
+        if (nrow(conflicts) == 0) {
+            cat(report("  Pedigree cross-check: no conflicts detected\n"))
         } else {
-            cat(paste("  Pedigree cross-check:", nrow(conflicts),
-                      "conflicting recorded parent-offspring link(s)\n"))
+            cat(report("  Pedigree cross-check:", nrow(conflicts),
+                       "conflicting recorded parent-offspring link(s)\n"))
             print(conflicts)
         }
     }
@@ -244,7 +283,8 @@ gl.report.kin.classes <- function(x,
     pairs.out <- if (all.pairs) {
         pairs.all
     } else {
-        pairs.all[pairs.all$class != "unrelated", , drop = FALSE]
+        pairs.all[!is.na(pairs.all$class) &
+                      pairs.all$class != "unrelated", , drop = FALSE]
     }
     rownames(pairs.out) <- NULL
 
