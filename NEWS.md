@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+* `gl.select.pairs()`: a warning when any individual has call rate below
+  0.8, and Details on why: missing genotypes shrink kinship while `f.max`
+  is fixed, so on the `testset2.gl` captive colony one of the 10 pairs
+  selected unfiltered has kinship 0.185 after filtering loci at call rate
+  0.95; the example now filters first. Missing kinship values are ignored
+  in the means with a warning, and a pair with `NA` kinship is never
+  selected (one `NA` crashed the `dynamic` scheme and gave `NA` gene
+  diversity and a wrong order in `static` and `ranked`); an `NA` sex
+  counts as unknown (it crashed). Invalid `scheme`, `max.per.sire`,
+  `max.per.dam`, `f.max` or `n.pairs` are now errors (they were reset to
+  defaults). The `dynamic` scheme scores candidates in closed form, with
+  identical selections: 0.7 s instead of 164 s for 200 individuals.
+  Details now say that `dgd.cum` can fall as pairs are added.
 * `gl.report.repro.targets()`: a warning when any individual has call
   rate below 0.8 (filtering loci at call rate 0.95 changes 9 of 24
   targets on the `testset2.gl` captive colony; the example now filters

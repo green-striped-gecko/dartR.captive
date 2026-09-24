@@ -30,9 +30,8 @@
 #' (the pair's kinship); pairs at or above this value are never selected
 #' [default 0.125].
 #' @param verbose Verbosity: 0, silent or fatal errors; 1, begin and end; 2,
-#' progress log; 3, progress and results summary; 5, full report
-#' [default NULL, adopting the global verbosity set by gl.set.verbosity(),
-#' or 2 if no global is set].
+#' brief progress messages; 3, progress and results summary; 5, full report
+#' [default 2, unless specified using gl.set.verbosity].
 #' @details
 #' Kinship should be estimated on the most inclusive dataset available and the
 #' matrix subset to the managed group; computing kinship on a small family
@@ -66,17 +65,38 @@
 #' feasible pair remains before n.pairs is reached, the function warns and
 #' stops early with the pairs selected so far.
 #'
+#' The projected gene diversity dgd.cum can fall: each further offspring of
+#' well-represented parents adds more kinship than it removes. The function
+#' still fills n.pairs; the row where dgd.cum peaks is the number of pairs
+#' beyond which more pairs lower projected gene diversity. On the
+#' testset2.gl captive colony (unfiltered), dgd.cum peaks at pair 4 and the
+#' tenth pair ends below the starting gene diversity.
+#'
+#' Missing genotypes can let related pairs through f.max. gl.kin fills
+#' missing genotypes with the locus mean, which pulls kinship toward 0 for
+#' individuals with low call rates, while f.max is a fixed value. On the
+#' same colony (call rates 0.70-0.80), one of the 10 pairs selected by the
+#' dynamic scheme has kinship 0.110 unfiltered and 0.185 after
+#' gl.filter.callrate(method = "loc", threshold = 0.95), and only 3 of the
+#' 10 pairs are selected again after filtering. The function warns when any
+#' individual has call rate below 0.8; filter on call rate before gl.kin.
+#' Missing (NA) kinship values are ignored in the mean kinships and gene
+#' diversities, with a warning, and a pair with NA kinship is never
+#' selected.
+#'
 #' Sexes are read from x@@other$ind.metrics$sex (values 'Male', 'Female',
-#' 'Unknown'); individuals of unknown sex are excluded from the pools with a
-#' warning.
+#' 'Unknown'); individuals of any other or missing sex are excluded from the
+#' pools with a warning.
 #' @author Author(s): Arthur Georges. Custodian: Arthur Georges -- Post to
 #' \url{https://groups.google.com/d/forum/dartr}
 #' @examples
-#' # Estimate kinship on the FULL dataset, then subset to the captive colony
-#' kin <- gl.kin(testset2.gl)
-#' cb <- gl.keep.pop(testset2.gl, pop.list = "EmmacCaptBred", verbose = 0)
-#' kin.cb <- kin[indNames(cb), indNames(cb)]
-#' pairs <- gl.select.pairs(cb, kin = kin.cb, n.pairs = 5)
+#' # Filter on call rate, estimate kinship on the FULL dataset, and pass it
+#' # for the captive colony (it is restricted to the colony's individuals)
+#' tf <- gl.filter.callrate(testset2.gl, method = "loc", threshold = 0.95,
+#'                          verbose = 0)
+#' kin <- gl.kin(tf)
+#' cb <- gl.keep.pop(tf, pop.list = "EmmacCaptBred", verbose = 0)
+#' pairs <- gl.select.pairs(cb, kin = kin, n.pairs = 5)
 #' pairs  # avoids sib x sib pairings (f.off < 0.125)
 #' @seealso \code{\link{gl.kin}}, \code{\link{gl.report.mate.suitability}},
 #' \code{\link{gl.report.repro.targets}}
@@ -104,9 +124,7 @@ gl.select.pairs <- function(x,
 
     # FLAG SCRIPT START
     funname <- match.call()[[1]]
-    utils.flag.start(func = funname,
-                     build = "v.2026.1",
-                     verbose = verbose)
+    utils.flag.start(func = funname, verbose = verbose)
 
     # CHECK DATATYPE
     datatype <- utils.check.datatype(x, verbose = verbose)
@@ -124,8 +142,9 @@ gl.select.pairs <- function(x,
     }
     ids <- indNames(x)
     sex <- as.character(x@other$ind.metrics$sex)
-    males <- ids[sex == "Male"]
-    females <- ids[sex == "Female"]
+    # %in% rather than ==, so that an NA sex counts as unknown
+    males <- ids[sex %in% "Male"]
+    females <- ids[sex %in% "Female"]
     n.unknown <- sum(!(sex %in% c("Male", "Female")))
     if (n.unknown > 0 && verbose >= 1) {
         cat(warn("  Warning:", n.unknown,
@@ -142,50 +161,61 @@ gl.select.pairs <- function(x,
     # Scheme
     if (!is.character(scheme) || length(scheme) != 1 ||
         !(scheme %in% c("dynamic", "static", "ranked"))) {
-        if (verbose >= 1) {
-            cat(warn("  Warning: scheme must be one of 'dynamic', 'static' or 'ranked'; resetting to 'dynamic'\n"))
-        }
-        scheme <- "dynamic"
+        stop(error(
+            "Fatal Error: scheme must be one of 'dynamic', 'static' or 'ranked'\n"
+        ))
+    }
+
+    # A single non-missing number, for the scalar arguments below
+    is.scalar <- function(v) {
+        is.numeric(v) && length(v) == 1 && !is.na(v)
     }
 
     # Capacities
-    if (!is.numeric(max.per.sire) || length(max.per.sire) != 1 || max.per.sire < 1) {
-        if (verbose >= 1) {
-            cat(warn("  Warning: max.per.sire must be a single value >= 1; resetting to 1\n"))
-        }
-        max.per.sire <- 1
+    if (!is.scalar(max.per.sire) || max.per.sire < 1) {
+        stop(error("Fatal Error: max.per.sire must be a single number >= 1 (Inf allowed)\n"))
     }
-    if (!is.numeric(max.per.dam) || length(max.per.dam) != 1 || max.per.dam < 1) {
-        if (verbose >= 1) {
-            cat(warn("  Warning: max.per.dam must be a single value >= 1; resetting to 1\n"))
-        }
-        max.per.dam <- 1
+    if (!is.scalar(max.per.dam) || max.per.dam < 1) {
+        stop(error("Fatal Error: max.per.dam must be a single number >= 1 (Inf allowed)\n"))
     }
 
     # f.max
-    if (!is.numeric(f.max) || length(f.max) != 1 || f.max <= 0 || f.max > 1) {
-        if (verbose >= 1) {
-            cat(warn("  Warning: f.max must be a single value in (0, 1]; resetting to 0.125\n"))
-        }
-        f.max <- 0.125
+    if (!is.scalar(f.max) || f.max <= 0 || f.max > 1) {
+        stop(error("Fatal Error: f.max must be a single number in (0, 1]\n"))
     }
 
     # n.pairs
     n.pairs.default <- min(n.m * max.per.sire, n.f * max.per.dam, n.m * n.f)
     if (is.null(n.pairs)) {
         n.pairs <- n.pairs.default
-    } else if (!is.numeric(n.pairs) || length(n.pairs) != 1 || n.pairs < 1) {
-        if (verbose >= 1) {
-            cat(warn("  Warning: n.pairs must be a single value >= 1; resetting to the default",
-                     n.pairs.default, "\n"))
-        }
-        n.pairs <- n.pairs.default
+    } else if (!is.scalar(n.pairs) || n.pairs < 1) {
+        stop(error("Fatal Error: n.pairs must be a single number >= 1, or NULL for the default\n"))
     }
     n.pairs <- floor(n.pairs)
 
 # DO THE JOB ----------------------
-    mk <- rowMeans(kin)
-    gd.start <- utils.kin.dgd(kin)
+    # Individual call rates; gl.kin fills missing genotypes with the locus
+    # mean, which pulls kinship toward 0 for individuals with low call rates
+    cr <- 1 - vapply(x@gen, function(e) length(e@NA.posi), numeric(1)) /
+        nLoc(x)
+    if (any(cr < 0.8) && verbose >= 1) {
+        cat(warn(paste0("  Warning: ", sum(cr < 0.8),
+                        " individuals have call rate below 0.8 (lowest ",
+                        round(min(cr), 3), "); missing genotypes pull ",
+                        "their kinship toward 0, so pairs above f.max can ",
+                        "be selected. Consider filtering on call rate ",
+                        "before gl.kin (see Details)\n")))
+    }
+
+    # Missing kinship values are ignored in the means; a pair whose own
+    # kinship is missing cannot be checked against f.max, so is infeasible
+    n.na <- sum(is.na(kin[upper.tri(kin, diag = TRUE)]))
+    if (n.na > 0 && verbose >= 1) {
+        cat(warn("  Warning:", n.na, "missing (NA) kinship values ignored",
+                 "in the means; pairs with NA kinship are not selected\n"))
+    }
+    mk <- rowMeans(kin, na.rm = TRUE)
+    gd.start <- utils.kin.dgd(kin, na.rm = TRUE)
     if (verbose >= 2) {
         cat(report("  Selecting up to", n.pairs, "pairs by the '", scheme,
                    "' scheme; starting gene diversity", round(gd.start, 4), "\n"))
@@ -206,7 +236,7 @@ gl.select.pairs <- function(x,
             f.off = kin[m, f],
             mk.sire = mk[m],
             mk.dam = mk[f],
-            dgd.cum = utils.kin.dgd(kin, add.pairs = sel),
+            dgd.cum = utils.kin.dgd(kin, add.pairs = sel, na.rm = TRUE),
             stringsAsFactors = FALSE
         )
     }
@@ -228,7 +258,7 @@ gl.select.pairs <- function(x,
             if (nrow(sel) >= n.pairs) break
             m <- grid$sire[i]
             f <- grid$dam[i]
-            if (cap.m[m] > 0 && cap.f[f] > 0 && kin[m, f] < f.max) {
+            if (cap.m[m] > 0 && cap.f[f] > 0 && isTRUE(kin[m, f] < f.max)) {
                 accept.pair(m, f)
             }
         }
@@ -242,7 +272,8 @@ gl.select.pairs <- function(x,
             fem.ord <- fem.ord[order(mk[fem.ord], fem.ord)]
             accepted <- FALSE
             for (f in fem.ord) {
-                m.ok <- males[cap.m[males] > 0 & kin[males, f] < f.max]
+                m.ok <- males[cap.m[males] > 0 & !is.na(kin[males, f]) &
+                                  kin[males, f] < f.max]
                 if (length(m.ok) > 0) {
                     m <- m.ok[order(mk[m.ok], m.ok)][1]
                     accept.pair(m, f)
@@ -258,28 +289,50 @@ gl.select.pairs <- function(x,
 
     } else {
         # 'dynamic': each round, accept the feasible pair maximising
-        # projected gene diversity given the pairs already selected
+        # projected gene diversity given the pairs already selected.
+        # Without NA, candidates are scored in closed form from running
+        # sums: a virtual offspring of (m, f) adds rs[m] + rs[f] +
+        # 0.5 * (1 + kin[m, f]) to the total of the growing matrix, where
+        # rs are row sums over it (the same value as utils.kin.dgd)
+        tot <- sum(kin)
+        n.cur <- nrow(kin)
+        rs <- rowSums(kin)
         repeat {
             if (nrow(sel) >= n.pairs) break
             cand <- expand.grid(sire = males[cap.m[males] > 0],
                                 dam = females[cap.f[females] > 0],
                                 stringsAsFactors = FALSE)
             if (nrow(cand) > 0) {
-                cand <- cand[kin[cbind(cand$sire, cand$dam)] < f.max, ,
-                             drop = FALSE]
+                k.c <- kin[cbind(cand$sire, cand$dam)]
+                cand <- cand[!is.na(k.c) & k.c < f.max, , drop = FALSE]
             }
             if (nrow(cand) == 0) {
                 warn.early()
                 break
             }
             cand <- cand[order(cand$sire, cand$dam), ]
-            proj <- vapply(seq_len(nrow(cand)), function(i) {
-                utils.kin.dgd(kin,
-                              add.pairs = rbind(sel,
-                                                c(cand$sire[i], cand$dam[i])))
-            }, numeric(1))
+            if (n.na == 0) {
+                proj <- 1 - (tot + rs[cand$sire] + rs[cand$dam] +
+                                 0.5 * (1 + kin[cbind(cand$sire, cand$dam)])) /
+                    (n.cur + 1)^2
+            } else {
+                proj <- vapply(seq_len(nrow(cand)), function(i) {
+                    utils.kin.dgd(kin,
+                                  add.pairs = rbind(sel,
+                                                    c(cand$sire[i],
+                                                      cand$dam[i])),
+                                  na.rm = TRUE)
+                }, numeric(1))
+            }
             best <- which.max(proj)
-            accept.pair(cand$sire[best], cand$dam[best])
+            m <- cand$sire[best]
+            f <- cand$dam[best]
+            if (n.na == 0) {
+                tot <- tot + rs[m] + rs[f] + 0.5 * (1 + kin[m, f])
+                rs <- rs + (kin[m, ] + kin[f, ]) / 2
+                n.cur <- n.cur + 1
+            }
+            accept.pair(m, f)
             if (verbose >= 2) {
                 cat(report("    Pair", nrow(sel), ":", cand$sire[best], "x",
                            cand$dam[best], "; projected GD",
