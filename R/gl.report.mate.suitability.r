@@ -12,9 +12,12 @@
 #' rules) rather than a simplification.
 #' @param x Name of the genlight object containing the SNP or presence/absence
 #' (SilicoDArT) data [required].
-#' @param kin Pairwise kinship matrix with row and column names identical to
-#' indNames(x), as produced by gl.kin(); if NULL, computed internally with
-#' gl.kin() [default NULL].
+#' @param kin Kinship matrix estimated on a wider set of individuals than x,
+#' for example gl.kin() on a dataset that includes the source populations;
+#' it may cover more individuals than x and is restricted to indNames(x).
+#' Kinship estimated on x alone (including kin = NULL) is an error, because
+#' mean kinship over the individuals it was estimated on is 0 by
+#' construction [required].
 #' @param f.noway No Way point on the prospective offspring inbreeding
 #' coefficient (the pair's kinship); pairings at or above this value are scored
 #' 'NoWay' [default 0.125, the inbreeding of offspring of a half-sib mating].
@@ -154,7 +157,8 @@ gl.report.mate.suitability <- function(x,
 # FUNCTION SPECIFIC ERROR CHECKING ----------------
     # Kinship matrix -- auto-computed via gl.kin when NULL, validated against
     # indNames(x), by the shared series validator
-    kin <- utils.kin.check(x, kin, verbose = verbose)
+    kin <- utils.kin.check(x, kin, verbose = verbose,
+                           need.reference = TRUE)
 
     # Sexes (PMx default 'For Unknown Sexes: Exclude Unknowns')
     if (is.null(x@other$ind.metrics$sex)) {

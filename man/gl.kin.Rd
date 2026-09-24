@@ -27,8 +27,10 @@ or 2 if no global is set].}
 \value{
 A square numeric kinship matrix with dimnames = indNames(x),
 diagonal 0.5*(1+F), off-diagonal pairwise kinship, and attributes 'method',
-'datatype', 'nLoc' and 'scale' (= "kinship", which gl.grm.network reads to
-plot the matrix without rescaling), returned invisibly.
+'datatype', 'nLoc', 'scale' (= "kinship", which gl.grm.network reads to
+plot the matrix without rescaling) and 'ref.ids' (the individuals the
+kinship was estimated on, which the management functions use to detect a
+self-referenced matrix), returned invisibly.
 }
 \description{
 Produces the single standardized kinship matrix that underpins the captive

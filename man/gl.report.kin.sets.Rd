@@ -44,8 +44,10 @@ pedigree kinship.
 For each population s the function reports:
 \itemize{
 \item n -- number of individuals;
-\item meanMK -- mean over members of MK_i = rowMeans(kin), the mean kinship
-of individual i to the whole living population (all populations pooled);
+\item meanMK -- mean kinship within the set, mean(kin[s,s]) over the full
+block including the diagonal (so GD.w = 1 - meanMK). Mean kinship to the
+whole dataset is not reported: kinship is centred on the individuals of x,
+so each individual's mean over all of them is about 0;
 \item GD.w -- within-set gene diversity, 1 - mean(kin[s,s]) taken over the
 full within-set block of the kinship matrix including the diagonal;
 \item meanF -- mean inbreeding, mean(2*k_ii - 1) over the diagonal entries
