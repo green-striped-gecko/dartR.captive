@@ -127,7 +127,7 @@ rejected, invalid arguments error, and the plot saves to `plot.dir`.
 - Change 3: call-rate warning when `x` is supplied (24 individuals) and a `@details` paragraph.
 - Change 4: `ne`, `gen.length`, `years`, `gd.target` and `n` are validated before `gd.now` is resolved (a missing `ne` now errors before `utils.kin.check`); `build =` dropped; `report()` in the summary.
 - Snapshot: 2 baseline expectations changed (`summary` names, the NA error), mapped to changes 1 and 2; existing values unchanged. 35 expectations pass; examples run.
-- NEWS entry added. PR: (pending)
+- NEWS entry added. PR: #124
 
 ```json
 {
@@ -145,7 +145,7 @@ rejected, invalid arguments error, and the plot saves to `plot.dir`.
     {"id": "F4", "severity": "LOW", "confidence": "high", "rule": "FS5,FS3,VRB2", "status": "approved", "change": 4}
   ],
   "coverage_skipped": ["PMx manual not consulted directly", "DAT6: no FBM fixture", "forum/issues: no release history"],
-  "status": "in-apply",
-  "pr": null
+  "status": "pr-open",
+  "pr": 124
 }
 ```
