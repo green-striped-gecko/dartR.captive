@@ -29,8 +29,12 @@
 #' 2012). PMx must assume that a new founder is unrelated to the living
 #' population; here the candidate's kinships to every member of the target
 #' population are measured values taken directly from the kinship matrix, so
-#' the reported gain is exact and candidates that are cryptic relatives of
-#' the existing stock are ranked appropriately lower. It is a natural
+#' the reported gain is exact given kin, and candidates that are cryptic
+#' relatives of the existing stock are ranked appropriately lower. Kinship is
+#' relative to the individuals it was estimated on, so estimate kin on the
+#' widest dataset available: on testset2.gl, kin estimated on the target and
+#' one candidate population only gave gains correlating 0.72 with those from
+#' kin estimated on the full dataset. It is a natural
 #' companion to the \code{gl.assign} suite: having assigned a stray or
 #' wild-caught individual to a source population, ask what it would
 #' contribute to the managed colony.
@@ -40,14 +44,22 @@
 #' candidate c the function computes
 #' dgd = GD(target block plus c's row and column from kin) - GD(target block).
 #' A positive dgd means adding c raises the target population's gene
-#' diversity.
+#' diversity. Pairs with missing (NA) kinship are ignored in these means,
+#' with a warning.
+#'
+#' Missing genotypes pull kinship toward 0, because gl.kin fills them with
+#' the locus mean, so the ranking depends on call rate: on testset2.gl
+#' (captive-bred target, call rates 0.70-0.80) only 5 of the top 10 wild
+#' candidates stay in the top 10 after gl.filter.callrate(method = "loc",
+#' threshold = 0.95). The function warns when any target or candidate
+#' individual has call rate below 0.8; filter on call rate before gl.kin.
 #'
 #' If \code{candidates} is a single name that matches a population in
 #' \code{popNames(x)}, it is expanded to all members of that population (the
 #' population-name interpretation takes precedence over an individual of the
 #' same name). Otherwise every element must match an individual name in
-#' \code{indNames(x)}. Candidates already belonging to \code{target.pop} are
-#' rejected with a fatal error.
+#' \code{indNames(x)}. Duplicated candidates are evaluated once. Candidates
+#' already belonging to \code{target.pop} are rejected with a fatal error.
 #'
 #' @author Author(s): Arthur Georges. Custodian: Arthur Georges -- Post to
 #' \url{https://groups.google.com/d/forum/dartr}
@@ -81,9 +93,7 @@ gl.report.ind.add <- function(x,
 
   # FLAG SCRIPT START
   funname <- match.call()[[1]]
-  utils.flag.start(func = funname,
-                   build = "v.2026.1",
-                   verbose = verbose)
+  utils.flag.start(func = funname, verbose = verbose)
 
   # CHECK DATATYPE
   datatype <- utils.check.datatype(x, verbose = verbose)
@@ -106,6 +116,13 @@ gl.report.ind.add <- function(x,
     }
     candidates <- indNames(x)[pop(x) == candidates]
   } else {
+    if (anyDuplicated(candidates)) {
+      if (verbose >= 2) {
+        cat(report("  Dropping", sum(duplicated(candidates)),
+                   "duplicated candidate id(s)\n"))
+      }
+      candidates <- unique(candidates)
+    }
     missing.ids <- setdiff(candidates, indNames(x))
     if (length(missing.ids) > 0) {
       stop(error(
@@ -131,11 +148,31 @@ gl.report.ind.add <- function(x,
   }
 
   t.ids <- indNames(x)[pop(x) == target.pop]
-  gd.target <- utils.kin.dgd(kin[t.ids, t.ids, drop = FALSE])
+
+  # Mean imputation of missing genotypes (gl.kin) pulls kinship toward 0
+  # for individuals with low call rates, which shifts the ranking
+  used <- match(c(t.ids, candidates), indNames(x))
+  ind.cr <- 1 - vapply(x@gen[used], function(e) length(e@NA.posi),
+                       numeric(1)) / nLoc(x)
+  if (any(ind.cr < 0.8) && verbose >= 1) {
+    cat(warn(paste0("  Warning: ", sum(ind.cr < 0.8),
+                    " target or candidate individuals have call rate below ",
+                    "0.8 (lowest ", round(min(ind.cr), 3), "); missing ",
+                    "genotypes pull their kinship toward 0. Consider ",
+                    "filtering on call rate before gl.kin (see Details)\n")))
+  }
+  sub <- kin[c(t.ids, candidates), c(t.ids, candidates), drop = FALSE]
+  n.na <- sum(is.na(sub[upper.tri(sub)]))
+  if (n.na > 0 && verbose >= 1) {
+    cat(warn("  Warning:", n.na,
+             "pairs have missing kinship and are ignored in the gene diversity means\n"))
+  }
+
+  gd.target <- utils.kin.dgd(kin[t.ids, t.ids, drop = FALSE], na.rm = TRUE)
 
   dgd <- vapply(candidates, function(id) {
     joint <- c(t.ids, id)
-    utils.kin.dgd(kin[joint, joint, drop = FALSE]) - gd.target
+    utils.kin.dgd(kin[joint, joint, drop = FALSE], na.rm = TRUE) - gd.target
   }, numeric(1))
 
   res <- data.frame(
@@ -150,8 +187,9 @@ gl.report.ind.add <- function(x,
 
   # Print out the results summary ---------------
   if (verbose >= 3) {
-    cat("  Gene diversity of", target.pop, ":", round(gd.target, 4), "\n")
-    cat("  Candidates ranked by gene diversity added:\n")
+    cat(report("  Gene diversity of", target.pop, ":", round(gd.target, 4),
+               "\n"))
+    cat(report("  Candidates ranked by gene diversity added:\n"))
     tmp <- res
     tmp$dgd <- round(tmp$dgd, 4)
     print(tmp, row.names = FALSE)

@@ -42,8 +42,12 @@ new founders in the pedigree-management program PMx (Lacy, Ballou & Pollak
 2012). PMx must assume that a new founder is unrelated to the living
 population; here the candidate's kinships to every member of the target
 population are measured values taken directly from the kinship matrix, so
-the reported gain is exact and candidates that are cryptic relatives of
-the existing stock are ranked appropriately lower. It is a natural
+the reported gain is exact given kin, and candidates that are cryptic
+relatives of the existing stock are ranked appropriately lower. Kinship is
+relative to the individuals it was estimated on, so estimate kin on the
+widest dataset available: on testset2.gl, kin estimated on the target and
+one candidate population only gave gains correlating 0.72 with those from
+kin estimated on the full dataset. It is a natural
 companion to the \code{gl.assign} suite: having assigned a stray or
 wild-caught individual to a source population, ask what it would
 contribute to the managed colony.
@@ -53,14 +57,22 @@ the mean taken over the full sub-matrix including the diagonal. For each
 candidate c the function computes
 dgd = GD(target block plus c's row and column from kin) - GD(target block).
 A positive dgd means adding c raises the target population's gene
-diversity.
+diversity. Pairs with missing (NA) kinship are ignored in these means,
+with a warning.
+
+Missing genotypes pull kinship toward 0, because gl.kin fills them with
+the locus mean, so the ranking depends on call rate: on testset2.gl
+(captive-bred target, call rates 0.70-0.80) only 5 of the top 10 wild
+candidates stay in the top 10 after gl.filter.callrate(method = "loc",
+threshold = 0.95). The function warns when any target or candidate
+individual has call rate below 0.8; filter on call rate before gl.kin.
 
 If \code{candidates} is a single name that matches a population in
 \code{popNames(x)}, it is expanded to all members of that population (the
 population-name interpretation takes precedence over an individual of the
 same name). Otherwise every element must match an individual name in
-\code{indNames(x)}. Candidates already belonging to \code{target.pop} are
-rejected with a fatal error.
+\code{indNames(x)}. Duplicated candidates are evaluated once. Candidates
+already belonging to \code{target.pop} are rejected with a fatal error.
 }
 \examples{
 # SNP data

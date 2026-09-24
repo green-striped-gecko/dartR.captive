@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+* `gl.report.ind.add()`: missing kinship values are ignored in the gene
+  diversity means with a warning (one `NA` in the target block made
+  every `dgd` `NA`); duplicated candidates are evaluated once; a warning
+  when any target or candidate individual has call rate below 0.8
+  (on `testset2.gl`, 5 of the top 10 candidates change after filtering
+  loci at call rate 0.95). `utils.kin.dgd()` gains `na.rm` (default
+  `FALSE`, so its other callers are unchanged).
+
 * `gl.report.kin.groups()` now needs kinship estimated on a wider
   reference than `x` (as `gl.report.ind.remove()` and the other
   functions in #113): group MK averages over all individuals, so with
