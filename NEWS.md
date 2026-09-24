@@ -11,6 +11,13 @@
   11 animals after filtering loci at call rate 0.95). The greedy search
   now keeps running sums, with identical results: 0.08 s instead of 1.6 s
   for 200 individuals.
+* `gl.report.ind.move()`: missing kinship values are ignored in the gene
+  diversity means with a warning (one `NA` pair inside a population made
+  every move into or out of it `NA`: 70 of 92 moves in the example); a
+  warning when any individual has call rate below 0.8. Details now say
+  what `net` measures: an unweighted sum of two populations' GD changes
+  that favours small destinations and genetically divergent or admixed
+  movers, and says nothing about genetic integrity.
 
 * `gl.report.ind.add()`: missing kinship values are ignored in the gene
   diversity means with a warning (one `NA` in the target block made

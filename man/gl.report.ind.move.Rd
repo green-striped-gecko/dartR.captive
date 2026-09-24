@@ -54,17 +54,38 @@ individual to the destination members are real measured values taken
 directly from \code{kin} -- no pedigree assumption that a transferred
 animal is unrelated to its new population is needed.
 
+What net measures: it is the unweighted sum of two populations' changes in
+gene diversity, not the change in gene diversity of all populations
+combined. Adding one individual to a population of n changes its GD by
+roughly 1/n, so moves into small populations score high, and so do movers
+with low kinship to the destination -- with pooled allele frequencies,
+individuals from a different lineage or of mixed ancestry. On testset2.gl
+the top-ranked moves send captive-bred animals descended from several
+drainages into single wild drainages. GD measures gene diversity only; it
+does not account for local adaptation or the genetic integrity of the
+destination, which a translocation decision also has to weigh.
+
+Missing genotypes pull kinship and self-kinship toward 0, because gl.kin
+fills them with the locus mean, so the ranking depends on call rate: on
+testset2.gl only 5 of the top 10 moves stay in the top 10 after
+gl.filter.callrate(method = "loc", threshold = 0.95). The function warns
+when any individual has call rate below 0.8; filter on call rate before
+gl.kin. Pairs with missing (NA) kinship are ignored in the gene diversity
+means, with a warning.
+
 Individuals whose source population contains only themselves receive
 dgd.source = NA (removing the sole member leaves no population to score);
 a warning lists the populations concerned. Moves are reported sorted by
 net change, best first (NA net values last).
 }
 \examples{
-# SNP data: captive colony plus two wild populations
+# SNP data: captive colony plus two wild populations, with kinship
+# estimated on the full dataset
+kin <- gl.kin(testset2.gl)
 ex <- gl.keep.pop(testset2.gl,
   pop.list = c("EmmacCaptBred", "EmmacMaclGeor", "EmmacBurnBara"),
   verbose = 0)
-res <- gl.report.ind.move(ex)
+res <- gl.report.ind.move(ex, kin = kin)
 head(res)
 # Tag P/A data (SilicoDArT; kinship computed internally)
 ex.gs <- gl.keep.pop(testset2.gs,
