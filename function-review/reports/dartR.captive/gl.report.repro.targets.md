@@ -139,7 +139,7 @@ with the #113 message; SilicoDArT runs; ties are broken deterministically.
 - Change 5: `@description` says the targets lower the next generation's expected mean kinship; `@details` gives 0.0582 / 0.0667 / 0.0560.
 - Change 6: `build =` dropped, DOC2 `verbose` text.
 - Snapshot: targets, mean kinship, sums and the offspring mean kinship (0.0582) unchanged. Three baseline expectations changed, each mapped to an approved change: invalid `n.target` (4), `NA` sex (3), `NA` kinship (2). 25 expectations pass; full suite 510 pass, 0 fail; example runs.
-- NEWS entry added. PR: pending
+- NEWS entry added. PR: #127
 
 ```json
 {
@@ -159,7 +159,7 @@ with the #113 message; SilicoDArT runs; ties are broken deterministically.
     {"id": "F6", "severity": "LOW", "confidence": "high", "rule": "FS3,DOC2", "status": "approved", "change": 6}
   ],
   "coverage_skipped": ["PMx manual: not available", "DAT6: no FBM fixture", "forum/issues: no release history"],
-  "status": "awaiting-approval",
-  "pr": null
+  "status": "pr-open",
+  "pr": 127
 }
 ```
