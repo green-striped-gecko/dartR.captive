@@ -1,6 +1,6 @@
 # dartR.captive NEWS
 
-## Unreleased
+## dartR.captive 1.2.6
 
 * `gl.relatedness()` (new on `dev`; Coancestry estimators through the
   closed-source `dartR.coancestry` engine): the engine is fetched with
