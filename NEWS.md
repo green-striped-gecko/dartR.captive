@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+* `gl.report.repro.targets()`: a warning when any individual has call
+  rate below 0.8 (filtering loci at call rate 0.95 changes 9 of 24
+  targets on the `testset2.gl` captive colony; the example now filters
+  first). Missing kinship values are ignored in the mean kinship with a
+  warning, and an `NA` sex counts as unknown (each gave "missing value
+  where TRUE/FALSE needed"). An invalid `n.target` (0, negative, `NA`,
+  non-numeric) is now an error (it was reset to `nInd(x)`). The
+  description now says the targets lower the expected mean kinship of
+  the next generation (0.0582 on the colony, against 0.0667 for equal
+  contributions and 0.0560 for optimal contributions) rather than
+  equalising founder representation.
 * `gl.report.kin.sets()`: a single-population `x` now needs kinship
   estimated on a wider reference (`kin = NULL` or kinship estimated on
   `x` gave `GD.w = 1` and `meanMK = 0` by construction; multi-population
