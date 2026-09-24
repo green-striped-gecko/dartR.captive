@@ -15,19 +15,17 @@
 #' Kinship estimated on x alone (including kin = NULL) is an error, because
 #' mean kinship over the individuals it was estimated on is 0 by
 #' construction [required].
-#' @param n.best Maximum number of individuals in the greedy removal set; if
-#' NULL, removals continue until no single removal increases gene diversity
-#' [default NULL].
+#' @param n.best Maximum number of individuals in the greedy removal set, a
+#' single number >= 1 (values above nInd - 1 are clamped); if NULL, removals
+#' continue until no single removal increases gene diversity [default NULL].
 #' @param verbose Verbosity: 0, silent or fatal errors; 1, begin and end; 2,
 #' progress log; 3, progress and results summary; 5, full report
 #' [default NULL, adopting the global verbosity set by gl.set.verbosity(),
 #' or 2 if no global is set].
 #'
 #' @details
-#' Kinship should be estimated on the most inclusive dataset available and the
-#' matrix subset to the managed group; computing kinship on a small family
-#' group alone inflates estimates (the allele-frequency reference collapses
-#' onto the family itself).
+#' Kinship must come from a wider reference than x (see the kin argument).
+#'
 #' This function is the genomic analogue of the culling (removal) analysis of
 #' the pedigree-management program PMx (Lacy, Ballou & Pollak 2012), in which
 #' individuals whose removal would increase gene diversity are flagged as
@@ -48,7 +46,18 @@
 #' removal set: at each step the individual whose removal most increases the
 #' current gene diversity is removed and all dGD values are recomputed.
 #' Removal stops when no candidate yields a gain, or after \code{n.best}
-#' removals, whichever comes first (never beyond nInd - 1).
+#' removals, whichever comes first (never beyond nInd - 1). The search keeps
+#' running sums of the remaining kinship block, so each step costs O(n^2)
+#' rather than recomputing the full mean for every candidate.
+#'
+#' Pairs with missing (NA) kinship are ignored in the gene diversity means,
+#' with a warning. Missing genotypes pull kinship and self-kinship toward 0,
+#' because gl.kin fills them with the locus mean, so the removal set depends
+#' on call rate: for the testset2.gl captive colony (call rates 0.70-0.80)
+#' the greedy set has 7 animals, and 11 (6 of them different) after
+#' gl.filter.callrate(method = "loc", threshold = 0.95). The function warns
+#' when any individual has call rate below 0.8; filter on call rate before
+#' gl.kin.
 #'
 #' @author Author(s): Arthur Georges. Custodian: Arthur Georges -- Post to
 #' \url{https://groups.google.com/d/forum/dartr}
@@ -87,9 +96,7 @@ gl.report.ind.remove <- function(x,
 
   # FLAG SCRIPT START
   funname <- match.call()[[1]]
-  utils.flag.start(func = funname,
-                   build = "v.2026.1",
-                   verbose = verbose)
+  utils.flag.start(func = funname, verbose = verbose)
 
   # CHECK DATATYPE
   datatype <- utils.check.datatype(x, verbose = verbose)
@@ -102,10 +109,9 @@ gl.report.ind.remove <- function(x,
                            need.reference = TRUE)
   max.removals <- nInd(x) - 1
   if (!is.null(n.best)) {
-    if (!is.numeric(n.best) || length(n.best) != 1 || n.best < 1) {
-      if (verbose >= 1) {
-        cat(warn("  Warning: n.best must be a single number >= 1; setting to NULL (unlimited)\n"))
-      }
+    if (!is.numeric(n.best) || length(n.best) != 1 || is.na(n.best) ||
+        n.best < 1) {
+      stop(error("Fatal Error: n.best must be NULL or a single number >= 1\n"))
     } else if (n.best > nInd(x) - 1) {
       if (verbose >= 1) {
         cat(warn("  Warning: n.best exceeds nInd - 1; clamped to", nInd(x) - 1, "\n"))
@@ -115,21 +121,38 @@ gl.report.ind.remove <- function(x,
     }
   }
 
+  # Mean imputation of missing genotypes (gl.kin) pulls kinship and
+  # self-kinship toward 0 for individuals with low call rates
+  ind.cr <- 1 - vapply(x@gen, function(e) length(e@NA.posi), numeric(1)) /
+    nLoc(x)
+  if (any(ind.cr < 0.8) && verbose >= 1) {
+    cat(warn(paste0("  Warning: ", sum(ind.cr < 0.8),
+                    " individuals have call rate below 0.8 (lowest ",
+                    round(min(ind.cr), 3), "); missing genotypes pull ",
+                    "their kinship toward 0. Consider filtering on call ",
+                    "rate before gl.kin (see Details)\n")))
+  }
+  n.na <- sum(is.na(kin[upper.tri(kin, diag = TRUE)]))
+  if (n.na > 0 && verbose >= 1) {
+    cat(warn("  Warning:", n.na,
+             "missing kinship values (pairs or self-kinships) are ignored in the gene diversity means\n"))
+  }
+
   # DO THE JOB ----------------------
   if (verbose >= 2) {
     cat(report("  Computing per-individual change in gene diversity on removal\n"))
   }
 
   ids <- indNames(x)
-  gd.all <- utils.kin.dgd(kin)
+  gd.all <- utils.kin.dgd(kin, na.rm = TRUE)
   dgd <- vapply(ids, function(id) {
-    utils.kin.dgd(kin, drop = id) - gd.all
+    utils.kin.dgd(kin, drop = id, na.rm = TRUE) - gd.all
   }, numeric(1))
 
   ranking <- data.frame(
     id = ids,
     pop = as.character(pop(x)),
-    MK = rowMeans(kin),
+    MK = rowMeans(kin, na.rm = TRUE),
     dGD = dgd,
     stringsAsFactors = FALSE
   )
@@ -140,27 +163,41 @@ gl.report.ind.remove <- function(x,
   if (verbose >= 2) {
     cat(report("  Constructing greedy removal set (max", max.removals, "removals)\n"))
   }
-  dropped <- character(0)
-  remaining <- ids
+  # GD of the remaining set R is 1 - S/C, with S the sum and C the count of
+  # its non-missing kinships. Removing candidate i gives
+  # S - 2 * rowsum_i(R) + k_ii (and likewise for C), so one matrix-vector
+  # product per step scores every candidate
+  k0 <- kin
+  k0[is.na(k0)] <- 0
+  obs <- (!is.na(kin)) * 1
+  in.set <- rep(1, length(ids))
+  S <- sum(k0)
+  C <- sum(obs)
   gd.current <- gd.all
+  dropped <- character(0)
   set.step <- integer(0)
   set.id <- character(0)
   set.gd <- numeric(0)
 
   while (length(dropped) < max.removals) {
-    gains <- vapply(remaining, function(id) {
-      utils.kin.dgd(kin, drop = c(dropped, id))
-    }, numeric(1))
+    rs <- as.vector(k0 %*% in.set)
+    cs <- as.vector(obs %*% in.set)
+    S.i <- S - 2 * rs + diag(k0)
+    C.i <- C - 2 * cs + diag(obs)
+    gains <- 1 - S.i / C.i
+    gains[in.set == 0] <- -Inf
     best <- which.max(gains)
     if (gains[best] <= gd.current) {
       break
     }
-    dropped <- c(dropped, remaining[best])
+    S <- S.i[best]
+    C <- C.i[best]
+    in.set[best] <- 0
+    dropped <- c(dropped, ids[best])
     gd.current <- gains[best]
     set.step <- c(set.step, length(dropped))
-    set.id <- c(set.id, remaining[best])
+    set.id <- c(set.id, ids[best])
     set.gd <- c(set.gd, gd.current)
-    remaining <- remaining[-best]
   }
 
   removal.set <- data.frame(
@@ -172,18 +209,19 @@ gl.report.ind.remove <- function(x,
 
   # Print out the results summary ---------------
   if (verbose >= 3) {
-    cat("  Gene diversity of the full population:", round(gd.all, 4), "\n")
-    cat("  Ranking by dGD on removal (head):\n")
+    cat(report("  Gene diversity of the full population:", round(gd.all, 4),
+               "\n"))
+    cat(report("  Ranking by dGD on removal (head):\n"))
     tmp <- head(ranking)
     tmp[, c("MK", "dGD")] <- round(tmp[, c("MK", "dGD")], 4)
     print(tmp, row.names = FALSE)
     if (nrow(removal.set) > 0) {
-      cat("  Greedy removal set:\n")
+      cat(report("  Greedy removal set:\n"))
       tmp <- removal.set
       tmp$gd.after <- round(tmp$gd.after, 4)
       print(tmp, row.names = FALSE)
     } else {
-      cat("  No removal increases gene diversity\n")
+      cat(report("  No removal increases gene diversity\n"))
     }
   }
 
