@@ -44,9 +44,8 @@ see Details [default 'dynamic'].}
 [default 0.125].}
 
 \item{verbose}{Verbosity: 0, silent or fatal errors; 1, begin and end; 2,
-progress log; 3, progress and results summary; 5, full report
-[default NULL, adopting the global verbosity set by gl.set.verbosity(),
-or 2 if no global is set].}
+brief progress messages; 3, progress and results summary; 5, full report
+[default 2, unless specified using gl.set.verbosity].}
 }
 \value{
 Invisibly, a data frame with one row per selected pair, in order of
@@ -98,16 +97,37 @@ broken by sire then dam name, so all schemes are deterministic. If no
 feasible pair remains before n.pairs is reached, the function warns and
 stops early with the pairs selected so far.
 
+The projected gene diversity dgd.cum can fall: each further offspring of
+well-represented parents adds more kinship than it removes. The function
+still fills n.pairs; the row where dgd.cum peaks is the number of pairs
+beyond which more pairs lower projected gene diversity. On the
+testset2.gl captive colony (unfiltered), dgd.cum peaks at pair 4 and the
+tenth pair ends below the starting gene diversity.
+
+Missing genotypes can let related pairs through f.max. gl.kin fills
+missing genotypes with the locus mean, which pulls kinship toward 0 for
+individuals with low call rates, while f.max is a fixed value. On the
+same colony (call rates 0.70-0.80), one of the 10 pairs selected by the
+dynamic scheme has kinship 0.110 unfiltered and 0.185 after
+gl.filter.callrate(method = "loc", threshold = 0.95), and only 3 of the
+10 pairs are selected again after filtering. The function warns when any
+individual has call rate below 0.8; filter on call rate before gl.kin.
+Missing (NA) kinship values are ignored in the mean kinships and gene
+diversities, with a warning, and a pair with NA kinship is never
+selected.
+
 Sexes are read from x@other$ind.metrics$sex (values 'Male', 'Female',
-'Unknown'); individuals of unknown sex are excluded from the pools with a
-warning.
+'Unknown'); individuals of any other or missing sex are excluded from the
+pools with a warning.
 }
 \examples{
-# Estimate kinship on the FULL dataset, then subset to the captive colony
-kin <- gl.kin(testset2.gl)
-cb <- gl.keep.pop(testset2.gl, pop.list = "EmmacCaptBred", verbose = 0)
-kin.cb <- kin[indNames(cb), indNames(cb)]
-pairs <- gl.select.pairs(cb, kin = kin.cb, n.pairs = 5)
+# Filter on call rate, estimate kinship on the FULL dataset, and pass it
+# for the captive colony (it is restricted to the colony's individuals)
+tf <- gl.filter.callrate(testset2.gl, method = "loc", threshold = 0.95,
+                         verbose = 0)
+kin <- gl.kin(tf)
+cb <- gl.keep.pop(tf, pop.list = "EmmacCaptBred", verbose = 0)
+pairs <- gl.select.pairs(cb, kin = kin, n.pairs = 5)
 pairs  # avoids sib x sib pairings (f.off < 0.125)
 }
 \seealso{
