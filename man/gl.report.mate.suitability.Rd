@@ -39,13 +39,13 @@ unknownness and on routine SNP missingness they dominate the score, so the
 default here is NULL [default NULL].}
 
 \item{verbose}{Verbosity: 0, silent or fatal errors; 1, begin and end; 2,
-progress log; 3, progress and results summary; 5, full report
-[default NULL, adopting the global verbosity set by gl.set.verbosity(),
-or 2 if no global is set].}
+brief progress messages; 3, progress and results summary; 5, full report
+[default 2, unless specified using gl.set.verbosity].}
 }
 \value{
 Invisibly, a list of ten components, the matrices all males x
-females: $msi (character, '1'..'6' or 'NoWay'), $f.off, $dgd, $mkdiff and
+females: $msi (character, '1'..'6', 'NoWay', or NA for a pairing with
+missing kinship), $f.off, $dgd, $mkdiff and
 $completeness (numeric), $rank.dgd, $rank.mkdiff and $rank.f (integer bin
 ranks 1-6, NA for 'NoWay' pairs), $msi.base (numeric Tulsa score before the
 unknown-genome penalty, NA for 'NoWay' pairs), and $settings (list: the
@@ -133,22 +133,38 @@ no-call rate: routine missingness (10-30%) would dominate the score while
 leaving the kinship estimates essentially unaffected. The penalty is
 therefore off by default and opt-in via unknown.breaks.
 
+Missing genotypes hide do-not-breed pairings. gl.kin fills missing
+genotypes with the locus mean, which pulls kinship toward 0 for
+individuals with low call rates, while the No Way point is a fixed value.
+On the testset2.gl captive colony (call rates 0.70-0.80), full sibs have
+F.off 0.214 unfiltered and 0.252 after gl.filter.callrate(method = "loc",
+threshold = 0.95); unfiltered, 17 of the 48 pairings that are 'NoWay'
+after filtering are rated 4-6 instead, and the MSI differs for 61 of 143
+pairings. The function warns when any individual has call rate below
+0.8; filter on call rate before gl.kin.
+
+Missing (NA) kinship values are ignored in the gene diversity, mean
+kinship and mean F calculations, with a warning. A pairing whose own
+kinship is NA cannot be screened and gets MSI NA.
+
 Sexes are read from x@other$ind.metrics$sex (values 'Male', 'Female',
-'Unknown'); individuals of unknown sex are excluded from the pools with a
-warning (the PMx default treatment, Manual p. 112).
+'Unknown'); individuals of any other or missing sex are excluded from the
+pools with a warning (the PMx default treatment, Manual p. 112).
 }
 \examples{
-# Estimate kinship on the FULL dataset, then subset to the captive colony
-kin <- gl.kin(testset2.gl)
-cb <- gl.keep.pop(testset2.gl, pop.list = "EmmacCaptBred", verbose = 0)
-kin.cb <- kin[indNames(cb), indNames(cb)]
-res <- gl.report.mate.suitability(cb, kin = kin.cb)
+# Filter on call rate, estimate kinship on the FULL dataset, and pass it
+# for the captive colony (it is restricted to the colony's individuals)
+tf <- gl.filter.callrate(testset2.gl, method = "loc", threshold = 0.95,
+                         verbose = 0)
+kin <- gl.kin(tf)
+cb <- gl.keep.pop(tf, pop.list = "EmmacCaptBred", verbose = 0)
+res <- gl.report.mate.suitability(cb, kin = kin)
 table(res$msi)   # spans 1-6; kin pairings (F.off >= 0.125) score NoWay
-res$f.off["CB_AB_01", "CB_AB_02"]  # full sibs: ~0.23 -> 'NoWay'
+res$f.off["CB_AB_01", "CB_AB_02"]  # full sibs: 0.252 -> 'NoWay'
 # A low offspring F does not guarantee a good MSI: gene-diversity change
 # and mean-kinship difference also count
-res$f.off["CB_AB_01", "CB_CD_02"]  # across families: F.off ~0.01
-res$msi["CB_AB_01", "CB_CD_02"]    # yet detrimental: both well represented
+res$f.off["CB_AB_01", "CB_CD_02"]  # across families: F.off 0.016
+res$msi["CB_AB_01", "CB_CD_02"]    # yet MSI 5: both well represented
 }
 \seealso{
 \code{\link{gl.kin}}, \code{\link{gl.select.pairs}},
