@@ -127,7 +127,7 @@ get a warning, and the SilicoDArT path runs.
 - Change 4: `@details` paragraph on the Fst self-kinship term with the random-halves reference value.
 - Change 5: `@param kin` and `@details` in the #113 wording, SilicoDArT `meanF` note, `build =` dropped, `report()` in the summary.
 - Snapshot: 3 baseline expectations changed (single-population GD.w, two NA counts), mapped to changes 1 and 2; values on the full dataset unchanged. 20 expectations pass; examples run.
-- NEWS entry added. PR: (pending)
+- NEWS entry added. PR: #125
 
 ```json
 {
@@ -146,7 +146,7 @@ get a warning, and the SilicoDArT path runs.
     {"id": "F5", "severity": "LOW", "confidence": "high", "rule": "FS3,VRB2,DOC5", "status": "approved", "change": 5}
   ],
   "coverage_skipped": ["PMx manual not consulted for the Fst definition", "DAT6: no FBM fixture", "forum/issues: no release history"],
-  "status": "in-apply",
-  "pr": null
+  "status": "pr-open",
+  "pr": 125
 }
 ```
