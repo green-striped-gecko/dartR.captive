@@ -185,6 +185,36 @@ gl2colony <- function(x,
     ))
   }
   
+  # COLONY reads the on/off switches as integers and stops on TRUE/FALSE, so
+  # accept logicals and write them as 0/1
+  flags <- list(update.allele.freq = update.allele.freq, inbreed = inbreed,
+                haplodiploid = haplodiploid, polygamy.male = polygamy.male,
+                polygamy.female = polygamy.female,
+                clone.inference = clone.inference,
+                scale.shibship = scale.shibship,
+                known.allele.freq = known.allele.freq,
+                monitor.method = monitor.method, windows.gui = windows.gui)
+  bad.flags <- names(flags)[!vapply(flags, function(f) {
+    length(f) == 1 && !is.na(f) && (is.logical(f) || f %in% c(0, 1))
+  }, logical(1))]
+  if (length(bad.flags) > 0) {
+    stop(error(
+      "  These settings must be 0 or 1 (or FALSE/TRUE):",
+      paste(bad.flags, collapse = ", "), "\n"
+    ))
+  }
+  flags <- lapply(flags, as.integer)
+  update.allele.freq <- flags$update.allele.freq
+  inbreed <- flags$inbreed
+  haplodiploid <- flags$haplodiploid
+  polygamy.male <- flags$polygamy.male
+  polygamy.female <- flags$polygamy.female
+  clone.inference <- flags$clone.inference
+  scale.shibship <- flags$scale.shibship
+  known.allele.freq <- flags$known.allele.freq
+  monitor.method <- flags$monitor.method
+  windows.gui <- flags$windows.gui
+
   # these settings need extra data blocks (sibship sizes, allele
   # frequencies, lists of known or excluded relatives) that this function
   # does not write; COLONY rejects the file without them
