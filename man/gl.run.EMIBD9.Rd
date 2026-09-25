@@ -41,10 +41,9 @@ you are running) [default getwd()].}
 \item{OutAlleleFre}{Whether to output allele frequencies (TRUE/FALSE or
 1/0) [default FALSE].}
 
-\item{EM_Method}{An integer that indicates the method to use for the expectation
-maximization (EM) algorithm. 1, the standard EM method;
-2, the EM method with a quasi-Newton acceleration; 3, the EM method with a
-SQUAREM acceleration [default 1].}
+\item{EM_Method}{What the expectation maximization (EM) algorithm estimates:
+0, the IBD coefficients only (allele frequencies are not updated); 1, the
+IBD coefficients and allele frequencies jointly [default 1].}
 
 \item{Inbreed}{A boolean that indicates whether to compute inbreeding (i.e. delta1 to delta6) [default FALSE].}
 
@@ -109,6 +108,10 @@ and \eqn{\delta} jointly from genotype data. By iteratively calculating p and \e
 relatedness can be modified to reduce biases due to small sample sizes. 
 Wang J. (2022) suggest the resulting r coefficient is therefore more robust 
 compared to previous methods.
+
+EM_Method = 0 keeps the allele frequencies fixed at their sample values;
+only EM_Method = 1 updates them and uses random starting values for
+\eqn{\delta}.
 
 The kinship coefficient is the probability that two alleles at a random locus
  drawn from two individuals are IBD.
