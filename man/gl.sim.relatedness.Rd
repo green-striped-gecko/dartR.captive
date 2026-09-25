@@ -41,9 +41,9 @@ reported interval, and the confidence level of the interval for the mean
 \item{OutAlleleFre}{Whether to write (1) or not (0) the EMIBD9 allele
 frequency file [default 0].}
 
-\item{EM_Method}{EMIBD9 expectation maximization method: 1, standard; 2,
-quasi-Newton acceleration; 3, SQUAREM acceleration (see gl.run.EMIBD9)
-[default 1].}
+\item{EM_Method}{What the EMIBD9 expectation maximization estimates: 0, the
+IBD coefficients only (allele frequencies are not updated); 1, the IBD
+coefficients and allele frequencies jointly (see gl.run.EMIBD9) [default 1].}
 
 \item{Inbreed}{Whether EMIBD9 allows inbreeding when estimating IBD
 coefficients [default FALSE].}

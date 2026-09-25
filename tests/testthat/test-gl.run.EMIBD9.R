@@ -45,9 +45,26 @@ test_that("change 1: a failed EMIBD9 run stops with its console output", {
   skip_without_emibd9()
   expect_error(
     gl.run.EMIBD9(emibd9_fixture(), emibd9.path = emibd9_dir(),
-                  EM_Method = "bad", plot.out = FALSE, verbose = 0),
+                  ISeed = "bad", plot.out = FALSE, verbose = 0),
     "EMIBD9 did not write its results"
   )
+})
+
+test_that("EM_Method must be 0 or 1", {
+  for (m in list(2, 3, 1.5, "bad", c(0, 1))) {
+    expect_error(
+      gl.run.EMIBD9(emibd9_fixture(), emibd9.path = emibd9_dir(),
+                    EM_Method = m, plot.out = FALSE, verbose = 0),
+      "EM_Method must be 0 or 1"
+    )
+  }
+})
+
+test_that("EM_Method = 0 runs", {
+  skip_without_emibd9()
+  res <- gl.run.EMIBD9(emibd9_fixture(), emibd9.path = emibd9_dir(),
+                       EM_Method = 0, plot.out = FALSE, verbose = 0)
+  expect_equal(dim(res$rel), c(10, 10))
 })
 
 test_that("change 7: plot.file works with plot.out = FALSE", {

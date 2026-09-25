@@ -17,10 +17,9 @@
 #'  you are running) [default getwd()].
 #' @param OutAlleleFre Whether to output allele frequencies (TRUE/FALSE or
 #'  1/0) [default FALSE].
-#' @param EM_Method An integer that indicates the method to use for the expectation
-#'  maximization (EM) algorithm. 1, the standard EM method;
-#'  2, the EM method with a quasi-Newton acceleration; 3, the EM method with a
-#'  SQUAREM acceleration [default 1].
+#' @param EM_Method What the expectation maximization (EM) algorithm estimates:
+#'  0, the IBD coefficients only (allele frequencies are not updated); 1, the
+#'  IBD coefficients and allele frequencies jointly [default 1].
 #' @param Inbreed A boolean that indicates whether to compute inbreeding (i.e. delta1 to delta6) [default FALSE].
 #' @param palette_convergent A character vector of colours to use for the heatmap plot.
 #'  If NULL, the default palette from gl.colors("div") will be used [default NULL].
@@ -55,6 +54,10 @@
 #' relatedness can be modified to reduce biases due to small sample sizes. 
 #' Wang J. (2022) suggest the resulting r coefficient is therefore more robust 
 #' compared to previous methods.
+#'
+#' EM_Method = 0 keeps the allele frequencies fixed at their sample values;
+#' only EM_Method = 1 updates them and uses random starting values for
+#' \eqn{\delta}.
 #'
 #'The kinship coefficient is the probability that two alleles at a random locus
 #'  drawn from two individuals are IBD.
@@ -169,6 +172,10 @@ gl.run.EMIBD9 <- function(x,
     stop(error(
       "  Only SNP data are supported; x contains SilicoDArT data\n"
     ))
+  }
+  # EMIBD9 reads EM_Method as a 0/1 flag and stops on any other value
+  if (length(EM_Method) != 1 || !EM_Method %in% c(0, 1)) {
+    stop(error("  EM_Method must be 0 or 1\n"))
   }
   
   # each call runs in its own folder, so output left by an earlier call can
