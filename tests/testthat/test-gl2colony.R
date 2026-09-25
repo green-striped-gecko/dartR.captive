@@ -119,3 +119,19 @@ test_that("change 3: a single rate without '@' applies to all loci", {
   expect_equal(trimws(l[25]), "0.01@ \t ! Allelic dropout rate")
   expect_equal(trimws(l[26]), "0.001@ \t ! Other typing error rate")
 })
+
+test_that("TRUE/FALSE switches are written as 0/1; other values error", {
+  x <- colony_fixture()
+  f <- gl2colony(x, outfile = "t_flags.dat", outpath = tempdir(), seed = 1,
+                 update.allele.freq = FALSE, inbreed = TRUE,
+                 known.allele.freq = FALSE, verbose = 0)
+  l <- trimws(readLines(f))
+  expect_equal(l[6], "0 \t ! 0/1 = update allele freq")
+  expect_equal(l[8], "1 \t ! 0/1 = no inbreeding/inbreeding")
+  expect_equal(l[14], "0 \t ! known allele freq")
+  expect_error(
+    gl2colony(x, outfile = "t_flags2.dat", outpath = tempdir(),
+              inbreed = 2, windows.gui = NA, verbose = 0),
+    "inbreed, windows.gui"
+  )
+})
