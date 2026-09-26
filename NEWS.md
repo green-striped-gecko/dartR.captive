@@ -2,6 +2,14 @@
 
 ## dartR.captive 1.2.6
 
+* `gl.diagnostics.relatedness()` now computes the `which_tests` estimators
+  with `gl.relatedness()` instead of `related::coancestry()`, so it needs
+  the `dartR.coancestry` engine rather than the `related` package.
+  `lynchrd`, `quellergt` and rrBLUP results are unchanged; `wang` differs
+  (on 15 individuals of testset.gl, 0.045 higher on average on the kinship
+  scale), as documented in `gl.relatedness()`. `loiselle` is now available,
+  and an unknown estimator in `which_tests` stops with an error.
+
 * `gl.kin()` on presence/absence data no longer prints "Starting" and
   "Completed" lines for its internal estimator `utils.kin.dominant()` at
   `verbose >= 1`. The internal `utils.kin.dgd()` accepts an empty table of

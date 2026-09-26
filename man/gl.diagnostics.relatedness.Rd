@@ -41,8 +41,9 @@ ref_variables.csv shipped with dartR.sim].}
 \code{dartR.sim::gl.sim.WF.run} [default NULL, which uses
 sim_variables.csv shipped with dartR.sim].}
 
-\item{which_tests}{Character vector of relatedness tests to apply
-[default = "wang"].}
+\item{which_tests}{Character vector of relatedness estimators from
+\code{gl.relatedness}: any of "wang", "lynchli", "lynchrd", "ritland",
+"quellergt", "loiselle", "dyadml" and "trioml" [default = "wang"].}
 
 \item{run_sim}{Logical. If TRUE, run simulations [default = FALSE].}
 
@@ -115,10 +116,9 @@ and relatedness outputs, and optional plotting. It handles quality
 control checks on input objects and file paths before analysis.
 
 The relatedness estimators in \code{which_tests} are computed by
-\code{coancestry()} from the package \code{related}, which is not on CRAN;
-install it with
-\code{devtools::install_github("timothyfrasier/related")}. Its Fortran code
-prints progress to the console at every verbosity.
+\code{gl.relatedness}, which needs the engine package
+\code{dartR.coancestry} (not on CRAN; see \code{gl.relatedness} for how to
+install it). Its relatedness estimates are halved to the kinship scale.
 
 All estimates are on the kinship scale. When a pedigree is available (from
 the simulation or attached with includedPed), every pair of individuals
@@ -132,7 +132,7 @@ relationship class.
 }
 \examples{
 \dontrun{
-# requires the package 'related'
+# requires the package 'dartR.coancestry' (see gl.relatedness)
 res <- gl.diagnostics.relatedness(possums.gl, run_sim = TRUE,
                                   rmseOut = TRUE, IncludePlots = TRUE)
 }

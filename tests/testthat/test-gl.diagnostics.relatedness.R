@@ -1,7 +1,7 @@
 # Tests of the reviewed gl.diagnostics.relatedness and its helpers
 # (function-review/reports/dartR.captive/gl.diagnostics.relatedness.md).
-# Tests that run the relatedness estimators need the non-CRAN package
-# 'related'.
+# Tests that run the relatedness estimators need the non-CRAN engine
+# 'dartR.coancestry' (used by gl.relatedness).
 
 hand_pedigree <- function() {
   # F1-F4 founders; O1, O2 full sibs; O3 unrelated to them; O4 = O1 x O2
@@ -37,7 +37,7 @@ test_that("RMSE is the root mean square error against rel (4)", {
 })
 
 test_that("all pairs are kept (3)", {
-  skip_if_not_installed("related")
+  skip_if_not_installed("dartR.coancestry")
   pdf(NULL)
   on.exit(grDevices::dev.off())
   x <- gl.filter.allna(testset.gl[1:15, ], verbose = 0)
@@ -48,7 +48,7 @@ test_that("all pairs are kept (3)", {
 })
 
 test_that("attached pedigree: one row per pair, classes and rel (1, 2, 3)", {
-  skip_if_not_installed("related")
+  skip_if_not_installed("dartR.coancestry")
   pdf(NULL)
   on.exit(grDevices::dev.off())
   x <- gl.filter.allna(testset.gl[1:15, ], verbose = 0)
@@ -73,7 +73,7 @@ test_that("attached pedigree: one row per pair, classes and rel (1, 2, 3)", {
 })
 
 test_that("simulation runs with the default variable files (5)", {
-  skip_if_not_installed("related")
+  skip_if_not_installed("dartR.coancestry")
   pdf(NULL)
   on.exit(grDevices::dev.off())
   x <- gl.filter.allna(testset.gl[1:30, ], verbose = 0)
@@ -90,8 +90,33 @@ test_that("simulation runs with the default variable files (5)", {
 })
 
 test_that("SilicoDArT input errors (6)", {
-  skip_if_not_installed("related")
+  skip_if_not_installed("dartR.coancestry")
   expect_error(gl.diagnostics.relatedness(testset.gs[1:10, 1:50],
                                           verbose = 0),
                "Only SNP data")
+})
+
+test_that("estimates are gl.relatedness halved to kinship", {
+  skip_if_not_installed("dartR.coancestry")
+  pdf(NULL)
+  on.exit(grDevices::dev.off())
+  x <- gl.filter.allna(testset.gl[1:15, ], verbose = 0)
+  res <- gl.diagnostics.relatedness(x, which_tests = c("wang", "loiselle"),
+                                    verbose = 0)
+  m <- tidyr::pivot_wider(res@MergedDf[[1]], names_from = "variable",
+                          values_from = "value")
+  r <- gl.relatedness(x, estimators = c("wang", "loiselle"),
+                      plot.out = FALSE, verbose = 0)
+  ij <- cbind(as.character(m$ind1), as.character(m$ind2))
+  expect_equal(m$wang, r$wang[ij] / 2)
+  expect_equal(m$loiselle, r$loiselle[ij] / 2)
+})
+
+test_that("unknown estimators in which_tests error", {
+  skip_if_not_installed("dartR.coancestry")
+  expect_error(
+    gl.diagnostics.relatedness(testset.gl[1:10, ], which_tests = "foo",
+                               verbose = 0),
+    "Unknown estimator"
+  )
 })

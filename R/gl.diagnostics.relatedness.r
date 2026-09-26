@@ -19,8 +19,9 @@
 #' @param sim_variables Path to the simulation variable file for
 #'   \code{dartR.sim::gl.sim.WF.run} [default NULL, which uses
 #'   sim_variables.csv shipped with dartR.sim].
-#' @param which_tests Character vector of relatedness tests to apply
-#'   [default = "wang"].
+#' @param which_tests Character vector of relatedness estimators from
+#'   \code{gl.relatedness}: any of "wang", "lynchli", "lynchrd", "ritland",
+#'   "quellergt", "loiselle", "dyadml" and "trioml" [default = "wang"].
 #' @param run_sim Logical. If TRUE, run simulations [default = FALSE].
 #' @param IncludePlots Logical. If TRUE, generate and return plots
 #'   [default = FALSE].
@@ -56,10 +57,9 @@
 #' control checks on input objects and file paths before analysis.
 #'
 #' The relatedness estimators in \code{which_tests} are computed by
-#' \code{coancestry()} from the package \code{related}, which is not on CRAN;
-#' install it with
-#' \code{devtools::install_github("timothyfrasier/related")}. Its Fortran code
-#' prints progress to the console at every verbosity.
+#' \code{gl.relatedness}, which needs the engine package
+#' \code{dartR.coancestry} (not on CRAN; see \code{gl.relatedness} for how to
+#' install it). Its relatedness estimates are halved to the kinship scale.
 #'
 #' All estimates are on the kinship scale. When a pedigree is available (from
 #' the simulation or attached with includedPed), every pair of individuals
@@ -89,7 +89,7 @@
 #'
 #' @examples
 #' \dontrun{
-#' # requires the package 'related'
+#' # requires the package 'dartR.coancestry' (see gl.relatedness)
 #' res <- gl.diagnostics.relatedness(possums.gl, run_sim = TRUE,
 #'                                   rmseOut = TRUE, IncludePlots = TRUE)
 #' }
@@ -141,19 +141,25 @@ gl.diagnostics.relatedness <- function(
   datatype <- utils.check.datatype(x, verbose = verbose)
 
   # FUNCTION SPECIFIC ERROR CHECKING ----
-  # coancestry() from 'related' computes the which_tests estimators; everything
-  # else this function needs is a declared dependency. 'related' is not on CRAN
-  # so it cannot be declared, hence the variable indirection to keep R CMD
-  # check's dependency scan quiet.
-  pkg <- "related"
+  # gl.relatedness computes the which_tests estimators with the engine
+  # 'dartR.coancestry', which is not on CRAN; check for it before a long
+  # simulation runs. The variable keeps R CMD check's dependency scan quiet.
+  pkg <- "dartR.coancestry"
   if (!requireNamespace(pkg, quietly = TRUE)) {
     stop(error(
-      "  gl.diagnostics.relatedness needs the package 'related' (not on CRAN).\n",
-      "  Install it with:\n",
-      "    devtools::install_github('timothyfrasier/related')\n"))
+      "  gl.diagnostics.relatedness needs the package 'dartR.coancestry'",
+      "(not on CRAN); see ?gl.relatedness for how to install it\n"))
+  }
+  valid.tests <- c("wang", "lynchli", "lynchrd", "ritland", "quellergt",
+                   "loiselle", "dyadml", "trioml")
+  bad.tests <- setdiff(which_tests, valid.tests)
+  if (length(bad.tests) > 0) {
+    stop(error(
+      "  Unknown estimator(s) in which_tests:", paste(bad.tests, collapse = ", "),
+      "; valid are", paste(valid.tests, collapse = ", "), "\n"))
   }
 
-  # related and gl.grm need SNP genotypes
+  # gl.relatedness and gl.grm need SNP genotypes
   if (datatype == "SilicoDArT") {
     stop(error(
       "  Only SNP data are supported; x contains SilicoDArT data\n"
@@ -243,13 +249,10 @@ gl.diagnostics.relatedness <- function(
 
   finalClassValues <- list(InputDf = x)
 
-  # GUARD AGAINST related's FORTRAN ABORTS ----
-  # coancestry()'s Fortran reads a space-delimited genotype file and calls STOP
-  # on malformed input; on Windows that kills the whole R session rather than
-  # raising an R error. Two known triggers are guarded here: whitespace in
-  # individual names (breaks the file parsing) and loci scored NA across all
-  # retained individuals (a common state after subsetting a filtered object by
-  # population).
+  # CLEAN NAMES AND ALL-NA DATA ----
+  # Whitespace in individual names is replaced (original names are restored
+  # in the output), and loci and individuals scored NA throughout are dropped
+  # (a common state after subsetting a filtered object by population).
   orig.names <- indNames(x)
   safe.names <- gsub("[[:space:]]+", "_", orig.names)
   names.changed <- !identical(safe.names, orig.names)
