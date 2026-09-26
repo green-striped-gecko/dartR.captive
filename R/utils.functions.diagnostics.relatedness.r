@@ -1,52 +1,25 @@
 coanct_clean <- function(input, coanctTests = NULL){
   
-  # Gets gl2realted input or coancestry 
-  x_gl2 <- gl2related(input, save = FALSE, verbose = 0)
+  # Coancestry estimators from gl.relatedness (relatedness scale, symmetric
+  # matrices with diagonal NA); pairs sharing no called locus are NA
+  res <- gl.relatedness(input, estimators = coanctTests, plot.out = FALSE,
+                        verbose = 0)
   
-  # Crappy code to avoid having 7 if loops to set tests based 
-  # on function input 
-  tests <- c("trioml", "wang", "lynchli", "lynchrd", "ritland",
-             "quellergt", "dyadml") 
-  test_select <- rep(0, 7)
-  
-  test_select[which(tests %in% coanctTests)] <- 1
-  
-  # 'related' is not on CRAN so it cannot be a declared dependency; its
-  # availability is checked in gl.diagnostics.relatedness, and the namespace
-  # lookup here works whether or not the package is attached
-  coancestry <- utils::getFromNamespace("coancestry", "related")
-
-  x_coancest <- coancestry(x_gl2, trioml = test_select[1], wang = test_select[2],
-                           lynchli = test_select[3], lynchrd = test_select[4], ritland = test_select[5],
-                           quellergt = test_select[6], dyadml = test_select[7])
-  
-  test_col <- which(colnames(x_coancest$relatedness) %in% coanctTests)
-  
-  x_coancest2 <- x_coancest$relatedness[,c(2,3,test_col)]
-  x_coancest3 <- cbind(x_coancest2[,2],
-                       x_coancest2[,1],
-                       x_coancest2[,coanctTests])
-  colnames(x_coancest3) <- colnames(x_coancest2)
-  x_coancest4 <- rbind(x_coancest2,x_coancest3)
-  x_coancest4[,3] <- as.numeric(x_coancest4[,3])
   new_x <- NULL
   
   for(i in coanctTests){
-    mat_coan <- as.matrix(acast(x_coancest4, ind1.id~ind2.id, value.var=i))
-    
-    mat_coan <- apply(mat_coan, 2, as.numeric)
-    mat_coan
-    rownames(mat_coan) <- colnames(mat_coan)
-    mat_coan
-    coan_col <- mat_coan
+    # same order as GRM_clean, which is bound to this table by position
+    mat_coan <- res[[i]]
+    attr(mat_coan, "scale") <- NULL
+    ord <- colnames(mat_coan)[order(colnames(mat_coan))]
+    coan_col <- mat_coan[ord, ord]
     coan_col[upper.tri(coan_col)] <- NA
-    coan_col
-    coan_col <- as.data.frame(as.table(as.matrix(coan_col)))
+    coan_col <- as.data.frame(as.table(coan_col))
+    # relatedness to kinship
     coan_col$Freq <- coan_col$Freq/2
     names(coan_col)[names(coan_col) == 'Freq'] <- i
     
-    
-    if(is.null(new_x) == T){
+    if(is.null(new_x)){
       new_x <- coan_col
     }else{
       new_x[i] <- coan_col[i]
