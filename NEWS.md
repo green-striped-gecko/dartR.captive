@@ -2,6 +2,14 @@
 
 ## dartR.captive 1.2.6
 
+* `gl.diagnostics.relatedness()`: founder inbreeding is measured on loci
+  called in at least 99% of individuals (heterozygote calls lost at poorly
+  called loci inflate 1 - Ho/He), with dartR.sim's `inbreeding_founders`;
+  a warning flags `gl.LDNe` estimates of Ne that are unreliable (infinite
+  jackknife upper limit or more than 10 times the sample size); and a tile
+  plot of each estimator's bias and RMSE by relationship class is added to
+  `@plotList`.
+
 * `gl.diagnostics.relatedness()` simulates the effective population size
   of `x`: new arguments `Ne` (one value or one per population) and
   `neest.path` (estimates Ne with `dartR.popgen::gl.LDNe` when `Ne` is not

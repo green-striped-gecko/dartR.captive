@@ -107,7 +107,9 @@ have the loci of x, as with the default variable files [default = TRUE].}
 \item{Ne}{Effective population size of each population of x, one value
 or one per population (in the order of \code{levels(pop(x))}), used by
 the simulation built from x [default NULL, which estimates it with
-\code{dartR.popgen::gl.LDNe} when \code{neest.path} is given].}
+\code{dartR.popgen::gl.LDNe} when \code{neest.path} is given; a warning
+is printed when an estimate is unreliable, i.e. its jackknife upper
+limit is infinite or it exceeds 10 times the sample size].}
 
 \item{neest.path}{Path to the folder with the NeEstimator binary, used to
 estimate Ne when \code{Ne} is NULL [default NULL].}
@@ -127,7 +129,9 @@ Returns an S4 object containing simulation and/or relatedness
     \item @corOutList: Tables of RMSE, variance and bias by relationship
       class (\code{rmseOut}, \code{varOut}, \code{biasOut})
     \item @corVals: Output of correlation results between methods
-    \item @plotList: List of plots
+    \item @plotList: List of plots per iteration; with a pedigree,
+      estimates by relationship class (boxplots and densities) and a
+      tile plot of the bias and RMSE of each estimator by class
   }
 }
 \description{
@@ -156,8 +160,13 @@ populations is treated as one population) with its sample sizes rounded
 up to even numbers as population sizes (real_pop_size = TRUE), and
 parents sampled with replacement (replace_parents = TRUE), so that an
 individual can mate with several partners and half sibs occur. Founders
-carry the inbreeding of their population in x (real_inbreeding = TRUE,
-F = 1 - Ho/He) and mating is random afterwards (sib_mating_phase2 = 0),
+carry the inbreeding of their population in x, F = 1 - sum(Ho) /
+sum(uHe), measured on loci called in at least 99\% of individuals
+(lowered in steps of 0.01 until 100 loci pass; negative values set to
+0), because heterozygote calls lost at poorly called loci inflate F
+(inbreeding_founders; older dartR.sim versions estimate F on all loci
+with real_inbreeding = TRUE). Mating is random afterwards
+(sib_mating_phase2 = 0),
 so the inbreeding is not passed on to their offspring; with a dartR.sim
 version that can store the founders, they are kept as generation_0 and
 their realised F enters the pedigree kinship. Population structure

@@ -185,8 +185,10 @@ test_that("a missing variable file takes real_freq from the one given", {
                                   package = "dartR.sim"),
       verbose = 0)
   )
-  # shipped sim file: real_freq = FALSE, one population of 50, 3 generations
-  expect_equal(nInd(res@SimOutput[[1]]), 150)
+  # shipped sim file: real_freq = FALSE, one population of 50 in every
+  # stored generation (3, plus the founders with dartR.sim >= store_founders)
+  gen <- res@SimOutput[[1]]@other$ind.metrics$generation
+  expect_true(all(table(gen) == 50))
 })
 
 test_that("founder inbreeding enters the pedigree kinship", {
@@ -275,4 +277,37 @@ test_that("ancestorPedigree keeps the ids and all their ancestors only", {
   # cousins C1, C2 linked through unsampled parents and grandparents
   K <- pedigreeKinship(out)
   expect_equal(K["C1", "C2"], 0.0625)
+})
+
+test_that("an Ne estimate is unreliable with an infinite upper limit or >10n", {
+  expect_equal(neUnreliable(c(36.5, 812, 88.3), c(93, Inf, 150), c(23, 17, 41)),
+               c(FALSE, TRUE, FALSE))
+  expect_true(neUnreliable(500, 900, 20))
+})
+
+test_that("bias tile plot shows each estimator and class present", {
+  df <- data.frame(RelDegree = rep(c("full_sibs", "unrelated"), each = 2),
+                   rel = c(0.25, 0.25, 0, 0),
+                   wang = c(0.2, 0.3, 0.01, -0.03),
+                   lynchrd = c(0.25, 0.27, 0, 0.02))
+  p <- biasTilePlot(df, c("wang", "lynchrd"))
+  expect_s3_class(p, "ggplot")
+  expect_equal(nrow(p$data), 4)
+  expect_equal(p$data$bias[p$data$estimator == "lynchrd" &
+                             p$data$RelDegree == "full_sibs"], 0.01)
+})
+
+test_that("inbreeding on high-call-rate loci drops loci with lost calls", {
+  x <- gl.filter.monomorphs(gl.filter.callrate(dartR.data::platypus.gl,
+                                               threshold = 0.9, verbose = 0),
+                            verbose = 0)
+  f99 <- inbreedingHighCallrate(x, 0.99, 100)
+  f90 <- inbreedingHighCallrate(x, 0.90, 100)
+  expect_equal(names(f99), levels(pop(x)))
+  expect_true(all(f99 < f90))
+  expect_gte(attr(f99, "n.loci"), 100)
+  # too few loci at 1: the threshold is lowered until all 150 pass
+  f <- inbreedingHighCallrate(x[, 1:150], 1, 150)
+  expect_equal(attr(f, "n.loci"), 150)
+  expect_lt(attr(f, "threshold"), 1)
 })
