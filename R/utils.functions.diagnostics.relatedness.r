@@ -524,19 +524,23 @@ relatedLevelPlots <- function(relatedDf, which_tests, pedSim=F){
   
   if(pedSim){
     
+    # only the classes present get a panel (e.g. no parent_offspring when
+    # relatedness is estimated within generations)
+    present <- intersect(relationshipClasses, unique(relatedDf$RelDegree))
     df1 <- reshape2::melt(relatedDf, id.vars = "RelDegree", measure.vars = which_tests) %>%
       {.$RelDegree <- factor(.$RelDegree, 
-                             levels = relationshipClasses); .}
+                             levels = present); .}
     
     # other_relatives has no single expected kinship
     lines_df <- data.frame(
       RelDegree = relationshipClasses,
       yintercept = unname(relationshipKinship)
     )
-    lines_df <- lines_df[!is.na(lines_df$yintercept), ]
+    lines_df <- lines_df[!is.na(lines_df$yintercept) &
+                           lines_df$RelDegree %in% present, ]
     
     lines_df$RelDegree <- factor(lines_df$RelDegree,
-                                 levels = relationshipClasses)
+                                 levels = present)
     
     outputBoxPlot <- ggplot(df1, aes(x=variable,y=value,color=variable,
                                      fill=variable))+
@@ -552,7 +556,8 @@ relatedLevelPlots <- function(relatedDf, which_tests, pedSim=F){
       theme_bw() + 
       labs(
         x = "Estimator",
-        y = "Relatedness Value"
+        y = "Kinship",
+        title = "Estimated kinship by relationship class (dashed: expected)"
       )
     
     outputDensityPlot <- ggplot(df1, aes(x = value, color= RelDegree,
@@ -565,11 +570,14 @@ relatedLevelPlots <- function(relatedDf, which_tests, pedSim=F){
         linetype = "dashed", 
         linewidth = 1             
       ) +
-      facet_wrap(~ variable,scales ="fixed") + 
+      # free y: an estimator with many estimates at exactly 0 (dyadml)
+      # would otherwise flatten the other panels
+      facet_wrap(~ variable, scales = "free_y") + 
       theme_bw() + 
       labs(
-        x = "Relatedness Value",
-        y = "Count"
+        x = "Kinship",
+        y = "Density",
+        title = "Distribution of estimated kinship by relationship class"
       )
     
     asf <- NULL
@@ -587,7 +595,7 @@ relatedLevelPlots <- function(relatedDf, which_tests, pedSim=F){
       geom_boxplot(alpha=0.5,show.legend = F) + 
       labs(
         x="Estimator", 
-        y="Relatedness Value"
+        y="Kinship"
       )
     
     return(outputBoxPlot)
