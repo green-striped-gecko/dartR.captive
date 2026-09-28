@@ -145,8 +145,13 @@ resolveNe <- function(x, Ne, neest.path, verbose) {
                "or give Ne\n"))
   }
   ldne <- getExportedValue(pkg, "gl.LDNe")
-  res <- ldne(x, neest.path = neest.path, critical = 0.05,
-              singleton.rm = TRUE, plot.out = FALSE, verbose = 0)
+  res <- tryCatch(
+    ldne(x, neest.path = neest.path, critical = 0.05,
+         singleton.rm = TRUE, plot.out = FALSE, verbose = 0),
+    error = function(e) {
+      stop(error("  gl.LDNe failed (", conditionMessage(e), "); give Ne",
+                 "instead\n"), call. = FALSE)
+    })
   est <- vapply(pops, function(p) {
     d <- res[[p]]
     if (is.null(d)) return(NA_real_)

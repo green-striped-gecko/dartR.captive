@@ -311,3 +311,19 @@ test_that("inbreeding on high-call-rate loci drops loci with lost calls", {
   expect_equal(attr(f, "n.loci"), 150)
   expect_lt(attr(f, "threshold"), 1)
 })
+
+test_that("a single population simulates without shrinkage or migration", {
+  skip_if_not_installed("dartR.coancestry")
+  pdf(NULL)
+  on.exit(grDevices::dev.off())
+  x <- gl.filter.monomorphs(gl.filter.allna(testset.gl[1:24, 1:150],
+                                            verbose = 0), verbose = 0)
+  pop(x) <- rep("one", nInd(x))
+  set.seed(9)
+  capture.output(
+    res <- gl.diagnostics.relatedness(x, which_tests = "wang", run_sim = TRUE,
+                                      Ne = 30, verbose = 0)
+  )
+  expect_s4_class(res, "finalOutputClass")
+  expect_gt(nrow(res@MergedDf[[1]]), 0)
+})

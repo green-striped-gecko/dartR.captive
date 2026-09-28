@@ -403,8 +403,13 @@ gl.diagnostics.relatedness <- function(
         real_freq = simVariableValue(ref_variables, "real_freq"),
         real_pops = "TRUE", real_pop_size = "TRUE",
         replace_parents = "TRUE", real_inbreeding = "TRUE",
-        sib_mating_phase2 = "0", real_freq_shrink = '"auto"',
-        real_migration = "TRUE")
+        sib_mating_phase2 = "0")
+      # shrinking toward the mean of the populations and migration between
+      # them need at least two populations
+      if (nPop(x) > 1) {
+        sim.changes$real_freq_shrink <- '"auto"'
+        sim.changes$real_migration <- "TRUE"
+      }
       # With a dartR.sim that controls Ne, each population has the Ne of x
       # and a census size above 2 Ne (the most Ne can be when parents mate
       # with several partners), and each generation stores a sample of the
