@@ -150,7 +150,12 @@ carry the inbreeding of their population in x (real_inbreeding = TRUE,
 F = 1 - Ho/He) and mating is random afterwards (sib_mating_phase2 = 0),
 so the inbreeding is not passed on to their offspring; with a dartR.sim
 version that can store the founders, they are kept as generation_0 and
-their realised F enters the pedigree kinship. All other
+their realised F enters the pedigree kinship. Population structure
+follows x: founder allele frequencies are shrunk toward their mean to
+remove the sampling noise of x (real_freq_shrink = "auto") and the number
+of migrants per generation is set from the FST of x (real_migration =
+TRUE); dispersal starts in generation 2. These three options need a
+recent dartR.sim and are skipped by older versions. All other
 variables take the values of the files shipped with dartR.sim, except that
 x with 100 loci or fewer gets fewer, longer chromosome chunks (dartR.sim
 needs more loci than chunks) on the same 1000 cM map. The number

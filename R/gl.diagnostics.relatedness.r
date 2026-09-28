@@ -82,7 +82,12 @@
 #' F = 1 - Ho/He) and mating is random afterwards (sib_mating_phase2 = 0),
 #' so the inbreeding is not passed on to their offspring; with a dartR.sim
 #' version that can store the founders, they are kept as generation_0 and
-#' their realised F enters the pedigree kinship. All other
+#' their realised F enters the pedigree kinship. Population structure
+#' follows x: founder allele frequencies are shrunk toward their mean to
+#' remove the sampling noise of x (real_freq_shrink = "auto") and the number
+#' of migrants per generation is set from the FST of x (real_migration =
+#' TRUE); dispersal starts in generation 2. These three options need a
+#' recent dartR.sim and are skipped by older versions. All other
 #' variables take the values of the files shipped with dartR.sim, except that
 #' x with 100 loci or fewer gets fewer, longer chromosome chunks (dartR.sim
 #' needs more loci than chunks) on the same 1000 cM map. The number
@@ -333,8 +338,11 @@ gl.diagnostics.relatedness <- function(
     # dartR.sim so that the simulation mirrors x: its loci and allele
     # frequencies (no extra neutral loci), its populations and sample sizes,
     # founders as inbred as x (real_inbreeding) followed by random mating
-    # (no sib mating), and parents that mate with several partners, so that
-    # half sibs occur.
+    # (no sib mating), parents that mate with several partners, so that
+    # half sibs occur, and the FST of x (founder frequencies stripped of
+    # their sampling noise, real_freq_shrink, and migration set from FST,
+    # real_migration). Variables that the installed dartR.sim does not know
+    # are left out of the file.
     # real_freq must agree between the two files, so a missing file takes it
     # from the one given.
     if (is.null(ref_variables)) {
@@ -361,7 +369,8 @@ gl.diagnostics.relatedness <- function(
         list(real_freq = simVariableValue(ref_variables, "real_freq"),
              real_pops = "TRUE", real_pop_size = "TRUE",
              replace_parents = "TRUE", real_inbreeding = "TRUE",
-             sib_mating_phase2 = "0"))
+             sib_mating_phase2 = "0", real_freq_shrink = '"auto"',
+             real_migration = "TRUE"))
     }
     sim_new <- new("DartSim",
                    input_data = x,
@@ -388,6 +397,9 @@ gl.diagnostics.relatedness <- function(
         im
       }))
       rownames(out@other$ind.metrics) <- indNames(out)
+      # the simulation variables, including values dartR.sim derives from x
+      # (e.g. freq_shrink_lambda, migrants_real)
+      out@other$sim.vars <- sim[[length(sim)]]@other$sim.vars
       out
     })
 

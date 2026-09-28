@@ -235,6 +235,7 @@ test_that("simulation keeps parents, copies missing data and reports bias", {
   im <- sim@other$ind.metrics
   expect_equal(rownames(im), indNames(sim))
   expect_true(all(c("generation") %in% colnames(im)))
+  expect_false(is.null(sim@other$sim.vars))
   expect_gt(mean(is.na(as.matrix(sim))), 0)
   expect_false(is.null(res@corOutList@biasPlot))
 })
