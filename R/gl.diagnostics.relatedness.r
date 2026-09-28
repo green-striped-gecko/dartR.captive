@@ -1,186 +1,226 @@
 #' @name gl.diagnostics.relatedness
 #'
-#' @title Run simulations and relatedness analyses on genlight objects
+#' @title Measure the bias and accuracy of relatedness estimators on data
+#' simulated to match a genlight object
 #'
 #' @description
-#' This function wraps a variety of methods for estimating relatedness, such
-#' that they can be directly compared for accuracy and precision. It also
-#' provides the ability to run the gl.sim function for a minimum of 3 generations,
-#' providing further functionality with regards to estimating gene flow and population
-#' dynamics. It supports multiple simulation back ends, correlation
-#' output, error checking, RMSE/variance summaries, and optional plotting.
+#' Relatedness estimates are biased when a dataset has population structure,
+#' inbreeding, or a sample made of families, and the size of the bias depends
+#' on the estimator, the relationship and the data. This function measures
+#' it for the data at hand. It simulates a population that reproduces the
+#' structure, diversity, inbreeding, effective population size, missing data
+#' and (optionally) family composition of \code{x}, lets it mate at random
+#' for a few generations so that every pairwise relationship is known from
+#' the pedigree, estimates relatedness with every available estimator on
+#' samples like \code{x}, and reports each estimator's bias and error against
+#' the true kinship, by relationship class. Without a simulation, it compares
+#' the estimators on \code{x} itself, and against a pedigree attached to
+#' \code{x} when there is one.
 #'
 #' @param x A genlight object containing SNP data [required].
-#' @param cleanup Logical. Apply callrate, heterozygosity and all-NA filters
-#'   before simulation [default = FALSE].
+#' @param cleanup Logical. Before anything else, keep only loci with no
+#'   missing data (call rate 1), filter individuals by heterozygosity
+#'   (\code{gl.filter.heterozygosity} defaults) and drop all-NA loci
+#'   [default FALSE].
 #' @param ref_variables Path to the reference variable file for
-#'   \code{dartR.sim::gl.sim.WF.table} [default NULL, which builds one from
-#'   x; see Details].
+#'   \code{dartR.sim::gl.sim.WF.table} [default NULL, which builds one that
+#'   mirrors x; see Details].
 #' @param sim_variables Path to the simulation variable file for
-#'   \code{dartR.sim::gl.sim.WF.run} [default NULL, which builds one from x;
-#'   see Details].
-#' @param which_tests Character vector of relatedness estimators from
-#'   \code{gl.relatedness}: any of "wang", "lynchli", "lynchrd", "ritland",
-#'   "quellergt", "loiselle", "dyadml" and "trioml". "trioml" is left out of
-#'   the default because it is slow (over 10 minutes for 300 individuals,
-#'   against 10 seconds for "dyadml") [default = all but "trioml"].
-#' @param run_sim Logical. If TRUE, run simulations [default = FALSE].
-#' @param IncludePlots Logical. If TRUE, generate and return plots
-#'   [default = FALSE].
-#' @param plotOut Logical. If TRUE, prints the generated plots to the graphics
-#'   device (requires \code{IncludePlots = TRUE}) [default = FALSE].
-#' @param varOut Logical. If TRUE, return variance results [default = FALSE].
+#'   \code{dartR.sim::gl.sim.WF.run} [default NULL, which builds one that
+#'   mirrors x; see Details]. A file given here is used as it is.
+#' @param which_tests Relatedness estimators of \code{gl.relatedness}: any
+#'   of "wang", "lynchli", "lynchrd", "ritland", "quellergt", "loiselle",
+#'   "dyadml" and "trioml". rrBLUP (genomic relationship matrix) is always
+#'   added. "trioml" is left out of the default because it is slow (over 10
+#'   minutes for 300 individuals, against 10 seconds for "dyadml")
+#'   [default all but "trioml"].
+#' @param run_sim Logical. If TRUE, simulate data that mirror x and measure
+#'   bias against the simulated pedigree [default FALSE].
+#' @param IncludePlots Logical. If TRUE, build and return plots
+#'   [default FALSE].
+#' @param plotOut Logical. If TRUE, print the plots (requires
+#'   \code{IncludePlots = TRUE}) [default FALSE].
+#' @param varOut Logical. If TRUE, return the variance of each estimator by
+#'   relationship class [default FALSE].
 #' @param rmseOut Logical. If TRUE, return the root mean square error of each
 #'   estimator against the pedigree kinship, by relationship class
-#'   [default = FALSE].
-#' @param numberIterations Integer. Number of simulation iterations
-#'   [default = 1].
-#' @param numberGenerations Integer. Number of generations to simulate;
-#'   minimum 3 [default = 3].
-#' @param genToSave Either "all" or a numeric vector of generations to save
-#'   [default = "all"].
-#' @param run.e9 Logical. If TRUE, include EMIBD9 analysis [default = FALSE].
-#' @param E9Inbreed Logical. If TRUE, then runs EMIBD9 twice - once with inbreeding once w/out
-#'   [default = FALSE].
-#' @param e9Path Path to external EMIBD9 binary [optional].
-#' @param verbose Verbosity: 0, silent or fatal errors; 1, begin and end; 2,
-#'   progress log; 3, progress and results summary; 5, full report
+#'   [default FALSE].
+#' @param numberIterations Integer. Number of independent simulations
+#'   [default 1].
+#' @param numberGenerations Integer. Number of generations of random mating
+#'   after the founders; minimum 3 [default 3].
+#' @param genToSave "all", or the positions of the stored generations to
+#'   keep, generation 0 (the founders) being the first [default "all"].
+#' @param run.e9 Logical. If TRUE, also estimate kinship with EMIBD9
+#'   [default FALSE].
+#' @param E9Inbreed Logical. If TRUE, run EMIBD9 a second time allowing for
+#'   inbreeding [default FALSE].
+#' @param e9Path Path to the folder with the EMIBD9 binaries, needed when
+#'   \code{run.e9 = TRUE} [default NULL].
+#' @param verbose Verbosity: 0, silent or fatal errors; 1, begin and end and
+#'   warnings; 2, progress log, including Ne, founder inbreeding and family
+#'   sizes used; 3, progress and results summary; 5, full report
 #'   [default 2, unless specified using gl.set.verbosity].
-#' @param e9parallel Logical. Run EMIBD9 in parallel [default = FALSE].
-#' @param nCores Integer. Number of cores if running EMIBD9 in parallel
-#'   [default = 1].
+#' @param e9parallel Logical. Run EMIBD9 in parallel [default FALSE].
+#' @param nCores Integer. Number of cores for EMIBD9 in parallel
+#'   [default 1].
+#' @param includedPed Logical. If TRUE (and \code{run_sim = FALSE}), x has a
+#'   pedigree in \code{x@other$ind.metrics} (columns id, dad, mom; missing
+#'   parents 0 or NA) and the estimates of x are compared with it
+#'   [default FALSE].
 #' @param biasOut Logical. If TRUE, return the bias of each estimator (mean
 #'   of estimated minus pedigree kinship), by relationship class
-#'   [default = FALSE].
+#'   [default FALSE].
 #' @param simMissing Logical. If TRUE, each simulated individual takes the
 #'   missing loci of a random individual of x from the same population, so
-#'   the estimators face the missing data of x. Needs the simulated data to
-#'   have the loci of x, as with the default variable files [default = TRUE].
+#'   the estimators face the missing data of x [default TRUE].
 #' @param Ne Effective population size of each population of x, one value
-#'   or one per population (in the order of \code{levels(pop(x))}), used by
-#'   the simulation built from x [default NULL, which estimates it with
-#'   \code{dartR.popgen::gl.LDNe} when \code{neest.path} is given; a warning
-#'   is printed when an estimate is unreliable, i.e. its jackknife upper
-#'   limit is infinite or it exceeds 10 times the sample size].
+#'   or one per population in the order of \code{levels(pop(x))}
+#'   [default NULL, which estimates it with \code{dartR.popgen::gl.LDNe}
+#'   when \code{neest.path} is given]. Give it whenever you can: LDNe needs
+#'   larger samples than most relatedness studies have (see Details).
 #' @param neest.path Path to the folder with the NeEstimator binary, used to
 #'   estimate Ne when \code{Ne} is NULL [default NULL].
-#' @param analysisUnit With run_sim = TRUE, "generation" estimates
-#'   relatedness within each stored generation, a sample the size of x, so
-#'   the estimators take their allele frequencies from a sample like x;
-#'   pairs of individuals from different generations (parent-offspring,
-#'   grandparent-grandchild, avuncular) are then not estimated. "pooled"
-#'   estimates relatedness among all stored generations of an iteration
-#'   together [default "generation"].
+#' @param analysisUnit "generation" estimates relatedness within each stored
+#'   generation, a sample the size of x, so the estimators take their allele
+#'   frequencies from a sample like x; pairs from different generations
+#'   (parent-offspring, grandparent-grandchild, avuncular) are then estimated
+#'   only when parents are sampled with their offspring. "pooled" estimates
+#'   relatedness among all stored generations of an iteration together
+#'   [default "generation"].
 #' @param families Family structure of x to reproduce in the simulated
 #'   samples: the name of a column of \code{x@other$ind.metrics} with a
 #'   full-sib family identifier for each individual (NA or "" when not in a
 #'   family), or "colony" to reconstruct full-sib families with
-#'   \code{gl.run.colony} (needs \code{colony.path}). NULL simulates samples
-#'   of unrelated individuals [default NULL].
+#'   \code{gl.run.colony} (needs \code{colony.path}) [default NULL, samples
+#'   of unrelated individuals].
 #' @param colony.path Path to the folder with the COLONY executable, used
 #'   when \code{families = "colony"} [default NULL].
 #' @param familyParents Logical. If TRUE, x also contains the parents of its
-#'   families, and the simulated samples include them (they count towards
-#'   the sample size) [default FALSE].
-#' @param includedPed Logical. If TRUE, the input has a pedigree attached in
-#'   \code{x@other$ind.metrics} (columns id, dad, mom; missing parents 0 or
-#'   NA) [default = FALSE]
+#'   families, and the simulated samples include them; they count towards
+#'   the sample size [default FALSE].
 #'
 #' @details
-#' The function manages filtering, simulation setup, correlation
-#' and relatedness outputs, and optional plotting. It handles quality
-#' control checks on input objects and file paths before analysis.
+#' \subsection{What the output means}{
+#' Every relatedness estimator measures kinship against allele frequencies
+#' taken from the sample itself, so its values shift with the composition
+#' of the sample: population structure raises estimates within populations
+#' and lowers them between populations, inbreeding raises the kinship of
+#' relatives beyond what the estimators expect, and a sample of a few
+#' families makes unrelated pairs look related. The simulated individuals
+#' have known relationships, so the difference between each estimate and the
+#' true kinship, averaged by relationship class, is the bias to expect when
+#' the same estimator is applied to x. A small bias and RMSE for a class
+#' means the estimator can be trusted for that relationship in data like x;
+#' the most suitable estimator is the one with the smallest bias and RMSE
+#' for the relationships that matter to the question.
+#' }
 #'
-#' The relatedness estimators in \code{which_tests} are computed by
+#' \subsection{How the simulation mirrors x}{
+#' When \code{ref_variables} and \code{sim_variables} are NULL, the
+#' variable files are built from the ones shipped with dartR.sim so that the
+#' simulated population matches x:
+#' \itemize{
+#' \item Loci: the loci of x with their allele frequencies in each
+#' population, and no other loci (real_freq, chunk_neutral_loci = 0). x with
+#' 100 loci or fewer gets fewer, longer chromosome chunks on the same
+#' 1000 cM map, as dartR.sim needs more loci than chunks.
+#' \item Population structure: the populations of x (real_pops; x without
+#' populations is one population). With two or more populations, founder
+#' allele frequencies are shrunk toward their mean to remove the sampling
+#' noise of x (real_freq_shrink = "auto"), and migration is set from the
+#' FST of x (real_migration); dispersal starts in generation 2.
+#' \item Effective population size: each population has the Ne of the
+#' matching population of x (ne_phase2) and a census size of
+#' 2 x ceiling(max(1.25 Ne, n / 2)), above 2 Ne because parents that mate
+#' with several partners halve Ne. There is no default Ne: the function
+#' stops when \code{Ne} is not given and cannot be estimated.
+#' \code{gl.LDNe} estimates are flagged as unreliable when their jackknife
+#' upper limit is infinite or they exceed 10 times the sample size; in
+#' tests on five datasets with 9-41 individuals per population, gl.LDNe
+#' failed or was flagged for at least one population in every dataset.
+#' \item Inbreeding: the founders carry the inbreeding of their population
+#' in x (inbreeding_founders), F = 1 - sum(Ho) / sum(uHe) measured on loci
+#' called in at least 99\% of individuals (the threshold is lowered in steps
+#' of 0.01 until 100 loci pass; negative values are set to 0), because
+#' heterozygote calls lost at poorly called loci inflate F. Mating is random
+#' afterwards (sib_mating_phase2 = 0), so the founders' inbreeding is not
+#' passed on to their offspring.
+#' \item Mating: parents are drawn with replacement (replace_parents), so an
+#' individual can mate with several partners and half sibs occur.
+#' \item Samples: every stored generation holds a sample with the sample
+#' sizes of x (real_sample_size), including the founders (generation 0,
+#' store_founders), and simulated genotypes take the missing data of x
+#' (\code{simMissing}).
+#' \item Families: with \code{families}, every stored generation from
+#' generation 1 on is sampled with the family sizes of x per population, and
+#' with their parents when \code{familyParents = TRUE} (sample_families,
+#' sample_parents); generation 0, never sampled as families, is then left
+#' out of the analysis. Family sizes are reported at verbose >= 2 so they can
+#' be checked; kinship estimates are not used to find families, as they
+#' carry the bias being measured. Families that share parents (e.g. two
+#' sires crossed with two dams) need a variable file with dartR.sim's
+#' sample_crosses or sample_design, given in \code{sim_variables}.
+#' }
+#' All other variables take the values of the files shipped with dartR.sim.
+#' Options that the installed dartR.sim does not know are left out.
+#' }
+#'
+#' \subsection{The true kinship}{
+#' All estimates are on the kinship scale (\code{gl.relatedness} returns
+#' relatedness, which is halved). Each pair gets its exact pedigree kinship
+#' (column rel) from the full simulated pedigree, including ancestors that
+#' were not sampled (dartR.sim store_pedigree), computed recursively with
+#' founders unrelated to each other; a founder's kinship with itself is
+#' (1 + F) / 2, with F its realised inbreeding. Each pair also gets its
+#' closest relationship class (column RelDegree): parent_offspring,
+#' full_sibs, half_sibs, grandparent_grandchild, avuncular (aunt or uncle and
+#' niece or nephew), full_first_cousins, great_grandparent_grandchild,
+#' half_avuncular, half_first_cousins, second_cousins, other_relatives
+#' (pedigree kinship above 0 but none of these classes) or unrelated
+#' (pedigree kinship 0). Bias is the mean of estimate minus rel and RMSE the
+#' root mean square of the same differences, by class.
+#' }
+#'
+#' \subsection{What is not simulated}{
+#' Genotyping error is not simulated: missing data are copied from x, but
+#' lost heterozygote calls, allelic dropout and paralogous loci (loci
+#' heterozygous in nearly every individual) are not, so for data with these
+#' problems the bias is under-reported; remove such loci before running the
+#' function. Loci are placed on a simulated map, so the linkage between the
+#' loci of x is not reproduced. Substructure within the populations of x
+#' (e.g. sites within a lineage) is reproduced only when the sites are given
+#' as the populations of x.
+#' }
+#'
+#' \subsection{Requirements}{
+#' The estimators in \code{which_tests} are computed by
 #' \code{gl.relatedness}, which needs the engine package
-#' \code{dartR.coancestry} (not on CRAN; see \code{gl.relatedness} for how to
-#' install it). Its relatedness estimates are halved to the kinship scale.
+#' \code{dartR.coancestry} (not on CRAN; see \code{gl.relatedness}). The
+#' simulation needs a recent dartR.sim (store_founders, store_pedigree,
+#' ne_phase2, inbreeding_founders, sample_families). Estimating Ne needs
+#' dartR.popgen and NeEstimator; reconstructing families needs COLONY; the
+#' EMIBD9 estimates need EMIBD9. A run of 2 iterations on 81 individuals and
+#' 557 loci takes about a minute.
+#' }
 #'
-#' When ref_variables and sim_variables are NULL, the simulation mirrors x:
-#' it uses the loci of x with their allele frequencies in each population
-#' (real_freq = TRUE, no extra neutral loci, so the simulated data have as
-#' many loci as x), the populations of x (real_pops = TRUE; x without
-#' populations is treated as one population) with its sample sizes rounded
-#' up to even numbers as population sizes (real_pop_size = TRUE), and
-#' parents sampled with replacement (replace_parents = TRUE), so that an
-#' individual can mate with several partners and half sibs occur. Founders
-#' carry the inbreeding of their population in x, F = 1 - sum(Ho) /
-#' sum(uHe), measured on loci called in at least 99\% of individuals
-#' (lowered in steps of 0.01 until 100 loci pass; negative values set to
-#' 0), because heterozygote calls lost at poorly called loci inflate F
-#' (inbreeding_founders; older dartR.sim versions estimate F on all loci
-#' with real_inbreeding = TRUE). Mating is random afterwards
-#' (sib_mating_phase2 = 0),
-#' so the inbreeding is not passed on to their offspring; with a dartR.sim
-#' version that can store the founders, they are kept as generation_0 and
-#' their realised F enters the pedigree kinship. Population structure
-#' follows x: founder allele frequencies are shrunk toward their mean to
-#' remove the sampling noise of x (real_freq_shrink = "auto") and the number
-#' of migrants per generation is set from the FST of x (real_migration =
-#' TRUE); dispersal starts in generation 2. These three options need a
-#' recent dartR.sim and are skipped by older versions. All other
-#' variables take the values of the files shipped with dartR.sim, except that
-#' x with 100 loci or fewer gets fewer, longer chromosome chunks (dartR.sim
-#' needs more loci than chunks) on the same 1000 cM map.
-#'
-#' Samples made of families. Allele frequencies estimated from a few
-#' families make unrelated pairs look related, a bias the estimators carry
-#' into x. With \code{families}, every stored generation from generation 1
-#' on is sampled like x: the same number and sizes of full-sib families per
-#' population (and their parents with \code{familyParents}), the rest drawn
-#' at random, with dartR.sim's sample_families and sample_parents.
-#' Generation 0, whose founders are never sampled as families, is then left
-#' out of the analysis. Family sizes are reported at verbose >= 2 so they
-#' can be checked. Kinship estimates are not used to find families, as they
-#' carry the bias being measured.
-#'
-#' Effective population size. With a dartR.sim version that controls Ne
-#' (variable ne_phase2), each simulated population has the Ne of the
-#' matching population of x, given in \code{Ne} or estimated with
-#' \code{gl.LDNe} (critical allele frequency 0.05) when \code{neest.path}
-#' is given; the function stops when Ne is neither given nor estimable (an
-#' infinite estimate included), as there is no neutral default. The census
-#' size is set to 2 x ceiling(max(1.25 Ne, n / 2)), above 2 Ne because
-#' parents that mate with several partners halve Ne, and each generation
-#' stores a sample with the sample sizes n of x (real_sample_size), so the
-#' number of pairs grows with the square of nInd(x) times the number of
-#' generations stored, whatever Ne. With older dartR.sim versions the census
-#' sizes are the sample sizes of x (real_pop_size).
-#'
-#' All estimates are on the kinship scale. When a pedigree is available (from
-#' the simulation or attached with includedPed), every pair of individuals
-#' gets its exact pedigree kinship (column rel), computed recursively from the
-#' pedigree with founders unrelated to each other and not inbred, unless the
-#' simulation reports their inbreeding (ind.metrics column F_founder, when
-#' dartR.sim stores the founders), in which case a founder's kinship with
-#' itself is (1 + F) / 2, and its closest
-#' relationship class (column RelDegree: parent_offspring, full_sibs,
-#' half_sibs, grandparent_grandchild, avuncular (aunt or uncle and niece or
-#' nephew), full_first_cousins, great_grandparent_grandchild, half_avuncular,
-#' half_first_cousins, second_cousins, other_relatives (pedigree kinship
-#' above 0 but none of these classes) or unrelated (pedigree kinship 0)). All
-#' pairs are kept, whatever their estimated kinship. RMSE is the root mean
-#' square difference between each estimator and rel, by relationship class.
-#'
-#' @return Returns an S4 object containing simulation and/or relatedness
-#'   outputs. The slots for the output class are as follows:
+#' @return An S4 object with the slots:
 #'   \itemize{
-#'     \item @InputDf: The genlight input (after filtering when
-#'       \code{cleanup = TRUE})
-#'     \item @SimOutput: Genlight object of simulation outputs, one per
-#'       iteration, with the parents of each individual and its generation
-#'       in \code{@other$ind.metrics} (and, with \code{simMissing}, the
-#'       missing data of x)
-#'     \item @MergedDf: Kinship estimates per iteration, one row per pair
-#'       (with a simulation, column generation gives the generation of the
-#'       pair);
-#'       with a pedigree, also the columns RelDegree and rel
-#'     \item @corOutList: Tables of RMSE, variance and bias by relationship
-#'       class (\code{rmseOut}, \code{varOut}, \code{biasOut})
-#'     \item @corVals: Output of correlation results between methods
-#'     \item @plotList: List of plots per iteration; with a pedigree,
-#'       estimates by relationship class (boxplots and densities) and a
-#'       tile plot of the bias and RMSE of each estimator by class
+#'     \item @InputDf: x, after filtering when \code{cleanup = TRUE}.
+#'     \item @SimOutput: one genlight per iteration with all stored
+#'       generations; \code{@other$ind.metrics} holds each individual's
+#'       parents, generation and sampling role, and \code{@other$sim.vars}
+#'       the simulation variables, including values derived from x (e.g.
+#'       ne_expected, migrants_real, freq_shrink_lambda).
+#'     \item @MergedDf: one data frame per iteration, one row per pair, with
+#'       the estimates of each estimator; with a pedigree, also RelDegree
+#'       and rel; with a simulation, the generation of the pair.
+#'     \item @corOutList: tables of bias, RMSE and variance by relationship
+#'       class (\code{biasOut}, \code{rmseOut}, \code{varOut}).
+#'     \item @corVals: correlations between estimators and with rel.
+#'     \item @plotList: plots per iteration; with a pedigree, estimates by
+#'       relationship class (boxplots and densities) and a tile plot of the
+#'       bias and RMSE of each estimator by class.
 #'   }
 #'
 #' @author Author(s): Ethan, Luis Mijangos. Custodian: Luis Mijangos -- Post
@@ -188,13 +228,28 @@
 #'
 #' @examples
 #' \dontrun{
-#' # requires the package 'dartR.coancestry' (see gl.relatedness)
-#' res <- gl.diagnostics.relatedness(possums.gl, run_sim = TRUE,
-#'                                   rmseOut = TRUE, IncludePlots = TRUE)
+#' # requires dartR.coancestry (see gl.relatedness)
+#' x <- gl.filter.callrate(platypus.gl, threshold = 0.9)
+#' x <- gl.filter.monomorphs(x)
+#' res <- gl.diagnostics.relatedness(x, run_sim = TRUE,
+#'                                   numberIterations = 2,
+#'                                   Ne = c(40, 40, 90),
+#'                                   biasOut = TRUE, rmseOut = TRUE,
+#'                                   IncludePlots = TRUE)
+#' res@corOutList@biasPlot   # bias (RMSE) by estimator and class
+#' res@plotList[[1]][[3]]     # the same as a tile plot
+#'
+#' # sibs: a genlight made of full-sib families, whose families are
+#' # reconstructed with COLONY
+#' res2 <- gl.diagnostics.relatedness(sibs, run_sim = TRUE, Ne = 30,
+#'                                    families = "colony",
+#'                                    colony.path = "~/programs",
+#'                                    biasOut = TRUE)
 #' }
 #'
-#' @seealso \code{\link[dartR.base]{gl.filter.callrate}},
-#'   \code{\link[dartR.base]{gl.filter.heterozygosity}}
+#' @seealso \code{\link{gl.relatedness}}, \code{\link{gl.run.colony}},
+#'   \code{\link[dartR.sim]{gl.sim.WF.run}},
+#'   \code{\link[dartR.base]{gl.filter.callrate}}
 #'
 #' @family captive management
 #' @export
