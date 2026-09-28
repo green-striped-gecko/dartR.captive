@@ -536,7 +536,10 @@ gl.diagnostics.relatedness <- function(
         im$generation <- rep(g, nrow(im))
         im
       }))
-      rownames(out@other$ind.metrics) <- indNames(out)
+      # a parent sampled with its offspring (sample_parents) can also be in
+      # the sample of its own generation, so ids can repeat across
+      # generations
+      rownames(out@other$ind.metrics) <- make.unique(indNames(out))
       # the simulation variables, including values dartR.sim derives from x
       # (e.g. freq_shrink_lambda, migrants_real)
       out@other$sim.vars <- sim[[length(sim)]]@other$sim.vars
@@ -605,12 +608,13 @@ gl.diagnostics.relatedness <- function(
       # founders are never sampled as families, so with families they do
       # not mirror x
       if (use.families) units <- units[names(units) != "generation_0"]
-      do.call(rbind, lapply(units, function(ix) {
-        analyseSample(sim[ix, ])
-      }))
+      lapply(units, function(ix) analyseSample(sim[ix, ]))
     })
   } else {
-    analysisOutputDf <- lapply(defaultAnalysisDf, analyseSample)
+    # an individual stored in two generations is analysed once
+    analysisOutputDf <- lapply(defaultAnalysisDf, function(g) {
+      analyseSample(g[!duplicated(indNames(g)), ])
+    })
   }
   which_tests <- c(which_tests, "rrBLUP")
   if (isTRUE(run.e9)) which_tests <- c(which_tests, "E9")
@@ -624,17 +628,30 @@ gl.diagnostics.relatedness <- function(
   # When both run_sim and includedPed are TRUE, the simulated pedigree wins
   # (warned above).
   if (run_sim) {
-    pedigreeDfFinal <- mapply(mergePedigreeTruth,
-                              relatedDf = analysisOutputDf,
-                              ped = simPedigrees,
-                              SIMPLIFY = FALSE)
-    # generation of each pair (NA for pairs across generations)
-    pedigreeDfFinal <- mapply(function(df, sim) {
-      gen <- stats::setNames(sim@other$ind.metrics$generation, indNames(sim))
-      g1 <- gen[df$ind1]
-      df$generation <- ifelse(g1 == gen[df$ind2], g1, NA_character_)
-      df
-    }, pedigreeDfFinal, finalSimOutput, SIMPLIFY = FALSE)
+    if (analysisUnit == "generation") {
+      # truth added generation by generation (ids are unique within one)
+      pedigreeDfFinal <- mapply(function(units, ped) {
+        do.call(rbind, lapply(names(units), function(g) {
+          df <- mergePedigreeTruth(units[[g]], ped)
+          df$generation <- rep(g, nrow(df))
+          df
+        }))
+      }, analysisOutputDf, simPedigrees, SIMPLIFY = FALSE)
+    } else {
+      pedigreeDfFinal <- mapply(mergePedigreeTruth,
+                                relatedDf = analysisOutputDf,
+                                ped = simPedigrees,
+                                SIMPLIFY = FALSE)
+      # generation of each pair (NA for pairs across generations)
+      pedigreeDfFinal <- mapply(function(df, sim) {
+        keep <- !duplicated(indNames(sim))
+        gen <- stats::setNames(sim@other$ind.metrics$generation[keep],
+                               indNames(sim)[keep])
+        g1 <- gen[df$ind1]
+        df$generation <- ifelse(g1 == gen[df$ind2], g1, NA_character_)
+        df
+      }, pedigreeDfFinal, finalSimOutput, SIMPLIFY = FALSE)
+    }
     finalClassValues[["MergedDf"]] <- pedigreeDfFinal
   } else if (includedPed) {
     pedigreeDfFinal <- list(mergePedigreeTruth(analysisOutputDf[[1]],

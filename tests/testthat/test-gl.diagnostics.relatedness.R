@@ -378,3 +378,17 @@ test_that("COLONY recovers full-sib families", {
   s <- resolveFamilies(x, "colony", colony, 0)
   expect_equal(s$one, c(6L, 5L))
 })
+
+test_that("ExtractParents keeps an individual stored in two generations once", {
+  mk <- function(ids, pat, mat) {
+    g <- testset.gl[seq_along(ids), 1:10]
+    indNames(g) <- ids
+    g@other$ind.metrics <- data.frame(sex = "m", phenotype = "c", pat = pat,
+                                      mat = mat, row.names = ids)
+    g
+  }
+  sims <- list(list(generation_0 = mk(c("A", "B"), c(NA, NA), c(NA, NA)),
+                    generation_1 = mk(c("A", "C"), c(NA, "A"), c(NA, "B"))))
+  p <- ExtractParents(sims, 1)
+  expect_equal(sort(p$id), c("A", "B", "C"))
+})

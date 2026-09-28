@@ -252,17 +252,21 @@ ExtractParents <- function(inputClass, iteration=1){
   indDf <- bindIndMetrics(lapply(inputClass[[iteration]], function(g) {
     im <- g@other$ind.metrics
     rownames(im) <- indNames(g)
+    # ids in a column: rbind renames repeated row names
+    im$.id <- indNames(g)
     im
   }))
   
   parental.df <- indDf %>%
     {. <- .[,c(3,4)]; .} %>%
     {colnames(.) <- c("dad", "mom"); .} %>%
-    {.["id"] <- rownames(.); .} 
+    {.["id"] <- indDf$.id; .} 
   # realised inbreeding of founders stored by dartR.sim (store_founders)
   if (!is.null(indDf$F_founder)) {
     parental.df$F <- as.numeric(indDf$F_founder)
   }
+  # an individual stored in two generations appears once
+  parental.df <- parental.df[!duplicated(parental.df$id), , drop = FALSE]
   
   
   
