@@ -120,3 +120,67 @@ test_that("unknown estimators in which_tests error", {
     "Unknown estimator"
   )
 })
+
+test_that("relatives across generations get their own class, not unrelated", {
+  # G1 x G2 -> P1, P2 (full sibs); P1 x M1 -> C1; P2 x M2 -> C2;
+  # C1 x M3 -> D1; H1 = G1 x M4 (half sib of P1, P2)
+  ped <- data.frame(
+    id  = c("G1", "G2", "M1", "M2", "M3", "M4", "P1", "P2", "H1", "C1",
+            "C2", "D1"),
+    dad = c(NA, NA, NA, NA, NA, NA, "G1", "G1", "G1", "P1", "P2", "C1"),
+    mom = c(NA, NA, NA, NA, NA, NA, "G2", "G2", "M4", "M1", "M2", "M3"))
+  ids <- ped$id
+  pairs <- t(combn(ids, 2))
+  est <- data.frame(ind1 = pairs[, 1], ind2 = pairs[, 2], variable = "wang",
+                    value = 0)
+  m <- mergePedigreeTruth(est, ped)
+  cls <- function(a, b) m$RelDegree[m$ind1 == min(a, b) & m$ind2 == max(a, b)]
+  kin <- function(a, b) m$rel[m$ind1 == min(a, b) & m$ind2 == max(a, b)]
+  expect_equal(cls("G1", "C1"), "grandparent_grandchild")
+  expect_equal(kin("G1", "C1"), 0.125)
+  expect_equal(cls("P2", "C1"), "avuncular")
+  expect_equal(kin("P2", "C1"), 0.125)
+  expect_equal(cls("H1", "C1"), "half_avuncular")
+  expect_equal(cls("G2", "D1"), "great_grandparent_grandchild")
+  expect_equal(cls("C1", "C2"), "full_first_cousins")
+  expect_equal(cls("P2", "D1"), "other_relatives")   # great-avuncular
+  expect_equal(cls("M1", "M2"), "unrelated")
+  expect_true(all(m$rel[m$RelDegree == "unrelated"] == 0))
+  expect_true(all(m$rel[m$RelDegree == "other_relatives"] > 0))
+})
+
+test_that("default variable files mirror x", {
+  skip_if_not_installed("dartR.coancestry")
+  pdf(NULL)
+  on.exit(grDevices::dev.off())
+  x <- gl.filter.allna(testset.gl[1:30, 1:200], verbose = 0)
+  x <- gl.filter.monomorphs(x, verbose = 0)
+  pop(x) <- rep(c("A", "B"), c(16, 14))
+  set.seed(3)
+  capture.output(
+    res <- gl.diagnostics.relatedness(x, which_tests = "wang", run_sim = TRUE,
+                                      verbose = 0)
+  )
+  sim <- res@SimOutput[[1]]
+  expect_equal(nLoc(sim), nLoc(x))
+  expect_equal(as.vector(table(pop(sim))) / 3, c(16, 14))
+  m <- res@MergedDf[[1]]
+  expect_true("half_sibs" %in% m$RelDegree)
+  expect_true(all(m$rel[m$RelDegree == "unrelated"] == 0))
+})
+
+test_that("a missing variable file takes real_freq from the one given", {
+  skip_if_not_installed("dartR.coancestry")
+  pdf(NULL)
+  on.exit(grDevices::dev.off())
+  x <- gl.filter.allna(testset.gl[1:20, 1:100], verbose = 0)
+  capture.output(
+    res <- gl.diagnostics.relatedness(
+      x, which_tests = "wang", run_sim = TRUE,
+      sim_variables = system.file("extdata", "sim_variables.csv",
+                                  package = "dartR.sim"),
+      verbose = 0)
+  )
+  # shipped sim file: real_freq = FALSE, one population of 50, 3 generations
+  expect_equal(nInd(res@SimOutput[[1]]), 150)
+})

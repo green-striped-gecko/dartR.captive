@@ -14,11 +14,11 @@
 #' @param cleanup Logical. Apply callrate, heterozygosity and all-NA filters
 #'   before simulation [default = FALSE].
 #' @param ref_variables Path to the reference variable file for
-#'   \code{dartR.sim::gl.sim.WF.table} [default NULL, which uses
-#'   ref_variables.csv shipped with dartR.sim].
+#'   \code{dartR.sim::gl.sim.WF.table} [default NULL, which builds one from
+#'   x; see Details].
 #' @param sim_variables Path to the simulation variable file for
-#'   \code{dartR.sim::gl.sim.WF.run} [default NULL, which uses
-#'   sim_variables.csv shipped with dartR.sim].
+#'   \code{dartR.sim::gl.sim.WF.run} [default NULL, which builds one from x;
+#'   see Details].
 #' @param which_tests Character vector of relatedness estimators from
 #'   \code{gl.relatedness}: any of "wang", "lynchli", "lynchrd", "ritland",
 #'   "quellergt", "loiselle", "dyadml" and "trioml" [default = "wang"].
@@ -61,15 +61,30 @@
 #' \code{dartR.coancestry} (not on CRAN; see \code{gl.relatedness} for how to
 #' install it). Its relatedness estimates are halved to the kinship scale.
 #'
+#' When ref_variables and sim_variables are NULL, the simulation mirrors x:
+#' it uses the loci of x with their allele frequencies in each population
+#' (real_freq = TRUE, no extra neutral loci, so the simulated data have as
+#' many loci as x), the populations of x (real_pops = TRUE; x without
+#' populations is treated as one population) with its sample sizes rounded
+#' up to even numbers as population sizes (real_pop_size = TRUE), and
+#' parents sampled with replacement (replace_parents = TRUE), so that an
+#' individual can mate with several partners and half sibs occur. All other
+#' variables take the values of the files shipped with dartR.sim, except that
+#' x with 100 loci or fewer gets fewer, longer chromosome chunks (dartR.sim
+#' needs more loci than chunks) on the same 1000 cM map. The number
+#' of pairs grows with the square of nInd(x) times numberGenerations.
+#'
 #' All estimates are on the kinship scale. When a pedigree is available (from
 #' the simulation or attached with includedPed), every pair of individuals
 #' gets its exact pedigree kinship (column rel), computed recursively from the
 #' pedigree with founders unrelated and not inbred, and its closest
 #' relationship class (column RelDegree: parent_offspring, full_sibs,
-#' half_sibs, full_first_cousins, half_first_cousins, second_cousins or
-#' unrelated). All pairs are kept, whatever their estimated kinship. RMSE is
-#' the root mean square difference between each estimator and rel, by
-#' relationship class.
+#' half_sibs, grandparent_grandchild, avuncular (aunt or uncle and niece or
+#' nephew), full_first_cousins, great_grandparent_grandchild, half_avuncular,
+#' half_first_cousins, second_cousins, other_relatives (pedigree kinship
+#' above 0 but none of these classes) or unrelated (pedigree kinship 0)). All
+#' pairs are kept, whatever their estimated kinship. RMSE is the root mean
+#' square difference between each estimator and rel, by relationship class.
 #'
 #' @return Returns an S4 object containing simulation and/or relatedness
 #'   outputs. The slots for the output class are as follows:
@@ -166,30 +181,18 @@ gl.diagnostics.relatedness <- function(
     ))
   }
 
-  # the simulation needs both variable files; default to those shipped with
-  # dartR.sim
-  if (is.null(ref_variables)) {
-    ref_variables <- system.file("extdata", "ref_variables.csv",
-                                 package = "dartR.sim")
+  # Check file paths
+  if (!is.null(ref_variables) && !file.exists(ref_variables)) {
+    stop(error("ref_variables file not found: ", ref_variables, "\n"))
   }
-  if (is.null(sim_variables)) {
-    sim_variables <- system.file("extdata", "sim_variables.csv",
-                                 package = "dartR.sim")
+  if (!is.null(sim_variables) && !file.exists(sim_variables)) {
+    stop(error("sim_variables file not found: ", sim_variables, "\n"))
   }
+
 
   # Validate input parameters
   if (!is.logical(cleanup) || length(cleanup) != 1) {
     stop(error("cleanup must be TRUE or FALSE\n"))
-  }
-
-  # Check file paths
-  if (!is.null(ref_variables) && !is.null(sim_variables)) {
-    if (!file.exists(ref_variables)) {
-      stop(error("ref_variables file not found: ", ref_variables, "\n"))
-    }
-    if (!file.exists(sim_variables)) {
-      stop(error("sim_variables file not found: ", sim_variables, "\n"))
-    }
   }
 
   if (!is.character(which_tests)) {
@@ -297,6 +300,42 @@ gl.diagnostics.relatedness <- function(
 
   # 1. Run sim and store output
   if (run_sim) {
+    # real_pops needs populations; x without them is one population
+    if (is.null(pop(x)) || nPop(x) == 0) {
+      pop(x) <- factor(rep("pop1", nInd(x)))
+    }
+
+    # A variable file that is not given is built from the one shipped with
+    # dartR.sim so that the simulation mirrors x: its loci and allele
+    # frequencies (no extra neutral loci), its populations and sample sizes,
+    # and parents that mate with several partners, so that half sibs occur.
+    # real_freq must agree between the two files, so a missing file takes it
+    # from the one given.
+    if (is.null(ref_variables)) {
+      real.freq <- if (is.null(sim_variables)) "TRUE" else
+        simVariableValue(sim_variables, "real_freq")
+      ref.changes <- list(real_freq = real.freq)
+      if (real.freq == "TRUE") {
+        ref.changes$chunk_neutral_loci <- "0"
+        # dartR.sim needs more loci than chromosome chunks; fewer, longer
+        # chunks keep the default map length of 1000 cM
+        if (nLoc(x) <= 100) {
+          n.chunks <- max(nLoc(x) - 1, 1)
+          ref.changes$chunk_number <- as.character(n.chunks)
+          ref.changes$chunk_cM <- as.character(1000 / n.chunks)
+        }
+      }
+      ref_variables <- simVariableFile(
+        system.file("extdata", "ref_variables.csv", package = "dartR.sim"),
+        ref.changes)
+    }
+    if (is.null(sim_variables)) {
+      sim_variables <- simVariableFile(
+        system.file("extdata", "sim_variables.csv", package = "dartR.sim"),
+        list(real_freq = simVariableValue(ref_variables, "real_freq"),
+             real_pops = "TRUE", real_pop_size = "TRUE",
+             replace_parents = "TRUE"))
+    }
     sim_new <- new("DartSim",
                    input_data = x,
                    table_input = ref_variables,

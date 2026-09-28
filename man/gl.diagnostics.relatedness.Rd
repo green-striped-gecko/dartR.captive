@@ -34,12 +34,12 @@ gl.diagnostics.relatedness(
 before simulation [default = FALSE].}
 
 \item{ref_variables}{Path to the reference variable file for
-\code{dartR.sim::gl.sim.WF.table} [default NULL, which uses
-ref_variables.csv shipped with dartR.sim].}
+\code{dartR.sim::gl.sim.WF.table} [default NULL, which builds one from
+x; see Details].}
 
 \item{sim_variables}{Path to the simulation variable file for
-\code{dartR.sim::gl.sim.WF.run} [default NULL, which uses
-sim_variables.csv shipped with dartR.sim].}
+\code{dartR.sim::gl.sim.WF.run} [default NULL, which builds one from x;
+see Details].}
 
 \item{which_tests}{Character vector of relatedness estimators from
 \code{gl.relatedness}: any of "wang", "lynchli", "lynchrd", "ritland",
@@ -120,15 +120,30 @@ The relatedness estimators in \code{which_tests} are computed by
 \code{dartR.coancestry} (not on CRAN; see \code{gl.relatedness} for how to
 install it). Its relatedness estimates are halved to the kinship scale.
 
+When ref_variables and sim_variables are NULL, the simulation mirrors x:
+it uses the loci of x with their allele frequencies in each population
+(real_freq = TRUE, no extra neutral loci, so the simulated data have as
+many loci as x), the populations of x (real_pops = TRUE; x without
+populations is treated as one population) with its sample sizes rounded
+up to even numbers as population sizes (real_pop_size = TRUE), and
+parents sampled with replacement (replace_parents = TRUE), so that an
+individual can mate with several partners and half sibs occur. All other
+variables take the values of the files shipped with dartR.sim, except that
+x with 100 loci or fewer gets fewer, longer chromosome chunks (dartR.sim
+needs more loci than chunks) on the same 1000 cM map. The number
+of pairs grows with the square of nInd(x) times numberGenerations.
+
 All estimates are on the kinship scale. When a pedigree is available (from
 the simulation or attached with includedPed), every pair of individuals
 gets its exact pedigree kinship (column rel), computed recursively from the
 pedigree with founders unrelated and not inbred, and its closest
 relationship class (column RelDegree: parent_offspring, full_sibs,
-half_sibs, full_first_cousins, half_first_cousins, second_cousins or
-unrelated). All pairs are kept, whatever their estimated kinship. RMSE is
-the root mean square difference between each estimator and rel, by
-relationship class.
+half_sibs, grandparent_grandchild, avuncular (aunt or uncle and niece or
+nephew), full_first_cousins, great_grandparent_grandchild, half_avuncular,
+half_first_cousins, second_cousins, other_relatives (pedigree kinship
+above 0 but none of these classes) or unrelated (pedigree kinship 0)). All
+pairs are kept, whatever their estimated kinship. RMSE is the root mean
+square difference between each estimator and rel, by relationship class.
 }
 \examples{
 \dontrun{
