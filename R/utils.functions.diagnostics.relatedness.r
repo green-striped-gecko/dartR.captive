@@ -86,20 +86,32 @@ plot_rel <- function(cleanup_out){
 
 
 # Extracts parents from iteration output 
+# Binds ind.metrics tables whose columns differ (dartR.sim adds F_founder
+# only to generation_0), filling missing columns with NA
+bindIndMetrics <- function(tables) {
+  cols <- unique(unlist(lapply(tables, colnames)))
+  do.call(rbind, lapply(unname(tables), function(im) {
+    for (cn in setdiff(cols, colnames(im))) im[[cn]] <- rep(NA, nrow(im))
+    im[, cols, drop = FALSE]
+  }))
+}
+
 ExtractParents <- function(inputClass, iteration=1){
   
-  indDf <- NULL
-  
-  for(i in 1:length(inputClass[[iteration]])){
-    rownames(inputClass[[iteration]][[i]]@other$ind.metrics) <- 
-      indNames(inputClass[[iteration]][[i]])
-    indDf <- rbind(indDf, inputClass[[iteration]][[i]]@other$ind.metrics)
-  }
+  indDf <- bindIndMetrics(lapply(inputClass[[iteration]], function(g) {
+    im <- g@other$ind.metrics
+    rownames(im) <- indNames(g)
+    im
+  }))
   
   parental.df <- indDf %>%
     {. <- .[,c(3,4)]; .} %>%
     {colnames(.) <- c("dad", "mom"); .} %>%
     {.["id"] <- rownames(.); .} 
+  # realised inbreeding of founders stored by dartR.sim (store_founders)
+  if (!is.null(indDf$F_founder)) {
+    parental.df$F <- as.numeric(indDf$F_founder)
+  }
   
   
   
@@ -423,15 +435,19 @@ runE9 <- function(inputObj, e9Path, numCores, e9parallel=e9parallel, E9Inbreed=F
 
 
 # Exact kinship coefficients from a pedigree (id, dad, mom; missing parents
-# NA or 0). Parents that are not listed as individuals are added as unrelated,
-# non-inbred founders. Individuals are ordered so that parents come before
-# their offspring, then the standard recursion is applied:
+# NA or 0; optional column F, the inbreeding of founders). Founders are
+# unrelated to each other; a founder with F gets K[i, i] = (1 + F) / 2, the
+# others (and parents that are not listed, which are added as founders) are
+# not inbred. Individuals are ordered so that parents come before their
+# offspring, then the standard recursion is applied:
 #   K[i, i] = (1 + K[dad, mom]) / 2
 #   K[i, j] = (K[dad, j] + K[mom, j]) / 2   (j before i)
 pedigreeKinship <- function(ped) {
+  founder.F <- if (!is.null(ped$F)) as.numeric(ped$F) else NA_real_
   ped <- data.frame(id = as.character(ped$id),
                     dad = as.character(ped$dad),
                     mom = as.character(ped$mom),
+                    F = founder.F,
                     stringsAsFactors = FALSE)
   ped$dad[ped$dad %in% c("0", "")] <- NA
   ped$mom[ped$mom %in% c("0", "")] <- NA
@@ -441,7 +457,8 @@ pedigreeKinship <- function(ped) {
   founders <- setdiff(unique(c(ped$dad, ped$mom)), c(ped$id, NA))
   if (length(founders) > 0) {
     ped <- rbind(data.frame(id = founders, dad = NA_character_,
-                            mom = NA_character_, stringsAsFactors = FALSE),
+                            mom = NA_character_, F = NA_real_,
+                            stringsAsFactors = FALSE),
                  ped)
   }
   ordered.ids <- character(0)
@@ -469,7 +486,8 @@ pedigreeKinship <- function(ped) {
       K[i, earlier] <- (k.dad + k.mom) / 2
       K[earlier, i] <- K[i, earlier]
     }
-    K[i, i] <- (1 + if (!is.na(d[i]) && !is.na(m[i])) K[d[i], m[i]] else 0) / 2
+    K[i, i] <- (1 + if (!is.na(d[i]) && !is.na(m[i])) K[d[i], m[i]] else
+      if (is.na(d[i]) && is.na(m[i]) && !is.na(ped$F[i])) ped$F[i] else 0) / 2
   }
   K
 }
@@ -525,11 +543,13 @@ mergePedigreeTruth <- function(relatedDf, ped) {
 
   # missing parents may be coded 0 or ""; the classifier needs NA
   ped <- data.frame(id = as.character(ped$id), dad = as.character(ped$dad),
-                    mom = as.character(ped$mom), stringsAsFactors = FALSE)
+                    mom = as.character(ped$mom),
+                    F = if (!is.null(ped$F)) as.numeric(ped$F) else NA_real_,
+                    stringsAsFactors = FALSE)
   ped$dad[ped$dad %in% c("0", "")] <- NA
   ped$mom[ped$mom %in% c("0", "")] <- NA
 
-  classes <- as.data.frame(CleanupExtractParents(ped))
+  classes <- as.data.frame(CleanupExtractParents(ped[, c("id", "dad", "mom")]))
   classes$ID1 <- pmin(as.character(classes$id1), as.character(classes$id2))
   classes$ID2 <- pmax(as.character(classes$id1), as.character(classes$id2))
   classes$rank <- match(classes$relationship, relationshipClasses)
@@ -625,6 +645,51 @@ calcRMSE <- function(inputDf, which_tests){
     }
     as.data.frame(out)
   })
+}
+
+# Bias (mean of estimate minus pedigree kinship) of each estimator, by
+# relationship class
+calcBias <- function(inputDf, which_tests){
+  lapply(inputDf, function(df) {
+    out <- matrix(NA_real_, nrow = length(which_tests),
+                  ncol = length(relationshipClasses),
+                  dimnames = list(which_tests, relationshipClasses))
+    for (j in which_tests) {
+      for (k in relationshipClasses) {
+        rows <- df$RelDegree == k & !is.na(df[[j]]) & !is.na(df$rel)
+        if (any(rows)) {
+          out[j, k] <- mean(df[[j]][rows] - df$rel[rows])
+        }
+      }
+    }
+    as.data.frame(out)
+  })
+}
+
+# Copies the missing-data pattern of x onto simulated genotypes: each
+# simulated individual takes the missing loci of an individual of x drawn at
+# random from the same population (from all of x when the population is not
+# in x). Needs the same loci in the same order.
+copyMissing <- function(sim, x) {
+  miss <- is.na(as.matrix(x))
+  if (!any(miss)) return(sim)
+  pop.x <- as.character(pop(x))
+  pop.sim <- as.character(pop(sim))
+  donor <- vapply(seq_len(nInd(sim)), function(i) {
+    pool <- which(pop.x == pop.sim[i])
+    if (length(pool) == 0) pool <- seq_len(nInd(x))
+    pool[sample.int(length(pool), 1)]
+  }, integer(1))
+  g <- as.matrix(sim)
+  g[miss[donor, , drop = FALSE]] <- NA
+  out <- new("genlight", g, ind.names = indNames(sim),
+             loc.names = locNames(sim), pop = pop(sim), ploidy = ploidy(sim))
+  out@loc.all <- sim@loc.all
+  out@position <- sim@position
+  out@chromosome <- sim@chromosome
+  out@other <- sim@other
+  if (is(sim, "dartR")) out <- methods::as(out, "dartR")
+  out
 }
 
 # Variance of each estimator, by relationship class
