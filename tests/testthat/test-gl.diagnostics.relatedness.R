@@ -80,7 +80,7 @@ test_that("simulation runs with the default variable files (5)", {
   set.seed(1)
   capture.output(
     res <- gl.diagnostics.relatedness(x, which_tests = "wang",
-                                      run_sim = TRUE, rmseOut = TRUE,
+                                      run_sim = TRUE, rmseOut = TRUE, Ne = 50,
                                       verbose = 0)
   )
   m <- res@MergedDf[[1]]
@@ -159,11 +159,15 @@ test_that("default variable files mirror x", {
   set.seed(3)
   capture.output(
     res <- gl.diagnostics.relatedness(x, which_tests = "wang", run_sim = TRUE,
+                                      Ne = c(30, 20),
                                       verbose = 0)
   )
   sim <- res@SimOutput[[1]]
   expect_equal(nLoc(sim), nLoc(x))
-  expect_equal(as.vector(table(pop(sim))) / 3, c(16, 14))
+  # every stored generation has the sample sizes of x
+  gen <- sim@other$ind.metrics$generation
+  expect_true(all(table(gen, pop(sim))[, "A"] == 16))
+  expect_true(all(table(gen, pop(sim))[, "B"] == 14))
   m <- res@MergedDf[[1]]
   expect_true("half_sibs" %in% m$RelDegree)
   expect_true(all(m$rel[m$RelDegree == "unrelated"] == 0))
@@ -181,8 +185,10 @@ test_that("a missing variable file takes real_freq from the one given", {
                                   package = "dartR.sim"),
       verbose = 0)
   )
-  # shipped sim file: real_freq = FALSE, one population of 50, 3 generations
-  expect_equal(nInd(res@SimOutput[[1]]), 150)
+  # shipped sim file: real_freq = FALSE, one population of 50 in every
+  # stored generation (3, plus the founders with dartR.sim >= store_founders)
+  gen <- res@SimOutput[[1]]@other$ind.metrics$generation
+  expect_true(all(table(gen) == 50))
 })
 
 test_that("founder inbreeding enters the pedigree kinship", {
@@ -228,13 +234,14 @@ test_that("simulation keeps parents, copies missing data and reports bias", {
   set.seed(5)
   capture.output(
     res <- gl.diagnostics.relatedness(x, which_tests = c("wang", "lynchrd"),
-                                      run_sim = TRUE, biasOut = TRUE,
+                                      run_sim = TRUE, biasOut = TRUE, Ne = 50,
                                       verbose = 0)
   )
   sim <- res@SimOutput[[1]]
   im <- sim@other$ind.metrics
   expect_equal(rownames(im), indNames(sim))
   expect_true(all(c("generation") %in% colnames(im)))
+  expect_false(is.null(sim@other$sim.vars))
   expect_gt(mean(is.na(as.matrix(sim))), 0)
   expect_false(is.null(res@corOutList@biasPlot))
 })
@@ -248,4 +255,59 @@ test_that("ind.metrics from generations bind by name with plain row names", {
   expect_equal(rownames(out), c("f1", "o1"))
   expect_equal(colnames(out)[3:4], c("pat", "mat"))
   expect_true(is.na(out["o1", "F_founder"]))
+})
+
+test_that("Ne is checked and resolved per population", {
+  x <- testset.gl[1:20, 1:50]
+  pop(x) <- rep(c("A", "B"), each = 10)
+  expect_equal(resolveNe(x, 40, NULL, 0), c(40, 40))
+  expect_equal(resolveNe(x, c(40, 60), NULL, 0), c(40, 60))
+  expect_error(resolveNe(x, c(1, 2, 3), NULL, 0), "one per population")
+  expect_error(resolveNe(x, NULL, NULL, 0), "give Ne, or neest.path")
+  expect_error(gl.diagnostics.relatedness(x, Ne = -5, verbose = 0),
+               "Ne must be positive")
+})
+
+test_that("ancestorPedigree keeps the ids and all their ancestors only", {
+  ped <- data.frame(id = c("G1", "G2", "G3", "P1", "P2", "Q1", "C1", "C2"),
+                    dad = c(NA, NA, NA, "G1", "G1", "G3", "P1", "P2"),
+                    mom = c(NA, NA, NA, "G2", "G2", "G3", NA, NA))
+  out <- ancestorPedigree(ped, c("C1", "C2"))
+  expect_setequal(out$id, c("G1", "G2", "P1", "P2", "C1", "C2"))
+  # cousins C1, C2 linked through unsampled parents and grandparents
+  K <- pedigreeKinship(out)
+  expect_equal(K["C1", "C2"], 0.0625)
+})
+
+test_that("an Ne estimate is unreliable with an infinite upper limit or >10n", {
+  expect_equal(neUnreliable(c(36.5, 812, 88.3), c(93, Inf, 150), c(23, 17, 41)),
+               c(FALSE, TRUE, FALSE))
+  expect_true(neUnreliable(500, 900, 20))
+})
+
+test_that("bias tile plot shows each estimator and class present", {
+  df <- data.frame(RelDegree = rep(c("full_sibs", "unrelated"), each = 2),
+                   rel = c(0.25, 0.25, 0, 0),
+                   wang = c(0.2, 0.3, 0.01, -0.03),
+                   lynchrd = c(0.25, 0.27, 0, 0.02))
+  p <- biasTilePlot(df, c("wang", "lynchrd"))
+  expect_s3_class(p, "ggplot")
+  expect_equal(nrow(p$data), 4)
+  expect_equal(p$data$bias[p$data$estimator == "lynchrd" &
+                             p$data$RelDegree == "full_sibs"], 0.01)
+})
+
+test_that("inbreeding on high-call-rate loci drops loci with lost calls", {
+  x <- gl.filter.monomorphs(gl.filter.callrate(dartR.data::platypus.gl,
+                                               threshold = 0.9, verbose = 0),
+                            verbose = 0)
+  f99 <- inbreedingHighCallrate(x, 0.99, 100)
+  f90 <- inbreedingHighCallrate(x, 0.90, 100)
+  expect_equal(names(f99), levels(pop(x)))
+  expect_true(all(f99 < f90))
+  expect_gte(attr(f99, "n.loci"), 100)
+  # too few loci at 1: the threshold is lowered until all 150 pass
+  f <- inbreedingHighCallrate(x[, 1:150], 1, 150)
+  expect_equal(attr(f, "n.loci"), 150)
+  expect_lt(attr(f, "threshold"), 1)
 })

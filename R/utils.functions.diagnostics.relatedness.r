@@ -86,6 +86,115 @@ plot_rel <- function(cleanup_out){
 
 
 # Extracts parents from iteration output 
+# Inbreeding of each population of x (1 - sum Ho / sum uHe, as dartR.sim's
+# real_inbreeding) on loci called in at least `threshold` of individuals,
+# where lost heterozygote calls inflate F less. When fewer than min.loci
+# loci pass, the threshold is lowered in steps of 0.01 until they do.
+# Returns F per population (levels(pop(x)) order, negative values kept)
+# with the threshold and number of loci used as attributes
+inbreedingHighCallrate <- function(x, threshold = 0.99, min.loci = 100) {
+  called <- colMeans(!is.na(as.matrix(x)))
+  while (sum(called >= threshold) < min(min.loci, nLoc(x)) &&
+         threshold > 0) {
+    threshold <- round(threshold - 0.01, 2)
+  }
+  xs <- x[, called >= threshold]
+  f <- vapply(seppop(xs), function(p) {
+    g <- as.matrix(p)
+    n <- colSums(!is.na(g))
+    q <- colMeans(g, na.rm = TRUE) / 2
+    ho <- colMeans(g == 1, na.rm = TRUE)
+    he <- 2 * q * (1 - q) * 2 * n / (2 * n - 1)
+    keep <- n > 0 & is.finite(he) & is.finite(ho)
+    if (sum(he[keep]) == 0) return(NA_real_)
+    1 - sum(ho[keep]) / sum(he[keep])
+  }, numeric(1))
+  f <- f[levels(pop(x))]
+  attr(f, "threshold") <- threshold
+  attr(f, "n.loci") <- nLoc(xs)
+  f
+}
+
+# An LDNe estimate is unreliable when its jackknife upper limit is infinite
+# or it is more than 10 times the sample size
+neUnreliable <- function(est, ci.high, n) {
+  is.finite(est) & (!is.finite(ci.high) | est > 10 * n)
+}
+
+# Effective population size of each population of x (in the order of
+# levels(pop(x))): Ne given by the user, recycled to one per population, or
+# estimated with gl.LDNe (critical allele frequency 0.05)
+resolveNe <- function(x, Ne, neest.path, verbose) {
+  pops <- levels(pop(x))
+  if (!is.null(Ne)) {
+    if (!length(Ne) %in% c(1, length(pops))) {
+      stop(error("  Ne must be one value or one per population (",
+                 length(pops), ")\n"))
+    }
+    return(rep_len(as.numeric(Ne), length(pops)))
+  }
+  if (is.null(neest.path)) {
+    stop(error(
+      "  The simulation needs the effective population size of each",
+      "population of x: give Ne, or neest.path (folder with the NeEstimator",
+      "binary) to estimate it with gl.LDNe\n"))
+  }
+  pkg <- "dartR.popgen"
+  if (!requireNamespace(pkg, quietly = TRUE)) {
+    stop(error("  Estimating Ne needs the package dartR.popgen; install it",
+               "or give Ne\n"))
+  }
+  ldne <- getExportedValue(pkg, "gl.LDNe")
+  res <- ldne(x, neest.path = neest.path, critical = 0.05,
+              singleton.rm = TRUE, plot.out = FALSE, verbose = 0)
+  est <- vapply(pops, function(p) {
+    d <- res[[p]]
+    if (is.null(d)) return(NA_real_)
+    suppressWarnings(as.numeric(d[d$Statistic == "Estimated Ne^", 2]))
+  }, numeric(1))
+  # the jackknife upper limit is infinite, or Ne is far above the sample
+  # size, when the sample holds too little LD information for a usable Ne
+  ci.high <- vapply(pops, function(p) {
+    d <- res[[p]]
+    if (is.null(d)) return(NA_real_)
+    suppressWarnings(as.numeric(d[d$Statistic == "CI high JackKnife", 2]))
+  }, numeric(1))
+  n.pop <- as.vector(table(pop(x))[pops])
+  unreliable <- pops[neUnreliable(est, ci.high, n.pop)]
+  if (length(unreliable) > 0 && verbose >= 1) {
+    cat(warn(
+      "  Warning: the Ne estimated with gl.LDNe is unreliable for",
+      paste0(unreliable, " (Ne ", signif(est[unreliable], 3), ", n ",
+             n.pop[match(unreliable, pops)], ", jackknife upper limit ",
+             signif(ci.high[unreliable], 3), ")", collapse = "; "),
+      "; consider giving Ne\n"))
+  }
+  bad <- pops[!is.finite(est) | est <= 0]
+  if (length(bad) > 0) {
+    stop(error("  gl.LDNe could not estimate a finite Ne for",
+               paste(bad, collapse = ", "), "; give Ne instead\n"))
+  }
+  if (verbose >= 2) {
+    cat(report("  Ne estimated with gl.LDNe:",
+               paste0(pops, " ", signif(est, 3), collapse = "; "), "\n"))
+  }
+  unname(est)
+}
+
+# Rows of a pedigree (id, dad, mom, ...) for the individuals in ids and all
+# their ancestors; the kinship of the ids needs no one else
+ancestorPedigree <- function(ped, ids) {
+  keep <- ids
+  current <- ids
+  while (length(current) > 0) {
+    rows <- ped[ped$id %in% current, , drop = FALSE]
+    parents <- setdiff(unique(c(rows$dad, rows$mom)), c(keep, NA))
+    keep <- c(keep, parents)
+    current <- parents
+  }
+  ped[ped$id %in% keep, , drop = FALSE]
+}
+
 # Binds ind.metrics tables whose columns differ (dartR.sim adds F_founder
 # only to generation_0), filling missing columns with NA
 bindIndMetrics <- function(tables) {
@@ -333,6 +442,33 @@ printCorVals <- function(corValues, whichTests){
   }
 }
 
+# Bias (estimate minus pedigree kinship) and RMSE of each estimator by
+# relationship class, as tiles coloured by bias and labelled
+# "bias (RMSE)"; classes absent from the data are left out
+biasTilePlot <- function(relatedDf, which_tests) {
+  estimator <- RelDegree <- bias <- label <- NULL
+  b <- calcBias(list(relatedDf), which_tests)[[1]]
+  r <- calcRMSE(list(relatedDf), which_tests)[[1]]
+  df <- data.frame(
+    estimator = factor(rep(rownames(b), times = ncol(b)),
+                       levels = which_tests),
+    RelDegree = factor(rep(colnames(b), each = nrow(b)),
+                       levels = rev(relationshipClasses)),
+    bias = unlist(b), rmse = unlist(r))
+  df <- df[!is.na(df$bias), ]
+  df$label <- sprintf("%.3f\n(%.3f)", df$bias, df$rmse)
+  lim <- max(abs(df$bias), 0.01)
+  ggplot(df, aes(x = estimator, y = RelDegree, fill = bias)) +
+    geom_tile(color = "white") +
+    geom_text(aes(label = label), size = 2.8) +
+    scale_fill_gradient2(low = "#2166AC", mid = "white", high = "#B2182B",
+                         midpoint = 0, limits = c(-lim, lim)) +
+    theme_bw() +
+    labs(x = "Estimator", y = "Relationship class",
+         fill = "Bias",
+         title = "Bias (RMSE) against the pedigree kinship")
+}
+
 relatedLevelPlots <- function(relatedDf, which_tests, pedSim=F){
   
   value <- NULL
@@ -393,6 +529,7 @@ relatedLevelPlots <- function(relatedDf, which_tests, pedSim=F){
     asf <- NULL
     asf[[1]] <- outputBoxPlot
     asf[[2]] <- outputDensityPlot
+    asf[[3]] <- biasTilePlot(relatedDf, which_tests)
     
     return(asf)
   }else{

@@ -27,7 +27,9 @@ gl.diagnostics.relatedness(
   nCores = 1,
   includedPed = FALSE,
   biasOut = FALSE,
-  simMissing = TRUE
+  simMissing = TRUE,
+  Ne = NULL,
+  neest.path = NULL
 )
 }
 \arguments{
@@ -101,6 +103,16 @@ of estimated minus pedigree kinship), by relationship class
 missing loci of a random individual of x from the same population, so
 the estimators face the missing data of x. Needs the simulated data to
 have the loci of x, as with the default variable files [default = TRUE].}
+
+\item{Ne}{Effective population size of each population of x, one value
+or one per population (in the order of \code{levels(pop(x))}), used by
+the simulation built from x [default NULL, which estimates it with
+\code{dartR.popgen::gl.LDNe} when \code{neest.path} is given; a warning
+is printed when an estimate is unreliable, i.e. its jackknife upper
+limit is infinite or it exceeds 10 times the sample size].}
+
+\item{neest.path}{Path to the folder with the NeEstimator binary, used to
+estimate Ne when \code{Ne} is NULL [default NULL].}
 }
 \value{
 Returns an S4 object containing simulation and/or relatedness
@@ -117,7 +129,9 @@ Returns an S4 object containing simulation and/or relatedness
     \item @corOutList: Tables of RMSE, variance and bias by relationship
       class (\code{rmseOut}, \code{varOut}, \code{biasOut})
     \item @corVals: Output of correlation results between methods
-    \item @plotList: List of plots
+    \item @plotList: List of plots per iteration; with a pedigree,
+      estimates by relationship class (boxplots and densities) and a
+      tile plot of the bias and RMSE of each estimator by class
   }
 }
 \description{
@@ -146,15 +160,37 @@ populations is treated as one population) with its sample sizes rounded
 up to even numbers as population sizes (real_pop_size = TRUE), and
 parents sampled with replacement (replace_parents = TRUE), so that an
 individual can mate with several partners and half sibs occur. Founders
-carry the inbreeding of their population in x (real_inbreeding = TRUE,
-F = 1 - Ho/He) and mating is random afterwards (sib_mating_phase2 = 0),
+carry the inbreeding of their population in x, F = 1 - sum(Ho) /
+sum(uHe), measured on loci called in at least 99\% of individuals
+(lowered in steps of 0.01 until 100 loci pass; negative values set to
+0), because heterozygote calls lost at poorly called loci inflate F
+(inbreeding_founders; older dartR.sim versions estimate F on all loci
+with real_inbreeding = TRUE). Mating is random afterwards
+(sib_mating_phase2 = 0),
 so the inbreeding is not passed on to their offspring; with a dartR.sim
 version that can store the founders, they are kept as generation_0 and
-their realised F enters the pedigree kinship. All other
+their realised F enters the pedigree kinship. Population structure
+follows x: founder allele frequencies are shrunk toward their mean to
+remove the sampling noise of x (real_freq_shrink = "auto") and the number
+of migrants per generation is set from the FST of x (real_migration =
+TRUE); dispersal starts in generation 2. These three options need a
+recent dartR.sim and are skipped by older versions. All other
 variables take the values of the files shipped with dartR.sim, except that
 x with 100 loci or fewer gets fewer, longer chromosome chunks (dartR.sim
-needs more loci than chunks) on the same 1000 cM map. The number
-of pairs grows with the square of nInd(x) times numberGenerations.
+needs more loci than chunks) on the same 1000 cM map.
+
+Effective population size. With a dartR.sim version that controls Ne
+(variable ne_phase2), each simulated population has the Ne of the
+matching population of x, given in \code{Ne} or estimated with
+\code{gl.LDNe} (critical allele frequency 0.05) when \code{neest.path}
+is given; the function stops when Ne is neither given nor estimable (an
+infinite estimate included), as there is no neutral default. The census
+size is set to 2 x ceiling(max(1.25 Ne, n / 2)), above 2 Ne because
+parents that mate with several partners halve Ne, and each generation
+stores a sample with the sample sizes n of x (real_sample_size), so the
+number of pairs grows with the square of nInd(x) times the number of
+generations stored, whatever Ne. With older dartR.sim versions the census
+sizes are the sample sizes of x (real_pop_size).
 
 All estimates are on the kinship scale. When a pedigree is available (from
 the simulation or attached with includedPed), every pair of individuals

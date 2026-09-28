@@ -56,6 +56,14 @@
 #'   missing loci of a random individual of x from the same population, so
 #'   the estimators face the missing data of x. Needs the simulated data to
 #'   have the loci of x, as with the default variable files [default = TRUE].
+#' @param Ne Effective population size of each population of x, one value
+#'   or one per population (in the order of \code{levels(pop(x))}), used by
+#'   the simulation built from x [default NULL, which estimates it with
+#'   \code{dartR.popgen::gl.LDNe} when \code{neest.path} is given; a warning
+#'   is printed when an estimate is unreliable, i.e. its jackknife upper
+#'   limit is infinite or it exceeds 10 times the sample size].
+#' @param neest.path Path to the folder with the NeEstimator binary, used to
+#'   estimate Ne when \code{Ne} is NULL [default NULL].
 #' @param includedPed Logical. If TRUE, the input has a pedigree attached in
 #'   \code{x@other$ind.metrics} (columns id, dad, mom; missing parents 0 or
 #'   NA) [default = FALSE]
@@ -78,15 +86,37 @@
 #' up to even numbers as population sizes (real_pop_size = TRUE), and
 #' parents sampled with replacement (replace_parents = TRUE), so that an
 #' individual can mate with several partners and half sibs occur. Founders
-#' carry the inbreeding of their population in x (real_inbreeding = TRUE,
-#' F = 1 - Ho/He) and mating is random afterwards (sib_mating_phase2 = 0),
+#' carry the inbreeding of their population in x, F = 1 - sum(Ho) /
+#' sum(uHe), measured on loci called in at least 99\% of individuals
+#' (lowered in steps of 0.01 until 100 loci pass; negative values set to
+#' 0), because heterozygote calls lost at poorly called loci inflate F
+#' (inbreeding_founders; older dartR.sim versions estimate F on all loci
+#' with real_inbreeding = TRUE). Mating is random afterwards
+#' (sib_mating_phase2 = 0),
 #' so the inbreeding is not passed on to their offspring; with a dartR.sim
 #' version that can store the founders, they are kept as generation_0 and
-#' their realised F enters the pedigree kinship. All other
+#' their realised F enters the pedigree kinship. Population structure
+#' follows x: founder allele frequencies are shrunk toward their mean to
+#' remove the sampling noise of x (real_freq_shrink = "auto") and the number
+#' of migrants per generation is set from the FST of x (real_migration =
+#' TRUE); dispersal starts in generation 2. These three options need a
+#' recent dartR.sim and are skipped by older versions. All other
 #' variables take the values of the files shipped with dartR.sim, except that
 #' x with 100 loci or fewer gets fewer, longer chromosome chunks (dartR.sim
-#' needs more loci than chunks) on the same 1000 cM map. The number
-#' of pairs grows with the square of nInd(x) times numberGenerations.
+#' needs more loci than chunks) on the same 1000 cM map.
+#'
+#' Effective population size. With a dartR.sim version that controls Ne
+#' (variable ne_phase2), each simulated population has the Ne of the
+#' matching population of x, given in \code{Ne} or estimated with
+#' \code{gl.LDNe} (critical allele frequency 0.05) when \code{neest.path}
+#' is given; the function stops when Ne is neither given nor estimable (an
+#' infinite estimate included), as there is no neutral default. The census
+#' size is set to 2 x ceiling(max(1.25 Ne, n / 2)), above 2 Ne because
+#' parents that mate with several partners halve Ne, and each generation
+#' stores a sample with the sample sizes n of x (real_sample_size), so the
+#' number of pairs grows with the square of nInd(x) times the number of
+#' generations stored, whatever Ne. With older dartR.sim versions the census
+#' sizes are the sample sizes of x (real_pop_size).
 #'
 #' All estimates are on the kinship scale. When a pedigree is available (from
 #' the simulation or attached with includedPed), every pair of individuals
@@ -117,7 +147,9 @@
 #'     \item @corOutList: Tables of RMSE, variance and bias by relationship
 #'       class (\code{rmseOut}, \code{varOut}, \code{biasOut})
 #'     \item @corVals: Output of correlation results between methods
-#'     \item @plotList: List of plots
+#'     \item @plotList: List of plots per iteration; with a pedigree,
+#'       estimates by relationship class (boxplots and densities) and a
+#'       tile plot of the bias and RMSE of each estimator by class
 #'   }
 #'
 #' @author Author(s): Ethan, Luis Mijangos. Custodian: Luis Mijangos -- Post
@@ -166,7 +198,9 @@ gl.diagnostics.relatedness <- function(
     nCores = 1,
     includedPed = FALSE,
     biasOut = FALSE,
-    simMissing = TRUE
+    simMissing = TRUE,
+    Ne = NULL,
+    neest.path = NULL
 ) {
 
   # SET VERBOSITY ----
@@ -259,6 +293,10 @@ gl.diagnostics.relatedness <- function(
       " from simulation or attached to the input. Set varOut, rmseOut and",
       " biasOut to FALSE or run_sim to TRUE\n"))
   }
+  if (!is.null(Ne) &&
+      (!is.numeric(Ne) || anyNA(Ne) || any(!is.finite(Ne)) || any(Ne <= 0))) {
+    stop(error("Ne must be positive numbers, one or one per population\n"))
+  }
   if (nLoc(x) == 0 && verbose >= 1) {
     cat(warn(
       "  Input genlight object has no loci - results may be meaningless\n"))
@@ -333,8 +371,11 @@ gl.diagnostics.relatedness <- function(
     # dartR.sim so that the simulation mirrors x: its loci and allele
     # frequencies (no extra neutral loci), its populations and sample sizes,
     # founders as inbred as x (real_inbreeding) followed by random mating
-    # (no sib mating), and parents that mate with several partners, so that
-    # half sibs occur.
+    # (no sib mating), parents that mate with several partners, so that
+    # half sibs occur, and the FST of x (founder frequencies stripped of
+    # their sampling noise, real_freq_shrink, and migration set from FST,
+    # real_migration). Variables that the installed dartR.sim does not know
+    # are left out of the file.
     # real_freq must agree between the two files, so a missing file takes it
     # from the one given.
     if (is.null(ref_variables)) {
@@ -356,12 +397,53 @@ gl.diagnostics.relatedness <- function(
         ref.changes)
     }
     if (is.null(sim_variables)) {
-      sim_variables <- simVariableFile(
-        system.file("extdata", "sim_variables.csv", package = "dartR.sim"),
-        list(real_freq = simVariableValue(ref_variables, "real_freq"),
-             real_pops = "TRUE", real_pop_size = "TRUE",
-             replace_parents = "TRUE", real_inbreeding = "TRUE",
-             sib_mating_phase2 = "0"))
+      sim.shipped <- system.file("extdata", "sim_variables.csv",
+                                 package = "dartR.sim")
+      sim.changes <- list(
+        real_freq = simVariableValue(ref_variables, "real_freq"),
+        real_pops = "TRUE", real_pop_size = "TRUE",
+        replace_parents = "TRUE", real_inbreeding = "TRUE",
+        sib_mating_phase2 = "0", real_freq_shrink = '"auto"',
+        real_migration = "TRUE")
+      # With a dartR.sim that controls Ne, each population has the Ne of x
+      # and a census size above 2 Ne (the most Ne can be when parents mate
+      # with several partners), and each generation stores a sample of the
+      # size of x, so the number of pairs does not grow with N
+      if (length(simVariableValue(sim.shipped, "ne_phase2")) > 0) {
+        ne.pop <- resolveNe(x, Ne, neest.path, verbose)
+        n.pop <- as.vector(table(pop(x)))
+        census <- 2 * ceiling(pmax(1.25 * ne.pop, n.pop / 2))
+        sim.changes$real_pop_size <- "FALSE"
+        sim.changes$real_sample_size <- "TRUE"
+        sim.changes$ne_phase2 <- paste0('"', paste(signif(ne.pop, 4),
+                                                   collapse = " "), '"')
+        sim.changes$population_size_phase2 <- paste0(
+          '"', paste(census, collapse = " "), '"')
+        if (verbose >= 2) {
+          cat(report("  Simulated populations (Ne / census size):",
+                     paste0(levels(pop(x)), " ", signif(ne.pop, 3), " / ",
+                            census, collapse = "; "), "\n"))
+        }
+      }
+      # Founder inbreeding measured on loci called in >= 99% of
+      # individuals: lost heterozygote calls at poorly called loci inflate
+      # 1 - Ho/He (platypus.gl: 0.04-0.09 at call rate 0.9, 0.00-0.03 at
+      # 0.99). Needs a dartR.sim with inbreeding_founders
+      if (length(simVariableValue(sim.shipped, "inbreeding_founders")) > 0) {
+        f.pop <- inbreedingHighCallrate(x, threshold = 0.99, min.loci = 100)
+        f.use <- pmax(ifelse(is.na(f.pop), 0, f.pop), 0)
+        sim.changes$real_inbreeding <- "FALSE"
+        sim.changes$inbreeding_founders <- paste0(
+          '"', paste(signif(f.use, 4), collapse = " "), '"')
+        if (verbose >= 2) {
+          cat(report("  Founder inbreeding (1 - Ho/He on",
+                     attr(f.pop, "n.loci"), "loci with call rate >=",
+                     paste0(attr(f.pop, "threshold"), "):"),
+                     paste0(levels(pop(x)), " ", signif(f.pop, 3),
+                            collapse = "; "), "\n"))
+        }
+      }
+      sim_variables <- simVariableFile(sim.shipped, sim.changes)
     }
     sim_new <- new("DartSim",
                    input_data = x,
@@ -371,6 +453,11 @@ gl.diagnostics.relatedness <- function(
                    number_iterations = numberIterations)
 
     dartSim <- do_sim(sim_new)
+
+    # Full pedigree of every simulated individual, sampled or not, from
+    # dartR.sim versions that return it (store_pedigree); read before the
+    # generations are subset, which drops list attributes
+    fullPedigrees <- lapply(dartSim, attr, which = "pedigree")
 
     if (is.numeric(genToSave)) {
       for (i in seq_along(dartSim)) {
@@ -388,6 +475,9 @@ gl.diagnostics.relatedness <- function(
         im
       }))
       rownames(out@other$ind.metrics) <- indNames(out)
+      # the simulation variables, including values dartR.sim derives from x
+      # (e.g. freq_shrink_lambda, migrants_real)
+      out@other$sim.vars <- sim[[length(sim)]]@other$sim.vars
       out
     })
 
@@ -406,8 +496,21 @@ gl.diagnostics.relatedness <- function(
     defaultAnalysisDf <- finalSimOutput
 
     # Pedigree (id, dad, mom) of each iteration
+    # With the full pedigree, unsampled ancestors link sampled relatives;
+    # it is cut to the stored individuals and their ancestors. Otherwise the
+    # parents recorded for the stored individuals are used
     simPedigrees <- lapply(seq_along(dartSim), function(i) {
-      ExtractParents(dartSim, iteration = i)
+      full <- fullPedigrees[[i]]
+      if (is.null(full)) {
+        return(ExtractParents(dartSim, iteration = i))
+      }
+      ped <- data.frame(id = as.character(full$id),
+                        dad = as.character(full$pat),
+                        mom = as.character(full$mat),
+                        F = if (!is.null(full$F_founder))
+                          as.numeric(full$F_founder) else NA_real_,
+                        stringsAsFactors = FALSE)
+      ancestorPedigree(ped, indNames(finalSimOutput[[i]]))
     })
 
   }

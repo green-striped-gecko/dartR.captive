@@ -2,6 +2,24 @@
 
 ## dartR.captive 1.2.6
 
+* `gl.diagnostics.relatedness()`: founder inbreeding is measured on loci
+  called in at least 99% of individuals (heterozygote calls lost at poorly
+  called loci inflate 1 - Ho/He), with dartR.sim's `inbreeding_founders`;
+  a warning flags `gl.LDNe` estimates of Ne that are unreliable (infinite
+  jackknife upper limit or more than 10 times the sample size); and a tile
+  plot of each estimator's bias and RMSE by relationship class is added to
+  `@plotList`.
+
+* `gl.diagnostics.relatedness()` simulates the effective population size
+  of `x`: new arguments `Ne` (one value or one per population) and
+  `neest.path` (estimates Ne with `dartR.popgen::gl.LDNe` when `Ne` is not
+  given; the function stops when Ne is neither given nor estimable). Each
+  population gets a census size above 2 Ne and each generation stores a
+  sample with the sample sizes of `x`. The pedigree kinship is built from
+  the full simulated pedigree, so relatives linked through unsampled
+  ancestors are recognised. Needs dartR.sim with `ne_phase2` and
+  `store_pedigree`; older versions keep the previous behaviour.
+
 * `gl.diagnostics.relatedness()` runs every `gl.relatedness()` estimator
   by default except the slow `trioml`, and reports the bias of each
   estimator (mean of estimated minus pedigree kinship) by relationship
