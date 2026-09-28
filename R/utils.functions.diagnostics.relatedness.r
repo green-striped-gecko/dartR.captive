@@ -86,6 +86,63 @@ plot_rel <- function(cleanup_out){
 
 
 # Extracts parents from iteration output 
+# Effective population size of each population of x (in the order of
+# levels(pop(x))): Ne given by the user, recycled to one per population, or
+# estimated with gl.LDNe (critical allele frequency 0.05)
+resolveNe <- function(x, Ne, neest.path, verbose) {
+  pops <- levels(pop(x))
+  if (!is.null(Ne)) {
+    if (!length(Ne) %in% c(1, length(pops))) {
+      stop(error("  Ne must be one value or one per population (",
+                 length(pops), ")\n"))
+    }
+    return(rep_len(as.numeric(Ne), length(pops)))
+  }
+  if (is.null(neest.path)) {
+    stop(error(
+      "  The simulation needs the effective population size of each",
+      "population of x: give Ne, or neest.path (folder with the NeEstimator",
+      "binary) to estimate it with gl.LDNe\n"))
+  }
+  pkg <- "dartR.popgen"
+  if (!requireNamespace(pkg, quietly = TRUE)) {
+    stop(error("  Estimating Ne needs the package dartR.popgen; install it",
+               "or give Ne\n"))
+  }
+  ldne <- getExportedValue(pkg, "gl.LDNe")
+  res <- ldne(x, neest.path = neest.path, critical = 0.05,
+              singleton.rm = TRUE, plot.out = FALSE, verbose = 0)
+  est <- vapply(pops, function(p) {
+    d <- res[[p]]
+    if (is.null(d)) return(NA_real_)
+    suppressWarnings(as.numeric(d[d$Statistic == "Estimated Ne^", 2]))
+  }, numeric(1))
+  bad <- pops[!is.finite(est) | est <= 0]
+  if (length(bad) > 0) {
+    stop(error("  gl.LDNe could not estimate a finite Ne for",
+               paste(bad, collapse = ", "), "; give Ne instead\n"))
+  }
+  if (verbose >= 2) {
+    cat(report("  Ne estimated with gl.LDNe:",
+               paste0(pops, " ", signif(est, 3), collapse = "; "), "\n"))
+  }
+  unname(est)
+}
+
+# Rows of a pedigree (id, dad, mom, ...) for the individuals in ids and all
+# their ancestors; the kinship of the ids needs no one else
+ancestorPedigree <- function(ped, ids) {
+  keep <- ids
+  current <- ids
+  while (length(current) > 0) {
+    rows <- ped[ped$id %in% current, , drop = FALSE]
+    parents <- setdiff(unique(c(rows$dad, rows$mom)), c(keep, NA))
+    keep <- c(keep, parents)
+    current <- parents
+  }
+  ped[ped$id %in% keep, , drop = FALSE]
+}
+
 # Binds ind.metrics tables whose columns differ (dartR.sim adds F_founder
 # only to generation_0), filling missing columns with NA
 bindIndMetrics <- function(tables) {

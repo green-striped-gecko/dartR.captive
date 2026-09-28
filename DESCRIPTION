@@ -27,6 +27,7 @@ Encoding: UTF-8
 Depends: R (>= 3.5),  dartR.base, dartR.data (>= 1.2.5), dartR.sim
 Imports: adegenet (>= 2.0.0), methods, utils,  crayon, ggplot2, patchwork, stringr, data.table, gridExtra, magrittr,reshape2,tidyr
 Suggests:
+    dartR.popgen,
     SIBER,
     gplots,
     fields,

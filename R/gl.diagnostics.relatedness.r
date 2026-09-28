@@ -56,6 +56,12 @@
 #'   missing loci of a random individual of x from the same population, so
 #'   the estimators face the missing data of x. Needs the simulated data to
 #'   have the loci of x, as with the default variable files [default = TRUE].
+#' @param Ne Effective population size of each population of x, one value
+#'   or one per population (in the order of \code{levels(pop(x))}), used by
+#'   the simulation built from x [default NULL, which estimates it with
+#'   \code{dartR.popgen::gl.LDNe} when \code{neest.path} is given].
+#' @param neest.path Path to the folder with the NeEstimator binary, used to
+#'   estimate Ne when \code{Ne} is NULL [default NULL].
 #' @param includedPed Logical. If TRUE, the input has a pedigree attached in
 #'   \code{x@other$ind.metrics} (columns id, dad, mom; missing parents 0 or
 #'   NA) [default = FALSE]
@@ -90,8 +96,20 @@
 #' recent dartR.sim and are skipped by older versions. All other
 #' variables take the values of the files shipped with dartR.sim, except that
 #' x with 100 loci or fewer gets fewer, longer chromosome chunks (dartR.sim
-#' needs more loci than chunks) on the same 1000 cM map. The number
-#' of pairs grows with the square of nInd(x) times numberGenerations.
+#' needs more loci than chunks) on the same 1000 cM map.
+#'
+#' Effective population size. With a dartR.sim version that controls Ne
+#' (variable ne_phase2), each simulated population has the Ne of the
+#' matching population of x, given in \code{Ne} or estimated with
+#' \code{gl.LDNe} (critical allele frequency 0.05) when \code{neest.path}
+#' is given; the function stops when Ne is neither given nor estimable (an
+#' infinite estimate included), as there is no neutral default. The census
+#' size is set to 2 x ceiling(max(1.25 Ne, n / 2)), above 2 Ne because
+#' parents that mate with several partners halve Ne, and each generation
+#' stores a sample with the sample sizes n of x (real_sample_size), so the
+#' number of pairs grows with the square of nInd(x) times the number of
+#' generations stored, whatever Ne. With older dartR.sim versions the census
+#' sizes are the sample sizes of x (real_pop_size).
 #'
 #' All estimates are on the kinship scale. When a pedigree is available (from
 #' the simulation or attached with includedPed), every pair of individuals
@@ -171,7 +189,9 @@ gl.diagnostics.relatedness <- function(
     nCores = 1,
     includedPed = FALSE,
     biasOut = FALSE,
-    simMissing = TRUE
+    simMissing = TRUE,
+    Ne = NULL,
+    neest.path = NULL
 ) {
 
   # SET VERBOSITY ----
@@ -263,6 +283,10 @@ gl.diagnostics.relatedness <- function(
       "Cannot calculate variance, RMSE or bias without a pedigree, either",
       " from simulation or attached to the input. Set varOut, rmseOut and",
       " biasOut to FALSE or run_sim to TRUE\n"))
+  }
+  if (!is.null(Ne) &&
+      (!is.numeric(Ne) || anyNA(Ne) || any(!is.finite(Ne)) || any(Ne <= 0))) {
+    stop(error("Ne must be positive numbers, one or one per population\n"))
   }
   if (nLoc(x) == 0 && verbose >= 1) {
     cat(warn(
@@ -364,13 +388,35 @@ gl.diagnostics.relatedness <- function(
         ref.changes)
     }
     if (is.null(sim_variables)) {
-      sim_variables <- simVariableFile(
-        system.file("extdata", "sim_variables.csv", package = "dartR.sim"),
-        list(real_freq = simVariableValue(ref_variables, "real_freq"),
-             real_pops = "TRUE", real_pop_size = "TRUE",
-             replace_parents = "TRUE", real_inbreeding = "TRUE",
-             sib_mating_phase2 = "0", real_freq_shrink = '"auto"',
-             real_migration = "TRUE"))
+      sim.shipped <- system.file("extdata", "sim_variables.csv",
+                                 package = "dartR.sim")
+      sim.changes <- list(
+        real_freq = simVariableValue(ref_variables, "real_freq"),
+        real_pops = "TRUE", real_pop_size = "TRUE",
+        replace_parents = "TRUE", real_inbreeding = "TRUE",
+        sib_mating_phase2 = "0", real_freq_shrink = '"auto"',
+        real_migration = "TRUE")
+      # With a dartR.sim that controls Ne, each population has the Ne of x
+      # and a census size above 2 Ne (the most Ne can be when parents mate
+      # with several partners), and each generation stores a sample of the
+      # size of x, so the number of pairs does not grow with N
+      if (length(simVariableValue(sim.shipped, "ne_phase2")) > 0) {
+        ne.pop <- resolveNe(x, Ne, neest.path, verbose)
+        n.pop <- as.vector(table(pop(x)))
+        census <- 2 * ceiling(pmax(1.25 * ne.pop, n.pop / 2))
+        sim.changes$real_pop_size <- "FALSE"
+        sim.changes$real_sample_size <- "TRUE"
+        sim.changes$ne_phase2 <- paste0('"', paste(signif(ne.pop, 4),
+                                                   collapse = " "), '"')
+        sim.changes$population_size_phase2 <- paste0(
+          '"', paste(census, collapse = " "), '"')
+        if (verbose >= 2) {
+          cat(report("  Simulated populations (Ne / census size):",
+                     paste0(levels(pop(x)), " ", signif(ne.pop, 3), " / ",
+                            census, collapse = "; "), "\n"))
+        }
+      }
+      sim_variables <- simVariableFile(sim.shipped, sim.changes)
     }
     sim_new <- new("DartSim",
                    input_data = x,
@@ -380,6 +426,11 @@ gl.diagnostics.relatedness <- function(
                    number_iterations = numberIterations)
 
     dartSim <- do_sim(sim_new)
+
+    # Full pedigree of every simulated individual, sampled or not, from
+    # dartR.sim versions that return it (store_pedigree); read before the
+    # generations are subset, which drops list attributes
+    fullPedigrees <- lapply(dartSim, attr, which = "pedigree")
 
     if (is.numeric(genToSave)) {
       for (i in seq_along(dartSim)) {
@@ -418,8 +469,21 @@ gl.diagnostics.relatedness <- function(
     defaultAnalysisDf <- finalSimOutput
 
     # Pedigree (id, dad, mom) of each iteration
+    # With the full pedigree, unsampled ancestors link sampled relatives;
+    # it is cut to the stored individuals and their ancestors. Otherwise the
+    # parents recorded for the stored individuals are used
     simPedigrees <- lapply(seq_along(dartSim), function(i) {
-      ExtractParents(dartSim, iteration = i)
+      full <- fullPedigrees[[i]]
+      if (is.null(full)) {
+        return(ExtractParents(dartSim, iteration = i))
+      }
+      ped <- data.frame(id = as.character(full$id),
+                        dad = as.character(full$pat),
+                        mom = as.character(full$mat),
+                        F = if (!is.null(full$F_founder))
+                          as.numeric(full$F_founder) else NA_real_,
+                        stringsAsFactors = FALSE)
+      ancestorPedigree(ped, indNames(finalSimOutput[[i]]))
     })
 
   }

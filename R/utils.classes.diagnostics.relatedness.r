@@ -63,6 +63,10 @@ setMethod("do_sim", "DartSim", function(object) {
   if ("store_founders" %in% names(formals(gl.sim.WF.run))) {
     run.args$store_founders <- TRUE
   }
+  # and the pedigree of every individual, sampled or not
+  if ("store_pedigree" %in% names(formals(gl.sim.WF.run))) {
+    run.args$store_pedigree <- TRUE
+  }
   res_sim <- do.call("gl.sim.WF.run", run.args)
   
   return(res_sim)

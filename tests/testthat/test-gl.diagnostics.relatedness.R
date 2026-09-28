@@ -80,7 +80,7 @@ test_that("simulation runs with the default variable files (5)", {
   set.seed(1)
   capture.output(
     res <- gl.diagnostics.relatedness(x, which_tests = "wang",
-                                      run_sim = TRUE, rmseOut = TRUE,
+                                      run_sim = TRUE, rmseOut = TRUE, Ne = 50,
                                       verbose = 0)
   )
   m <- res@MergedDf[[1]]
@@ -159,11 +159,15 @@ test_that("default variable files mirror x", {
   set.seed(3)
   capture.output(
     res <- gl.diagnostics.relatedness(x, which_tests = "wang", run_sim = TRUE,
+                                      Ne = c(30, 20),
                                       verbose = 0)
   )
   sim <- res@SimOutput[[1]]
   expect_equal(nLoc(sim), nLoc(x))
-  expect_equal(as.vector(table(pop(sim))) / 3, c(16, 14))
+  # every stored generation has the sample sizes of x
+  gen <- sim@other$ind.metrics$generation
+  expect_true(all(table(gen, pop(sim))[, "A"] == 16))
+  expect_true(all(table(gen, pop(sim))[, "B"] == 14))
   m <- res@MergedDf[[1]]
   expect_true("half_sibs" %in% m$RelDegree)
   expect_true(all(m$rel[m$RelDegree == "unrelated"] == 0))
@@ -228,7 +232,7 @@ test_that("simulation keeps parents, copies missing data and reports bias", {
   set.seed(5)
   capture.output(
     res <- gl.diagnostics.relatedness(x, which_tests = c("wang", "lynchrd"),
-                                      run_sim = TRUE, biasOut = TRUE,
+                                      run_sim = TRUE, biasOut = TRUE, Ne = 50,
                                       verbose = 0)
   )
   sim <- res@SimOutput[[1]]
@@ -249,4 +253,26 @@ test_that("ind.metrics from generations bind by name with plain row names", {
   expect_equal(rownames(out), c("f1", "o1"))
   expect_equal(colnames(out)[3:4], c("pat", "mat"))
   expect_true(is.na(out["o1", "F_founder"]))
+})
+
+test_that("Ne is checked and resolved per population", {
+  x <- testset.gl[1:20, 1:50]
+  pop(x) <- rep(c("A", "B"), each = 10)
+  expect_equal(resolveNe(x, 40, NULL, 0), c(40, 40))
+  expect_equal(resolveNe(x, c(40, 60), NULL, 0), c(40, 60))
+  expect_error(resolveNe(x, c(1, 2, 3), NULL, 0), "one per population")
+  expect_error(resolveNe(x, NULL, NULL, 0), "give Ne, or neest.path")
+  expect_error(gl.diagnostics.relatedness(x, Ne = -5, verbose = 0),
+               "Ne must be positive")
+})
+
+test_that("ancestorPedigree keeps the ids and all their ancestors only", {
+  ped <- data.frame(id = c("G1", "G2", "G3", "P1", "P2", "Q1", "C1", "C2"),
+                    dad = c(NA, NA, NA, "G1", "G1", "G3", "P1", "P2"),
+                    mom = c(NA, NA, NA, "G2", "G2", "G3", NA, NA))
+  out <- ancestorPedigree(ped, c("C1", "C2"))
+  expect_setequal(out$id, c("G1", "G2", "P1", "P2", "C1", "C2"))
+  # cousins C1, C2 linked through unsampled parents and grandparents
+  K <- pedigreeKinship(out)
+  expect_equal(K["C1", "C2"], 0.0625)
 })
