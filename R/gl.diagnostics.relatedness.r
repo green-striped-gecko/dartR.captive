@@ -31,8 +31,10 @@
 #' @param which_tests Relatedness estimators of \code{gl.relatedness}: any
 #'   of "wang", "lynchli", "lynchrd", "ritland", "quellergt", "loiselle",
 #'   "dyadml" and "trioml". rrBLUP (genomic relationship matrix) is always
-#'   added. "trioml" is left out of the default because it is slow (over 10
-#'   minutes for 300 individuals, against 10 seconds for "dyadml")
+#'   added. "trioml" is left out of the default: with biallelic SNPs it
+#'   gives the same estimates as "dyadml" (pairwise correlation 0.999 on
+#'   platypus.gl, with bias and RMSE within 0.001 by relationship class)
+#'   at about 150 times the run time (about 25 minutes for 300 individuals)
 #'   [default all but "trioml"].
 #' @param run_sim Logical. If TRUE, simulate data that mirror x and measure
 #'   bias against the simulated pedigree [default FALSE].
