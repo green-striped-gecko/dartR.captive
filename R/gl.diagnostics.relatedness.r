@@ -64,6 +64,13 @@
 #'   limit is infinite or it exceeds 10 times the sample size].
 #' @param neest.path Path to the folder with the NeEstimator binary, used to
 #'   estimate Ne when \code{Ne} is NULL [default NULL].
+#' @param analysisUnit With run_sim = TRUE, "generation" estimates
+#'   relatedness within each stored generation, a sample the size of x, so
+#'   the estimators take their allele frequencies from a sample like x;
+#'   pairs of individuals from different generations (parent-offspring,
+#'   grandparent-grandchild, avuncular) are then not estimated. "pooled"
+#'   estimates relatedness among all stored generations of an iteration
+#'   together [default "generation"].
 #' @param includedPed Logical. If TRUE, the input has a pedigree attached in
 #'   \code{x@other$ind.metrics} (columns id, dad, mom; missing parents 0 or
 #'   NA) [default = FALSE]
@@ -142,7 +149,9 @@
 #'       iteration, with the parents of each individual and its generation
 #'       in \code{@other$ind.metrics} (and, with \code{simMissing}, the
 #'       missing data of x)
-#'     \item @MergedDf: Kinship estimates per iteration, one row per pair;
+#'     \item @MergedDf: Kinship estimates per iteration, one row per pair
+#'       (with a simulation, column generation gives the generation of the
+#'       pair);
 #'       with a pedigree, also the columns RelDegree and rel
 #'     \item @corOutList: Tables of RMSE, variance and bias by relationship
 #'       class (\code{rmseOut}, \code{varOut}, \code{biasOut})
@@ -200,7 +209,8 @@ gl.diagnostics.relatedness <- function(
     biasOut = FALSE,
     simMissing = TRUE,
     Ne = NULL,
-    neest.path = NULL
+    neest.path = NULL,
+    analysisUnit = c("generation", "pooled")
 ) {
 
   # SET VERBOSITY ----
@@ -214,6 +224,7 @@ gl.diagnostics.relatedness <- function(
   datatype <- utils.check.datatype(x, verbose = verbose)
 
   # FUNCTION SPECIFIC ERROR CHECKING ----
+  analysisUnit <- match.arg(analysisUnit)
   # gl.relatedness computes the which_tests estimators with the engine
   # 'dartR.coancestry', which is not on CRAN; check for it before a long
   # simulation runs. The variable keeps R CMD check's dependency scan quiet.
@@ -403,8 +414,13 @@ gl.diagnostics.relatedness <- function(
         real_freq = simVariableValue(ref_variables, "real_freq"),
         real_pops = "TRUE", real_pop_size = "TRUE",
         replace_parents = "TRUE", real_inbreeding = "TRUE",
-        sib_mating_phase2 = "0", real_freq_shrink = '"auto"',
-        real_migration = "TRUE")
+        sib_mating_phase2 = "0")
+      # shrinking toward the mean of the populations and migration between
+      # them need at least two populations
+      if (nPop(x) > 1) {
+        sim.changes$real_freq_shrink <- '"auto"'
+        sim.changes$real_migration <- "TRUE"
+      }
       # With a dartR.sim that controls Ne, each population has the Ne of x
       # and a census size above 2 Ne (the most Ne can be when parents mate
       # with several partners), and each generation stores a sample of the
@@ -516,33 +532,40 @@ gl.diagnostics.relatedness <- function(
   }
 
   # 2. Run analysis
-  analysisOutputDf <- lapply(defaultAnalysisDf, cleanup_rel,
-                             testSelect = which_tests)
-  analysisOutputDf <- lapply(analysisOutputDf, na.omit)
-  which_tests <- c(which_tests, "rrBLUP")
-
-  if (isTRUE(run.e9)) {
-    which_tests <- c(which_tests, "E9")
-    for (i in seq_along(defaultAnalysisDf)) {
-      analysisOutputDf[[i]] <- runE9(defaultAnalysisDf[[i]],
-                                     e9Path,
-                                     e9parallel = e9parallel,
-                                     numCores = nCores) %>%
-        mergeE9Related(analysisOutputDf[[i]], test_select = which_tests)
-    }
-
-    if (isTRUE(E9Inbreed)) {
-      which_tests <- c(which_tests, "E9_Inbred")
-      for (i in seq_along(defaultAnalysisDf)) {
-        analysisOutputDf[[i]] <- runE9(defaultAnalysisDf[[i]],
-                                       e9Path,
-                                       e9parallel = e9parallel,
-                                       numCores = nCores,
-                                       E9Inbreed = TRUE) %>%
-          mergeE9Related(analysisOutputDf[[i]], test_select = which_tests)
+  # estimators, rrBLUP and optionally EMIBD9 on one sample of individuals
+  analyseSample <- function(g) {
+    out <- stats::na.omit(cleanup_rel(g, testSelect = which_tests))
+    if (isTRUE(run.e9)) {
+      out <- runE9(g, e9Path, e9parallel = e9parallel, numCores = nCores) %>%
+        mergeE9Related(out, test_select = c(which_tests, "rrBLUP", "E9"))
+      if (isTRUE(E9Inbreed)) {
+        out <- runE9(g, e9Path, e9parallel = e9parallel, numCores = nCores,
+                     E9Inbreed = TRUE) %>%
+          mergeE9Related(out, test_select = c(which_tests, "rrBLUP", "E9",
+                                              "E9_Inbred"))
       }
     }
+    out
+  }
 
+  # With analysisUnit = "generation", each stored generation (a sample the
+  # size of x) is analysed on its own, so the estimators take their allele
+  # frequencies from a sample like x; "pooled" analyses all generations of
+  # an iteration together
+  if (run_sim && analysisUnit == "generation") {
+    analysisOutputDf <- lapply(defaultAnalysisDf, function(sim) {
+      gen <- sim@other$ind.metrics$generation
+      do.call(rbind, lapply(split(seq_len(nInd(sim)), gen), function(ix) {
+        analyseSample(sim[ix, ])
+      }))
+    })
+  } else {
+    analysisOutputDf <- lapply(defaultAnalysisDf, analyseSample)
+  }
+  which_tests <- c(which_tests, "rrBLUP")
+  if (isTRUE(run.e9)) which_tests <- c(which_tests, "E9")
+  if (isTRUE(run.e9) && isTRUE(E9Inbreed)) {
+    which_tests <- c(which_tests, "E9_Inbred")
   }
 
   finalClassValues[["MergedDf"]] <- analysisOutputDf
@@ -555,6 +578,13 @@ gl.diagnostics.relatedness <- function(
                               relatedDf = analysisOutputDf,
                               ped = simPedigrees,
                               SIMPLIFY = FALSE)
+    # generation of each pair (NA for pairs across generations)
+    pedigreeDfFinal <- mapply(function(df, sim) {
+      gen <- stats::setNames(sim@other$ind.metrics$generation, indNames(sim))
+      g1 <- gen[df$ind1]
+      df$generation <- ifelse(g1 == gen[df$ind2], g1, NA_character_)
+      df
+    }, pedigreeDfFinal, finalSimOutput, SIMPLIFY = FALSE)
     finalClassValues[["MergedDf"]] <- pedigreeDfFinal
   } else if (includedPed) {
     pedigreeDfFinal <- list(mergePedigreeTruth(analysisOutputDf[[1]],

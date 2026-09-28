@@ -84,9 +84,30 @@ test_that("simulation runs with the default variable files (5)", {
                                       verbose = 0)
   )
   m <- res@MergedDf[[1]]
-  expect_equal(nrow(m), choose(nInd(res@SimOutput[[1]]), 2))
+  # analysisUnit = "generation": all pairs within each stored generation
+  gen <- table(res@SimOutput[[1]]@other$ind.metrics$generation)
+  expect_equal(nrow(m), sum(choose(gen, 2)))
   expect_false(anyDuplicated(m[, c("ind1", "ind2")]) > 0)
+  expect_false(anyNA(m$generation))
   expect_true("unrelated" %in% m$RelDegree)
+})
+
+test_that("analysisUnit = 'pooled' estimates all pairs across generations", {
+  skip_if_not_installed("dartR.coancestry")
+  pdf(NULL)
+  on.exit(grDevices::dev.off())
+  x <- gl.filter.allna(testset.gl[1:20, 1:200], verbose = 0)
+  set.seed(1)
+  capture.output(
+    res <- gl.diagnostics.relatedness(x, which_tests = "wang",
+                                      run_sim = TRUE, Ne = 30,
+                                      analysisUnit = "pooled", verbose = 0)
+  )
+  m <- res@MergedDf[[1]]
+  expect_equal(nrow(m), choose(nInd(res@SimOutput[[1]]), 2))
+  expect_true("parent_offspring" %in% m$RelDegree)
+  expect_error(gl.diagnostics.relatedness(x, analysisUnit = "bad",
+                                          verbose = 0))
 })
 
 test_that("SilicoDArT input errors (6)", {
@@ -310,4 +331,20 @@ test_that("inbreeding on high-call-rate loci drops loci with lost calls", {
   f <- inbreedingHighCallrate(x[, 1:150], 1, 150)
   expect_equal(attr(f, "n.loci"), 150)
   expect_lt(attr(f, "threshold"), 1)
+})
+
+test_that("a single population simulates without shrinkage or migration", {
+  skip_if_not_installed("dartR.coancestry")
+  pdf(NULL)
+  on.exit(grDevices::dev.off())
+  x <- gl.filter.monomorphs(gl.filter.allna(testset.gl[1:24, 1:150],
+                                            verbose = 0), verbose = 0)
+  pop(x) <- rep("one", nInd(x))
+  set.seed(9)
+  capture.output(
+    res <- gl.diagnostics.relatedness(x, which_tests = "wang", run_sim = TRUE,
+                                      Ne = 30, verbose = 0)
+  )
+  expect_s4_class(res, "finalOutputClass")
+  expect_gt(nrow(res@MergedDf[[1]]), 0)
 })

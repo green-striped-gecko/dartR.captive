@@ -2,6 +2,15 @@
 
 ## dartR.captive 1.2.6
 
+* `gl.diagnostics.relatedness()` estimates relatedness within each stored
+  generation by default (new `analysisUnit = "generation"`), so the
+  estimators take their allele frequencies from a sample the size of `x`,
+  as they do on the real data; `analysisUnit = "pooled"` keeps the previous
+  behaviour and is needed for pairs across generations (parent-offspring,
+  grandparent-grandchild, avuncular). `@MergedDf` gains a `generation`
+  column. A single population no longer stops the simulation, and a
+  failure of `gl.LDNe` is reported as a request for `Ne`.
+
 * `gl.diagnostics.relatedness()`: founder inbreeding is measured on loci
   called in at least 99% of individuals (heterozygote calls lost at poorly
   called loci inflate 1 - Ho/He), with dartR.sim's `inbreeding_founders`;

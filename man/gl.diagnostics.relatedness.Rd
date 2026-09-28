@@ -29,7 +29,8 @@ gl.diagnostics.relatedness(
   biasOut = FALSE,
   simMissing = TRUE,
   Ne = NULL,
-  neest.path = NULL
+  neest.path = NULL,
+  analysisUnit = c("generation", "pooled")
 )
 }
 \arguments{
@@ -113,6 +114,14 @@ limit is infinite or it exceeds 10 times the sample size].}
 
 \item{neest.path}{Path to the folder with the NeEstimator binary, used to
 estimate Ne when \code{Ne} is NULL [default NULL].}
+
+\item{analysisUnit}{With run_sim = TRUE, "generation" estimates
+relatedness within each stored generation, a sample the size of x, so
+the estimators take their allele frequencies from a sample like x;
+pairs of individuals from different generations (parent-offspring,
+grandparent-grandchild, avuncular) are then not estimated. "pooled"
+estimates relatedness among all stored generations of an iteration
+together [default "generation"].}
 }
 \value{
 Returns an S4 object containing simulation and/or relatedness
@@ -124,7 +133,9 @@ Returns an S4 object containing simulation and/or relatedness
       iteration, with the parents of each individual and its generation
       in \code{@other$ind.metrics} (and, with \code{simMissing}, the
       missing data of x)
-    \item @MergedDf: Kinship estimates per iteration, one row per pair;
+    \item @MergedDf: Kinship estimates per iteration, one row per pair
+      (with a simulation, column generation gives the generation of the
+      pair);
       with a pedigree, also the columns RelDegree and rel
     \item @corOutList: Tables of RMSE, variance and bias by relationship
       class (\code{rmseOut}, \code{varOut}, \code{biasOut})
