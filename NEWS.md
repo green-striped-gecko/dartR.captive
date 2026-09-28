@@ -2,6 +2,15 @@
 
 ## dartR.captive 1.2.6
 
+* `gl.diagnostics.relatedness()` can recreate samples made of families,
+  a source of bias when allele frequencies come from a few families: new
+  `families` (an ind.metrics column of full-sib family identifiers, or
+  "colony" to reconstruct them with `gl.run.colony`, with `colony.path`)
+  and `familyParents` (x also holds the parents). Every stored generation
+  from generation 1 on is then sampled with the family sizes of `x`
+  (dartR.sim `sample_families`, `sample_parents`), and generation 0 is
+  left out of the analysis.
+
 * `gl.diagnostics.relatedness()` estimates relatedness within each stored
   generation by default (new `analysisUnit = "generation"`), so the
   estimators take their allele frequencies from a sample the size of `x`,

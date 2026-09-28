@@ -348,3 +348,33 @@ test_that("a single population simulates without shrinkage or migration", {
   expect_s4_class(res, "finalOutputClass")
   expect_gt(nrow(res@MergedDf[[1]]), 0)
 })
+
+test_that("family sizes come from an ind.metrics column, per population", {
+  x <- testset.gl[1:12, 1:30]
+  pop(x) <- rep(c("A", "B"), each = 6)
+  x@other$ind.metrics$fam <- c("f1", "f1", "f1", "f2", "f2", NA,
+                               "g1", "g1", "", "u1", "g2", "g2")
+  s <- resolveFamilies(x, "fam", NULL, 0)
+  expect_equal(s$A, c(3L, 2L))
+  expect_equal(s$B, c(2L, 2L))
+  expect_error(resolveFamilies(x, "nope", NULL, 0), "name of a column")
+  expect_error(resolveFamilies(x, "colony", NULL, 0), "colony.path")
+})
+
+test_that("COLONY recovers full-sib families", {
+  colony <- path.expand("~/programs")
+  skip_if_not(file.exists(file.path(colony, "colony2s.out")), "COLONY not found")
+  set.seed(2)
+  p <- gl.filter.callrate(dartR.data::platypus.gl[1:4, ], threshold = 1,
+                          verbose = 0)
+  capture.output(off <- dartR.sim::gl.sim.offspring(p[1, ], p[2, ], 6,
+                                                     verbose = 0))
+  capture.output(off2 <- dartR.sim::gl.sim.offspring(p[3, ], p[4, ], 5,
+                                                      verbose = 0))
+  x <- rbind(off, off2)
+  indNames(x) <- c(paste0("a", 1:6), paste0("b", 1:5))
+  pop(x) <- rep("one", nInd(x))
+  x <- gl.compliance.check(x, verbose = 0)
+  s <- resolveFamilies(x, "colony", colony, 0)
+  expect_equal(s$one, c(6L, 5L))
+})
