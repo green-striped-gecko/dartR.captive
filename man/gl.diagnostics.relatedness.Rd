@@ -30,7 +30,10 @@ gl.diagnostics.relatedness(
   simMissing = TRUE,
   Ne = NULL,
   neest.path = NULL,
-  analysisUnit = c("generation", "pooled")
+  analysisUnit = c("generation", "pooled"),
+  families = NULL,
+  colony.path = NULL,
+  familyParents = FALSE
 )
 }
 \arguments{
@@ -122,6 +125,20 @@ pairs of individuals from different generations (parent-offspring,
 grandparent-grandchild, avuncular) are then not estimated. "pooled"
 estimates relatedness among all stored generations of an iteration
 together [default "generation"].}
+
+\item{families}{Family structure of x to reproduce in the simulated
+samples: the name of a column of \code{x@other$ind.metrics} with a
+full-sib family identifier for each individual (NA or "" when not in a
+family), or "colony" to reconstruct full-sib families with
+\code{gl.run.colony} (needs \code{colony.path}). NULL simulates samples
+of unrelated individuals [default NULL].}
+
+\item{colony.path}{Path to the folder with the COLONY executable, used
+when \code{families = "colony"} [default NULL].}
+
+\item{familyParents}{Logical. If TRUE, x also contains the parents of its
+families, and the simulated samples include them (they count towards
+the sample size) [default FALSE].}
 }
 \value{
 Returns an S4 object containing simulation and/or relatedness
@@ -189,6 +206,17 @@ recent dartR.sim and are skipped by older versions. All other
 variables take the values of the files shipped with dartR.sim, except that
 x with 100 loci or fewer gets fewer, longer chromosome chunks (dartR.sim
 needs more loci than chunks) on the same 1000 cM map.
+
+Samples made of families. Allele frequencies estimated from a few
+families make unrelated pairs look related, a bias the estimators carry
+into x. With \code{families}, every stored generation from generation 1
+on is sampled like x: the same number and sizes of full-sib families per
+population (and their parents with \code{familyParents}), the rest drawn
+at random, with dartR.sim's sample_families and sample_parents.
+Generation 0, whose founders are never sampled as families, is then left
+out of the analysis. Family sizes are reported at verbose >= 2 so they
+can be checked. Kinship estimates are not used to find families, as they
+carry the bias being measured.
 
 Effective population size. With a dartR.sim version that controls Ne
 (variable ne_phase2), each simulated population has the Ne of the

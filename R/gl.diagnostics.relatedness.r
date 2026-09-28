@@ -71,6 +71,17 @@
 #'   grandparent-grandchild, avuncular) are then not estimated. "pooled"
 #'   estimates relatedness among all stored generations of an iteration
 #'   together [default "generation"].
+#' @param families Family structure of x to reproduce in the simulated
+#'   samples: the name of a column of \code{x@other$ind.metrics} with a
+#'   full-sib family identifier for each individual (NA or "" when not in a
+#'   family), or "colony" to reconstruct full-sib families with
+#'   \code{gl.run.colony} (needs \code{colony.path}). NULL simulates samples
+#'   of unrelated individuals [default NULL].
+#' @param colony.path Path to the folder with the COLONY executable, used
+#'   when \code{families = "colony"} [default NULL].
+#' @param familyParents Logical. If TRUE, x also contains the parents of its
+#'   families, and the simulated samples include them (they count towards
+#'   the sample size) [default FALSE].
 #' @param includedPed Logical. If TRUE, the input has a pedigree attached in
 #'   \code{x@other$ind.metrics} (columns id, dad, mom; missing parents 0 or
 #'   NA) [default = FALSE]
@@ -111,6 +122,17 @@
 #' variables take the values of the files shipped with dartR.sim, except that
 #' x with 100 loci or fewer gets fewer, longer chromosome chunks (dartR.sim
 #' needs more loci than chunks) on the same 1000 cM map.
+#'
+#' Samples made of families. Allele frequencies estimated from a few
+#' families make unrelated pairs look related, a bias the estimators carry
+#' into x. With \code{families}, every stored generation from generation 1
+#' on is sampled like x: the same number and sizes of full-sib families per
+#' population (and their parents with \code{familyParents}), the rest drawn
+#' at random, with dartR.sim's sample_families and sample_parents.
+#' Generation 0, whose founders are never sampled as families, is then left
+#' out of the analysis. Family sizes are reported at verbose >= 2 so they
+#' can be checked. Kinship estimates are not used to find families, as they
+#' carry the bias being measured.
 #'
 #' Effective population size. With a dartR.sim version that controls Ne
 #' (variable ne_phase2), each simulated population has the Ne of the
@@ -210,7 +232,10 @@ gl.diagnostics.relatedness <- function(
     simMissing = TRUE,
     Ne = NULL,
     neest.path = NULL,
-    analysisUnit = c("generation", "pooled")
+    analysisUnit = c("generation", "pooled"),
+    families = NULL,
+    colony.path = NULL,
+    familyParents = FALSE
 ) {
 
   # SET VERBOSITY ----
@@ -378,6 +403,7 @@ gl.diagnostics.relatedness <- function(
       pop(x) <- factor(rep("pop1", nInd(x)))
     }
 
+    use.families <- FALSE
     # A variable file that is not given is built from the one shipped with
     # dartR.sim so that the simulation mirrors x: its loci and allele
     # frequencies (no extra neutral loci), its populations and sample sizes,
@@ -459,6 +485,26 @@ gl.diagnostics.relatedness <- function(
                             collapse = "; "), "\n"))
         }
       }
+      # A sample made of families is a source of bias (reference allele
+      # frequencies from a few families), so each stored generation from
+      # generation 1 on is sampled with the family sizes of x
+      if (!is.null(families)) {
+        if (length(simVariableValue(sim.shipped, "sample_families")) > 0) {
+          fam.sizes <- resolveFamilies(x, families, colony.path, verbose)
+          sim.changes$sample_families <- paste0(
+            '"', paste(vapply(fam.sizes, paste, character(1),
+                              collapse = " "), collapse = "; "), '"')
+          sim.changes$sample_parents <- if (familyParents) "TRUE" else
+            "FALSE"
+          largest <- max(c(0, unlist(fam.sizes)))
+          sim.changes$number_offspring_phase2 <- as.character(
+            max(10, ceiling(1.3 * largest)))
+          use.families <- TRUE
+        } else if (verbose >= 1) {
+          cat(warn("  The installed dartR.sim cannot sample families",
+                   "(sample_families); families is ignored\n"))
+        }
+      }
       sim_variables <- simVariableFile(sim.shipped, sim.changes)
     }
     sim_new <- new("DartSim",
@@ -490,7 +536,10 @@ gl.diagnostics.relatedness <- function(
         im$generation <- rep(g, nrow(im))
         im
       }))
-      rownames(out@other$ind.metrics) <- indNames(out)
+      # a parent sampled with its offspring (sample_parents) can also be in
+      # the sample of its own generation, so ids can repeat across
+      # generations
+      rownames(out@other$ind.metrics) <- make.unique(indNames(out))
       # the simulation variables, including values dartR.sim derives from x
       # (e.g. freq_shrink_lambda, migrants_real)
       out@other$sim.vars <- sim[[length(sim)]]@other$sim.vars
@@ -555,12 +604,17 @@ gl.diagnostics.relatedness <- function(
   if (run_sim && analysisUnit == "generation") {
     analysisOutputDf <- lapply(defaultAnalysisDf, function(sim) {
       gen <- sim@other$ind.metrics$generation
-      do.call(rbind, lapply(split(seq_len(nInd(sim)), gen), function(ix) {
-        analyseSample(sim[ix, ])
-      }))
+      units <- split(seq_len(nInd(sim)), gen)
+      # founders are never sampled as families, so with families they do
+      # not mirror x
+      if (use.families) units <- units[names(units) != "generation_0"]
+      lapply(units, function(ix) analyseSample(sim[ix, ]))
     })
   } else {
-    analysisOutputDf <- lapply(defaultAnalysisDf, analyseSample)
+    # an individual stored in two generations is analysed once
+    analysisOutputDf <- lapply(defaultAnalysisDf, function(g) {
+      analyseSample(g[!duplicated(indNames(g)), ])
+    })
   }
   which_tests <- c(which_tests, "rrBLUP")
   if (isTRUE(run.e9)) which_tests <- c(which_tests, "E9")
@@ -574,17 +628,30 @@ gl.diagnostics.relatedness <- function(
   # When both run_sim and includedPed are TRUE, the simulated pedigree wins
   # (warned above).
   if (run_sim) {
-    pedigreeDfFinal <- mapply(mergePedigreeTruth,
-                              relatedDf = analysisOutputDf,
-                              ped = simPedigrees,
-                              SIMPLIFY = FALSE)
-    # generation of each pair (NA for pairs across generations)
-    pedigreeDfFinal <- mapply(function(df, sim) {
-      gen <- stats::setNames(sim@other$ind.metrics$generation, indNames(sim))
-      g1 <- gen[df$ind1]
-      df$generation <- ifelse(g1 == gen[df$ind2], g1, NA_character_)
-      df
-    }, pedigreeDfFinal, finalSimOutput, SIMPLIFY = FALSE)
+    if (analysisUnit == "generation") {
+      # truth added generation by generation (ids are unique within one)
+      pedigreeDfFinal <- mapply(function(units, ped) {
+        do.call(rbind, lapply(names(units), function(g) {
+          df <- mergePedigreeTruth(units[[g]], ped)
+          df$generation <- rep(g, nrow(df))
+          df
+        }))
+      }, analysisOutputDf, simPedigrees, SIMPLIFY = FALSE)
+    } else {
+      pedigreeDfFinal <- mapply(mergePedigreeTruth,
+                                relatedDf = analysisOutputDf,
+                                ped = simPedigrees,
+                                SIMPLIFY = FALSE)
+      # generation of each pair (NA for pairs across generations)
+      pedigreeDfFinal <- mapply(function(df, sim) {
+        keep <- !duplicated(indNames(sim))
+        gen <- stats::setNames(sim@other$ind.metrics$generation[keep],
+                               indNames(sim)[keep])
+        g1 <- gen[df$ind1]
+        df$generation <- ifelse(g1 == gen[df$ind2], g1, NA_character_)
+        df
+      }, pedigreeDfFinal, finalSimOutput, SIMPLIFY = FALSE)
+    }
     finalClassValues[["MergedDf"]] <- pedigreeDfFinal
   } else if (includedPed) {
     pedigreeDfFinal <- list(mergePedigreeTruth(analysisOutputDf[[1]],

@@ -115,6 +115,43 @@ inbreedingHighCallrate <- function(x, threshold = 0.99, min.loci = 100) {
   f
 }
 
+# Sizes of the full-sib families (2 or more individuals) of each population
+# of x, largest first, as a list in the order of levels(pop(x)); families
+# come from an ind.metrics column or from COLONY ("colony")
+resolveFamilies <- function(x, families, colony.path, verbose) {
+  if (identical(families, "colony")) {
+    if (is.null(colony.path)) {
+      stop(error("  families = 'colony' needs colony.path, the folder with",
+                 "the COLONY executable\n"))
+    }
+    col <- gl.run.colony(x, colony.path = colony.path, verbose = 0)
+    bc <- col$best.config
+    fam <- paste(bc$FatherID, bc$MotherID)[match(indNames(x),
+                                                  bc$OffspringID)]
+  } else {
+    if (!is.character(families) || length(families) != 1 ||
+        !families %in% colnames(x@other$ind.metrics)) {
+      stop(error("  families must be 'colony' or the name of a column of",
+                 "x@other$ind.metrics\n"))
+    }
+    fam <- as.character(x@other$ind.metrics[[families]])
+  }
+  fam[fam %in% ""] <- NA
+  pops <- levels(pop(x))
+  sizes <- lapply(pops, function(p) {
+    tb <- table(fam[as.character(pop(x)) == p])
+    sort(as.integer(tb[tb >= 2]), decreasing = TRUE)
+  })
+  names(sizes) <- pops
+  if (verbose >= 2) {
+    cat(report("  Full-sib family sizes of x:",
+               paste0(pops, " ", vapply(sizes, function(v)
+                 if (length(v)) paste(v, collapse = "/") else "none",
+                 character(1)), collapse = "; "), "\n"))
+  }
+  sizes
+}
+
 # An LDNe estimate is unreliable when its jackknife upper limit is infinite
 # or it is more than 10 times the sample size
 neUnreliable <- function(est, ci.high, n) {
@@ -215,17 +252,21 @@ ExtractParents <- function(inputClass, iteration=1){
   indDf <- bindIndMetrics(lapply(inputClass[[iteration]], function(g) {
     im <- g@other$ind.metrics
     rownames(im) <- indNames(g)
+    # ids in a column: rbind renames repeated row names
+    im$.id <- indNames(g)
     im
   }))
   
   parental.df <- indDf %>%
     {. <- .[,c(3,4)]; .} %>%
     {colnames(.) <- c("dad", "mom"); .} %>%
-    {.["id"] <- rownames(.); .} 
+    {.["id"] <- indDf$.id; .} 
   # realised inbreeding of founders stored by dartR.sim (store_founders)
   if (!is.null(indDf$F_founder)) {
     parental.df$F <- as.numeric(indDf$F_founder)
   }
+  # an individual stored in two generations appears once
+  parental.df <- parental.df[!duplicated(parental.df$id), , drop = FALSE]
   
   
   
