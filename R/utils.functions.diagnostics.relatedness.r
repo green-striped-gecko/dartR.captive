@@ -164,6 +164,7 @@ CleanupExtractParents <- function(parentalTable){
   ind1 <- NULL
   ind2 <- NULL
   mom <- NULL
+  child <- parent <- grandparent <- ggparent <- s1 <- s2 <- NULL
   
   ped <- as.data.table(parentalTable)
   
@@ -257,6 +258,35 @@ CleanupExtractParents <- function(parentalTable){
   }
   
   # -----------------------------
+  # 5. Relatives across generations
+  # -----------------------------
+  # without these classes grandparents and aunts or uncles of an individual
+  # would be labelled unrelated
+  pc <- unique(rbind(
+    ped[!is.na(dad), .(child = id, parent = dad)],
+    ped[!is.na(mom), .(child = id, parent = mom)]
+  ))
+  gp <- unique(merge(pc, pc[, .(parent = child, grandparent = parent)],
+                     by = "parent", allow.cartesian = TRUE)[
+                       , .(child, grandparent)])
+  grandparents <- gp[, .(id1 = grandparent, id2 = child,
+                         relationship = "grandparent_grandchild", r = 0.125)]
+  great_grandparents <- unique(
+    merge(gp, pc[, .(grandparent = child, ggparent = parent)],
+          by = "grandparent", allow.cartesian = TRUE)[
+            , .(id1 = ggparent, id2 = child,
+                relationship = "great_grandparent_grandchild", r = 0.0625)])
+  # an aunt or uncle is a sibling of a parent
+  uncles <- function(sibs, label, r) {
+    both <- rbind(sibs[, .(s1 = id1, s2 = id2)], sibs[, .(s1 = id2, s2 = id1)])
+    unique(merge(pc, both, by.x = "parent", by.y = "s1",
+                 allow.cartesian = TRUE)[
+                   , .(id1 = s2, id2 = child, relationship = label, r = r)])
+  }
+  avuncular <- uncles(full_sibs, "avuncular", 0.125)
+  half_avuncular <- uncles(half_sibs, "half_avuncular", 0.0625)
+
+  # -----------------------------
   # Combine All
   # -----------------------------
   all_rel <- rbindlist(list(
@@ -265,7 +295,11 @@ CleanupExtractParents <- function(parentalTable){
     half_sibs,
     full_first_cousins,
     half_first_cousins,
-    second_cousins
+    second_cousins,
+    grandparents,
+    great_grandparents,
+    avuncular,
+    half_avuncular
   ), fill=TRUE)
   
   return(all_rel[])
@@ -300,10 +334,12 @@ relatedLevelPlots <- function(relatedDf, which_tests, pedSim=F){
       {.$RelDegree <- factor(.$RelDegree, 
                              levels = relationshipClasses); .}
     
+    # other_relatives has no single expected kinship
     lines_df <- data.frame(
       RelDegree = relationshipClasses,
-      yintercept = c(0.25, 0.25, 0.125, 0.0625, 0.03125, 0.015625, 0)
+      yintercept = unname(relationshipKinship)
     )
+    lines_df <- lines_df[!is.na(lines_df$yintercept), ]
     
     lines_df$RelDegree <- factor(lines_df$RelDegree,
                                  levels = relationshipClasses)
@@ -438,12 +474,38 @@ pedigreeKinship <- function(ped) {
   K
 }
 
-# Relationship classes, from the closest to the most distant; a pair that
-# the classifier places in several classes keeps the closest one, and a pair
-# in none of them is "unrelated"
-relationshipClasses <- c("parent_offspring", "full_sibs", "half_sibs",
-                         "full_first_cousins", "half_first_cousins",
-                         "second_cousins", "unrelated")
+# Relationship classes, from the closest to the most distant, with their
+# kinship when the pedigree has no inbreeding; a pair that the classifier
+# places in several classes keeps the closest one, and a pair in none of
+# them is "other_relatives" when its pedigree kinship is above 0 and
+# "unrelated" otherwise
+relationshipKinship <- c(parent_offspring = 0.25, full_sibs = 0.25,
+                         half_sibs = 0.125, grandparent_grandchild = 0.125,
+                         avuncular = 0.125, full_first_cousins = 0.0625,
+                         great_grandparent_grandchild = 0.0625,
+                         half_avuncular = 0.0625,
+                         half_first_cousins = 0.03125,
+                         second_cousins = 0.015625, other_relatives = NA,
+                         unrelated = 0)
+relationshipClasses <- names(relationshipKinship)
+
+# Value of a variable in a dartR.sim variable file, as written there
+simVariableValue <- function(file, variable) {
+  v <- utils::read.csv(file, stringsAsFactors = FALSE)
+  trimws(v$value[v$variable == variable])
+}
+
+# Copy of a dartR.sim variable file with some values changed, written to a
+# temporary file whose path is returned
+simVariableFile <- function(file, changes) {
+  v <- utils::read.csv(file, stringsAsFactors = FALSE)
+  for (k in names(changes)) {
+    v$value[v$variable == k] <- changes[[k]]
+  }
+  out <- tempfile(fileext = ".csv")
+  utils::write.csv(v, out, row.names = FALSE)
+  out
+}
 
 # Adds the pedigree truth to the relatedness estimates: one row per pair
 # with ind1, ind2, RelDegree (closest relationship class), rel (exact
@@ -476,12 +538,15 @@ mergePedigreeTruth <- function(relatedDf, ped) {
                      c("ID1", "ID2", "relationship")]
 
   out <- merge(estimates, classes, by = c("ID1", "ID2"), all.x = TRUE)
-  out$relationship[is.na(out$relationship)] <- "unrelated"
 
   K <- pedigreeKinship(ped)
   in.ped <- out$ID1 %in% rownames(K) & out$ID2 %in% rownames(K)
   out$rel <- NA_real_
   out$rel[in.ped] <- K[cbind(out$ID1[in.ped], out$ID2[in.ped])]
+
+  none <- is.na(out$relationship)
+  out$relationship[none] <- ifelse(!is.na(out$rel[none]) & out$rel[none] > 0,
+                                   "other_relatives", "unrelated")
 
   est.cols <- setdiff(colnames(out), c("ID1", "ID2", "relationship", "rel"))
   out <- data.frame(ind1 = out$ID1, ind2 = out$ID2,

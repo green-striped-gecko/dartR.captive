@@ -2,6 +2,17 @@
 
 ## dartR.captive 1.2.6
 
+* `gl.diagnostics.relatedness()` simulations now mirror the input when no
+  variable files are given: the loci of `x` with their allele frequencies
+  per population (same number of loci, no extra neutral loci), the
+  populations of `x` with its sample sizes, and parents that mate with
+  several partners so that half sibs occur. The previous defaults simulated
+  100 loci at frequency 0.5 in one population of 50, whatever `x` was.
+  New relationship classes grandparent_grandchild, avuncular,
+  great_grandparent_grandchild, half_avuncular and other_relatives: these
+  pairs used to be labelled unrelated, which now means a pedigree kinship
+  of 0.
+
 * `gl.diagnostics.relatedness()` now computes the `which_tests` estimators
   with `gl.relatedness()` instead of `related::coancestry()`, so it needs
   the `dartR.coancestry` engine rather than the `related` package.
