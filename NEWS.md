@@ -2,6 +2,17 @@
 
 ## dartR.captive 1.2.6
 
+* `gl.diagnostics.relatedness()` runs every `gl.relatedness()` estimator
+  by default except the slow `trioml`, and reports the bias of each
+  estimator (mean of estimated minus pedigree kinship) by relationship
+  class with the new `biasOut`. The simulated genotypes take the missing
+  data pattern of `x` (new `simMissing`, default TRUE), and `@SimOutput`
+  keeps the parents and generation of each individual. With the default
+  variable files the founders carry the inbreeding of `x` and mating is
+  random afterwards; with a dartR.sim version that stores the founders
+  (`store_founders`), they are kept as generation 0 and their inbreeding
+  enters the pedigree kinship.
+
 * `gl.diagnostics.relatedness()` simulations now mirror the input when no
   variable files are given: the loci of `x` with their allele frequencies
   per population (same number of loci, no extra neutral loci), the

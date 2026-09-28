@@ -11,6 +11,7 @@ slotDescriptions[["plotList"]] <- "List of plots"
 corrSlotDescriptions <- NULL
 corrSlotDescriptions[["rmsePlot"]] <- "Table of RMSE between pedigree and estimated kinship"
 corrSlotDescriptions[["varPlot"]] <- "Table of the variance of estimated kinship"
+corrSlotDescriptions[["biasPlot"]] <- "Table of the bias (estimated minus pedigree kinship)"
 
 # Base output class (stores original genlight input)
 setClass("OutputS4",
@@ -47,7 +48,7 @@ setMethod("do_sim", "DartSim", function(object) {
     interactive_vars = FALSE
   )
   
-  res_sim <- gl.sim.WF.run(
+  run.args <- list(
     file_var = object@sim_input,
     ref_table = ref_table,
     x = object@input_data,
@@ -57,6 +58,12 @@ setMethod("do_sim", "DartSim", function(object) {
     sample_percent = 100,
     gen_number_phase2 = object@gen_number
   )
+  # founders (with their realised inbreeding) are kept as generation_0 by
+  # the dartR.sim versions that can store them
+  if ("store_founders" %in% names(formals(gl.sim.WF.run))) {
+    run.args$store_founders <- TRUE
+  }
+  res_sim <- do.call("gl.sim.WF.run", run.args)
   
   return(res_sim)
 })
@@ -95,7 +102,8 @@ setMethod("show", signature =  "finalOutputClass",
 setClass("corOutList", 
          slots = c(
            "rmsePlot" = "ANY", 
-           "varPlot" = "ANY"
+           "varPlot" = "ANY",
+           "biasPlot" = "ANY"
          ))
 
 setMethod("show", signature =  "corOutList", 

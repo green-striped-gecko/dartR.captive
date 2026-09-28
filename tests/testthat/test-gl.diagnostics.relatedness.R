@@ -184,3 +184,68 @@ test_that("a missing variable file takes real_freq from the one given", {
   # shipped sim file: real_freq = FALSE, one population of 50, 3 generations
   expect_equal(nInd(res@SimOutput[[1]]), 150)
 })
+
+test_that("founder inbreeding enters the pedigree kinship", {
+  ped <- data.frame(id = c("A", "B", "C", "D"), dad = c(NA, NA, "A", "A"),
+                    mom = c(NA, NA, "B", "B"), F = c(0.2, 0.1, NA, NA))
+  K <- pedigreeKinship(ped)
+  expect_equal(K["A", "A"], 0.6)
+  expect_equal(K["C", "D"], (2 + 0.2 + 0.1) / 8)
+  expect_equal(K["A", "C"], (0.6 + 0) / 2)
+  expect_equal(pedigreeKinship(ped[, 1:3])["C", "D"], 0.25)
+})
+
+test_that("bias is the mean of estimate minus rel by class", {
+  df <- data.frame(RelDegree = "full_sibs", rel = c(0.25, 0.25),
+                   wang = c(0.2, 0.35))
+  out <- calcBias(list(df), "wang")[[1]]
+  expect_equal(out["wang", "full_sibs"], 0.025)
+  expect_true(is.na(out["wang", "half_sibs"]))
+})
+
+test_that("copyMissing copies the missing pattern of a same-population donor", {
+  x <- gl.filter.allna(testset.gl[1:10, 1:50], verbose = 0)
+  pop(x) <- rep(c("A", "B"), each = 5)
+  full <- gl.impute(x, method = "frequency", verbose = 0)
+  sim <- rbind(full, full)
+  indNames(sim) <- paste0("s", 1:20)
+  pop(sim) <- rep(c("A", "B"), each = 5, times = 2)
+  set.seed(1)
+  out <- copyMissing(sim, x)
+  mx <- is.na(as.matrix(x)); mo <- is.na(as.matrix(out))
+  pats.A <- apply(mx[1:5, ], 1, paste, collapse = "")
+  expect_true(all(apply(mo[pop(out) == "A", ], 1, paste, collapse = "") %in%
+                  pats.A))
+  expect_equal(as.matrix(out)[!mo], as.matrix(sim)[!mo])
+})
+
+test_that("simulation keeps parents, copies missing data and reports bias", {
+  skip_if_not_installed("dartR.coancestry")
+  pdf(NULL)
+  on.exit(grDevices::dev.off())
+  x <- gl.filter.allna(testset.gl[1:30, 1:200], verbose = 0)
+  x <- gl.filter.monomorphs(x, verbose = 0)
+  set.seed(5)
+  capture.output(
+    res <- gl.diagnostics.relatedness(x, which_tests = c("wang", "lynchrd"),
+                                      run_sim = TRUE, biasOut = TRUE,
+                                      verbose = 0)
+  )
+  sim <- res@SimOutput[[1]]
+  im <- sim@other$ind.metrics
+  expect_equal(rownames(im), indNames(sim))
+  expect_true(all(c("generation") %in% colnames(im)))
+  expect_gt(mean(is.na(as.matrix(sim))), 0)
+  expect_false(is.null(res@corOutList@biasPlot))
+})
+
+test_that("ind.metrics from generations bind by name with plain row names", {
+  a <- data.frame(sex = "m", phenotype = "c", pat = NA, mat = NA,
+                  F_founder = 0.1, row.names = "f1")
+  b <- data.frame(sex = "f", phenotype = "c", pat = "f1", mat = "f2",
+                  row.names = "o1")
+  out <- bindIndMetrics(list(generation_0 = a, generation_1 = b))
+  expect_equal(rownames(out), c("f1", "o1"))
+  expect_equal(colnames(out)[3:4], c("pat", "mat"))
+  expect_true(is.na(out["o1", "F_founder"]))
+})

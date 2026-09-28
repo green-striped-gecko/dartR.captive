@@ -21,7 +21,9 @@
 #'   see Details].
 #' @param which_tests Character vector of relatedness estimators from
 #'   \code{gl.relatedness}: any of "wang", "lynchli", "lynchrd", "ritland",
-#'   "quellergt", "loiselle", "dyadml" and "trioml" [default = "wang"].
+#'   "quellergt", "loiselle", "dyadml" and "trioml". "trioml" is left out of
+#'   the default because it is slow (over 10 minutes for 300 individuals,
+#'   against 10 seconds for "dyadml") [default = all but "trioml"].
 #' @param run_sim Logical. If TRUE, run simulations [default = FALSE].
 #' @param IncludePlots Logical. If TRUE, generate and return plots
 #'   [default = FALSE].
@@ -47,6 +49,13 @@
 #' @param e9parallel Logical. Run EMIBD9 in parallel [default = FALSE].
 #' @param nCores Integer. Number of cores if running EMIBD9 in parallel
 #'   [default = 1].
+#' @param biasOut Logical. If TRUE, return the bias of each estimator (mean
+#'   of estimated minus pedigree kinship), by relationship class
+#'   [default = FALSE].
+#' @param simMissing Logical. If TRUE, each simulated individual takes the
+#'   missing loci of a random individual of x from the same population, so
+#'   the estimators face the missing data of x. Needs the simulated data to
+#'   have the loci of x, as with the default variable files [default = TRUE].
 #' @param includedPed Logical. If TRUE, the input has a pedigree attached in
 #'   \code{x@other$ind.metrics} (columns id, dad, mom; missing parents 0 or
 #'   NA) [default = FALSE]
@@ -68,7 +77,12 @@
 #' populations is treated as one population) with its sample sizes rounded
 #' up to even numbers as population sizes (real_pop_size = TRUE), and
 #' parents sampled with replacement (replace_parents = TRUE), so that an
-#' individual can mate with several partners and half sibs occur. All other
+#' individual can mate with several partners and half sibs occur. Founders
+#' carry the inbreeding of their population in x (real_inbreeding = TRUE,
+#' F = 1 - Ho/He) and mating is random afterwards (sib_mating_phase2 = 0),
+#' so the inbreeding is not passed on to their offspring; with a dartR.sim
+#' version that can store the founders, they are kept as generation_0 and
+#' their realised F enters the pedigree kinship. All other
 #' variables take the values of the files shipped with dartR.sim, except that
 #' x with 100 loci or fewer gets fewer, longer chromosome chunks (dartR.sim
 #' needs more loci than chunks) on the same 1000 cM map. The number
@@ -77,7 +91,10 @@
 #' All estimates are on the kinship scale. When a pedigree is available (from
 #' the simulation or attached with includedPed), every pair of individuals
 #' gets its exact pedigree kinship (column rel), computed recursively from the
-#' pedigree with founders unrelated and not inbred, and its closest
+#' pedigree with founders unrelated to each other and not inbred, unless the
+#' simulation reports their inbreeding (ind.metrics column F_founder, when
+#' dartR.sim stores the founders), in which case a founder's kinship with
+#' itself is (1 + F) / 2, and its closest
 #' relationship class (column RelDegree: parent_offspring, full_sibs,
 #' half_sibs, grandparent_grandchild, avuncular (aunt or uncle and niece or
 #' nephew), full_first_cousins, great_grandparent_grandchild, half_avuncular,
@@ -91,10 +108,14 @@
 #'   \itemize{
 #'     \item @InputDf: The genlight input (after filtering when
 #'       \code{cleanup = TRUE})
-#'     \item @SimOutput: Genlight object of simulation outputs
+#'     \item @SimOutput: Genlight object of simulation outputs, one per
+#'       iteration, with the parents of each individual and its generation
+#'       in \code{@other$ind.metrics} (and, with \code{simMissing}, the
+#'       missing data of x)
 #'     \item @MergedDf: Kinship estimates per iteration, one row per pair;
 #'       with a pedigree, also the columns RelDegree and rel
-#'     \item @corOutList: Results of correlation analysis
+#'     \item @corOutList: Tables of RMSE, variance and bias by relationship
+#'       class (\code{rmseOut}, \code{varOut}, \code{biasOut})
 #'     \item @corVals: Output of correlation results between methods
 #'     \item @plotList: List of plots
 #'   }
@@ -127,7 +148,8 @@ gl.diagnostics.relatedness <- function(
     cleanup = FALSE,
     ref_variables = NULL,
     sim_variables = NULL,
-    which_tests = "wang",
+    which_tests = c("wang", "lynchli", "lynchrd", "ritland", "quellergt",
+                    "loiselle", "dyadml"),
     run_sim = FALSE,
     IncludePlots = FALSE,
     plotOut = FALSE,
@@ -142,7 +164,9 @@ gl.diagnostics.relatedness <- function(
     verbose = NULL,
     e9parallel = FALSE,
     nCores = 1,
-    includedPed = FALSE
+    includedPed = FALSE,
+    biasOut = FALSE,
+    simMissing = TRUE
 ) {
 
   # SET VERBOSITY ----
@@ -229,11 +253,11 @@ gl.diagnostics.relatedness <- function(
       " ignored and the pedigree from the simulation used instead. To use the",
       " attached pedigree, run separately with run_sim = FALSE\n"))
   }
-  if (!(run_sim || includedPed) && (varOut || rmseOut)) {
+  if (!(run_sim || includedPed) && (varOut || rmseOut || biasOut)) {
     stop(error(
-      "Cannot calculate variance or RMSE without a pedigree, either from",
-      " simulation or attached to the input. Set varOut and rmseOut to FALSE",
-      " or run_sim to TRUE\n"))
+      "Cannot calculate variance, RMSE or bias without a pedigree, either",
+      " from simulation or attached to the input. Set varOut, rmseOut and",
+      " biasOut to FALSE or run_sim to TRUE\n"))
   }
   if (nLoc(x) == 0 && verbose >= 1) {
     cat(warn(
@@ -308,7 +332,9 @@ gl.diagnostics.relatedness <- function(
     # A variable file that is not given is built from the one shipped with
     # dartR.sim so that the simulation mirrors x: its loci and allele
     # frequencies (no extra neutral loci), its populations and sample sizes,
-    # and parents that mate with several partners, so that half sibs occur.
+    # founders as inbred as x (real_inbreeding) followed by random mating
+    # (no sib mating), and parents that mate with several partners, so that
+    # half sibs occur.
     # real_freq must agree between the two files, so a missing file takes it
     # from the one given.
     if (is.null(ref_variables)) {
@@ -334,7 +360,8 @@ gl.diagnostics.relatedness <- function(
         system.file("extdata", "sim_variables.csv", package = "dartR.sim"),
         list(real_freq = simVariableValue(ref_variables, "real_freq"),
              real_pops = "TRUE", real_pop_size = "TRUE",
-             replace_parents = "TRUE"))
+             replace_parents = "TRUE", real_inbreeding = "TRUE",
+             sib_mating_phase2 = "0"))
     }
     sim_new <- new("DartSim",
                    input_data = x,
@@ -352,7 +379,29 @@ gl.diagnostics.relatedness <- function(
     }
 
     # Combine simulation outputs
-    finalSimOutput <- lapply(dartSim, function(sim) do.call(rbind, sim))
+    # rbind drops ind.metrics, which hold the parents of each individual
+    finalSimOutput <- lapply(dartSim, function(sim) {
+      out <- do.call(rbind, sim)
+      out@other$ind.metrics <- bindIndMetrics(lapply(names(sim), function(g) {
+        im <- sim[[g]]@other$ind.metrics
+        im$generation <- rep(g, nrow(im))
+        im
+      }))
+      rownames(out@other$ind.metrics) <- indNames(out)
+      out
+    })
+
+    # the simulated genotypes have no missing data; copy the pattern of x so
+    # that the estimators face the same missingness
+    if (simMissing) {
+      if (all(vapply(finalSimOutput, nLoc, numeric(1)) == nLoc(x))) {
+        finalSimOutput <- lapply(finalSimOutput, copyMissing, x = x)
+      } else if (verbose >= 1) {
+        cat(warn(
+          "  The simulated data do not have the loci of x, so its missing",
+          "data pattern is not copied (simMissing ignored)\n"))
+      }
+    }
     finalClassValues[["SimOutput"]] <- finalSimOutput
     defaultAnalysisDf <- finalSimOutput
 
@@ -428,7 +477,12 @@ gl.diagnostics.relatedness <- function(
   }
 
   # 4. Construct correlation values
-  if (rmseOut || varOut) {
+  if (rmseOut || varOut || biasOut) {
+    if (biasOut) {
+      corOutList[["biasDf"]] <- calcBias(pedigreeDfFinal, which_tests) %>%
+        tableOut()
+    }
+
     if (rmseOut) {
       corOutList[["rmseDf"]] <- calcRMSE(pedigreeDfFinal, which_tests) %>%
         tableOut()
@@ -448,7 +502,8 @@ gl.diagnostics.relatedness <- function(
 
     finalClassValues[["corOutList"]] <- new("corOutList",
                                             rmsePlot = corOutList[["rmseDf"]],
-                                            varPlot = corOutList[["varDf"]])
+                                            varPlot = corOutList[["varDf"]],
+                                            biasPlot = corOutList[["biasDf"]])
     finalClassValues[["corVals"]] <- new("corVals",
                                          corVals = corVals)
 
