@@ -43,6 +43,7 @@ The returned matrix is tagged "kinship"; its other attributes are kept.
 Other captive management: 
 \code{\link{gl.diagnostics.relatedness}()},
 \code{\link{gl.kin}()},
+\code{\link{gl.parentage.power}()},
 \code{\link{gl.plot.network}()},
 \code{\link{gl.report.gd.projection}()},
 \code{\link{gl.report.ind.add}()},

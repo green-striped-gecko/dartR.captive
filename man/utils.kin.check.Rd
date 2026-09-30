@@ -74,6 +74,7 @@ gl.kin) equals indNames(x), or when its row means over x are all within
 Other captive management: 
 \code{\link{gl.diagnostics.relatedness}()},
 \code{\link{gl.kin}()},
+\code{\link{gl.parentage.power}()},
 \code{\link{gl.plot.network}()},
 \code{\link{gl.report.gd.projection}()},
 \code{\link{gl.report.ind.add}()},
