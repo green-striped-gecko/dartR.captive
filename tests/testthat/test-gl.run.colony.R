@@ -38,6 +38,24 @@ test_that("change 4/5: output lands in outpath; returns files and BestConfig", {
   expect_equal(normalizePath(getwd()), normalizePath(wd))
 })
 
+test_that("relative colony.path and outpath resolve from the caller's wd", {
+  skip_without_colony()
+  wd <- withr::local_tempdir()
+  withr::local_dir(wd)
+  # COLONY runs inside outpath, so both paths must survive the setwd()
+  dir.create("bin")
+  exe <- list.files(colony_dir(), pattern = "^colony2s|^Colony2p")
+  file.copy(file.path(colony_dir(), exe), "bin")
+  dir.create("rel_out")
+  res <- gl.run.colony(run_fixture(), colony.path = "bin",
+                       outpath = "rel_out", seed = 1, length.run = 1,
+                       verbose = 0)
+  expect_equal(nrow(res$best.config), 10)
+  expect_true(file.exists(file.path(wd, "rel_out", "my_project.BestConfig")))
+  expect_true(all(file.exists(res$files)))
+  expect_equal(normalizePath(getwd()), normalizePath(wd))
+})
+
 test_that("change 1: default outpath = NULL runs", {
   skip_without_colony()
   withr::local_dir(withr::local_tempdir())
@@ -116,7 +134,8 @@ test_that("A1: long and spaced names are restored in best.config", {
                     startsWith(res$best.config$FatherID, "*")))
   map <- read.csv(file.path(out, "my_project.IDmap.csv"))
   expect_equal(map$name, indNames(x))
-  expect_true(file.path(out, "my_project.IDmap.csv") %in% res$files)
+  expect_true(normalizePath(file.path(out, "my_project.IDmap.csv")) %in%
+                normalizePath(res$files))
 })
 
 test_that("A1: short names are used as-is and no map is written", {
