@@ -135,7 +135,9 @@ gl.run.colony <- function(x,
       "\n  Set colony.path to the folder that contains", exe.name, "\n"
     ))
   }
-  
+  # absolute, because COLONY runs after setwd(outpath) below
+  exe <- normalizePath(exe, winslash = "/")
+
   # DO THE JOB
   # COLONY truncates IDs to 20 characters and splits them at whitespace, so
   # such names are replaced by short IDs for the run and restored afterwards
@@ -196,8 +198,10 @@ gl.run.colony <- function(x,
     verbose =  verbose
   )
   
+  # absolute, so a relative outpath still resolves after the setwd() below
+  outfilespec <- normalizePath(outfilespec, winslash = "/", mustWork = TRUE)
   outpath <- dirname(outfilespec)
-  
+
   # COLONY writes its output files into its working directory
   old.wd <- setwd(outpath)
   on.exit(setwd(old.wd), add = TRUE)
