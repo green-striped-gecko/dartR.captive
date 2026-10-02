@@ -175,6 +175,7 @@ res_rel <- gl.run.EMIBD9(t1)
 Other captive management: 
 \code{\link{gl.diagnostics.relatedness}()},
 \code{\link{gl.kin}()},
+\code{\link{gl.parentage.power}()},
 \code{\link{gl.plot.network}()},
 \code{\link{gl.report.gd.projection}()},
 \code{\link{gl.report.ind.add}()},

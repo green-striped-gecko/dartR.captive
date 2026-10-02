@@ -173,6 +173,7 @@ res$msi["CB_AB_01", "CB_CD_02"]    # yet MSI 5: both well represented
 Other captive management: 
 \code{\link{gl.diagnostics.relatedness}()},
 \code{\link{gl.kin}()},
+\code{\link{gl.parentage.power}()},
 \code{\link{gl.plot.network}()},
 \code{\link{gl.report.gd.projection}()},
 \code{\link{gl.report.ind.add}()},
