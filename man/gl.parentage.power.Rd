@@ -9,7 +9,6 @@ gl.parentage.power(
   n.offspring = 200,
   engine = "exclusion",
   pairs = TRUE,
-  n.false.pairs = 200,
   error.rate = 0,
   missing.rate = 0,
   max.mismatch = 0,
@@ -34,13 +33,12 @@ opposite-homozygote / trio test used to build the power curve, or "colony"
 to assign the simulated cohort with COLONY via \code{gl.run.colony} for
 verification against the exclusion result [default "exclusion"].}
 
-\item{pairs}{If TRUE, assess parent-pair (trio) power -- whether the
-offspring is consistent with one allele from each of the two candidates; if
-FALSE, assess single-parent power by opposite-homozygote exclusion
-[default TRUE].}
-
-\item{n.false.pairs}{In pair mode, the number of non-true candidate pairs
-sampled per offspring to estimate the false-pair rate [default 200].}
+\item{pairs}{If TRUE, assess parent-pair (trio) power: both parents of each
+offspring are among the candidates, and the offspring must be consistent
+with one allele from each of the two. If FALSE, assess single-parent power:
+only one parent of each offspring was sampled (the other parent is removed
+from the candidates), and candidates are excluded by opposite-homozygote
+mismatches [default TRUE].}
 
 \item{error.rate}{Per-genotype rate at which a call is replaced by a random
 genotype, mimicking miscalls [default 0].}
@@ -56,8 +54,9 @@ wrongly excluded [default 0].}
 \item{n.loci.steps}{Vector of locus counts at which to evaluate power. NULL
 builds an even series from a floor up to all polymorphic loci [default NULL].}
 
-\item{n.rep}{Number of independent simulation replicates to average over
-[default 1].}
+\item{n.rep}{Number of independent simulation replicates to average over.
+With engine = "colony" each replicate simulates a new cohort and is a
+separate COLONY run [default 1].}
 
 \item{plot.display}{If TRUE, the power curve is displayed [default TRUE].}
 
@@ -110,25 +109,48 @@ With \code{engine = "exclusion"} (the default) assignment uses a fast
 Mendelian test with no external program: in pair mode an offspring must be
 consistent with one allele from each of the two candidates (the trio test);
 in single-parent mode a candidate is excluded only by an opposite-homozygote
-mismatch. The exclusion engine is run across a rarefaction series of locus
-counts to give the power curve. With \code{engine = "colony"} the simulated
-cohort is instead assigned by COLONY through \code{gl.run.colony}, at the
-full panel, so its accuracy can be checked against the exclusion prediction;
-this is much slower and needs the COLONY executable.
+mismatch. In single-parent mode one of the two true parents of each
+offspring, chosen at random, is the sampled parent, and the other is removed
+from the candidates, as when the second parent was never genotyped. If both
+stayed in, they would tie at zero mismatches whenever there is no
+genotyping error, and no offspring could be assigned to one of them alone.
+The exclusion engine is run across a rarefaction series of locus counts to
+give the power curve.
 
 Three quantities are reported at each locus count:
 \itemize{
-  \item \strong{true.retained} -- the proportion of offspring whose true
+  \item \strong{true.retained} -- the proportion of offspring whose sampled
   parent (single mode) or true pair (pair mode) is still within the mismatch
   tolerance (sensitivity);
   \item \strong{correct.unique} -- the proportion of offspring assigned
-  uniquely and correctly to the true parent (single mode) or true pair
-  (pair mode);
+  uniquely and correctly. In pair mode, the true pair is within the
+  tolerance and no other pair of candidates is; every pair is checked, not
+  a sample. In single mode, the sampled parent is within the tolerance and
+  has fewer mismatches than every other candidate. It never exceeds
+  true.retained;
   \item \strong{false.rate} -- the per-comparison false-positive rate: the
-  proportion of non-parent candidates (single mode) or sampled non-true
-  pairs (pair mode) wrongly within the mismatch tolerance. Being a rate, it
-  does not depend on the size of the candidate pool.
+  proportion of non-parent candidates (single mode) or of all candidate
+  pairs other than the true pair (pair mode) wrongly within the mismatch
+  tolerance. Being a rate, it does not depend on the size of the candidate
+  pool.
 }
+
+Checking every pair stays fast because a pair can only be compatible when
+each of its members is: an opposite-homozygote mismatch with one parent is
+a trio mismatch whatever the other parent's genotype. Only pairs among the
+candidates that pass the single-parent test are evaluated.
+
+With \code{engine = "colony"} the simulated cohort is instead assigned by
+COLONY through \code{gl.run.colony}, at the full panel, so its accuracy can
+be checked against the exclusion prediction; this is much slower and needs
+the COLONY executable. Each replicate is a separate COLONY run in its own
+folder, \code{plot.dir/colony_run/rep1}, \code{rep2} and so on. COLONY
+assigns parents rather than testing compatibility, and \code{pairs} is not
+used, so the three columns mean: true.retained, at least one true parent
+is among the assigned candidates; correct.unique, the assigned candidates
+are exactly the two true parents; false.rate, the proportion of offspring
+assigned at least one non-parent (an assignment error rate, not a
+per-comparison rate).
 }
 \examples{
 # A single breeding population from the example set.

@@ -2,6 +2,14 @@
 
 ## dartR.captive 1.2.6
 
+* New `gl.parentage.power()` estimates, by simulation, how reliably a SNP
+  panel assigns offspring to candidate parents across a range of locus
+  counts, by Mendelian exclusion or with COLONY. Pair mode checks every
+  candidate pair, so a correct unique assignment means that no other pair
+  is compatible. Single-parent mode (`pairs = FALSE`) models offspring whose
+  other parent was not sampled. With `engine = "colony"`, `n.rep` runs
+  COLONY once per replicate.
+
 * `gl.diagnostics.relatedness()` can recreate samples made of families,
   a source of bias when allele frequencies come from a few families: new
   `families` (an ind.metrics column of full-sib family identifiers, or
