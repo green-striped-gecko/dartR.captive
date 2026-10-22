@@ -370,7 +370,11 @@ gl.grm.network <- function(G,
     link.color <- link.color(255)
   }
   
-  names(colors_pops) <- as.character(levels(pop(x)))
+  # keep the names given when they cover every population, otherwise
+  # colours follow levels(pop(x))
+  if (!all(levels(pop(x)) %in% names(colors_pops))) {
+    names(colors_pops) <- as.character(levels(pop(x)))
+  }
   new_levels <- unique(plotcord$pop[order(as.character(plotcord$pop))])
   # Rebuild the factor
   plotcord$pop <- factor(plotcord$pop, levels = new_levels)

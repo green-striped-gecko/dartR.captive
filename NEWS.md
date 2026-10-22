@@ -2,6 +2,12 @@
 
 ## dartR.captive 1.2.6
 
+* `gl.grm()` and `gl.grm.network()`: BUG FIX: colours given to
+  `palette_discrete` with population names now go to the populations they
+  name. Before, the names were replaced by the population levels, so the
+  colours were assigned by position. Unnamed colours and the default
+  palette are unchanged.
+
 * New `gl.parentage.power()` estimates, by simulation, how reliably a SNP
   panel assigns offspring to candidate parents across a range of locus
   counts, by Mendelian exclusion or with COLONY. Pair mode checks every

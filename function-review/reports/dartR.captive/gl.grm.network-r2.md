@@ -178,6 +178,19 @@ Proposed change: replace with ASCII `-`, then `devtools::document()`.
 | 6 | approved | Luis Mijangos | |
 | 7 | approved | Luis Mijangos | |
 
+## Follow-up (2026-10-22): user colour names overwritten
+
+Found in the dartRverse population-colour audit after dartR.base PR #455 (`gl.report.heterozygosity`).
+
+**FU1 [LOW, confidence: high] — named `palette_discrete` colours go to populations by position (spec)**
+`R/gl.grm.network.r` — `names(colors_pops) <- as.character(levels(pop(x)))` replaced the names given with the population levels, so named colours were assigned by position. Same object and colours: nodes SEVERN_BELOW green, TENTERFIELD red, SEVERN_ABOVE blue.
+Change: rename only when the names given do not cover every population; unnamed colours still follow `levels(pop(x))`.
+**Consequence: named colours now land on the populations they name; unnamed and default colours unchanged.**
+
+Approved by Luis (2026-10-22, "go ahead" on the audit).
+
+Evidence: new test "gl.grm.network node colours keep user colour names" fails on `origin/dev` (3/3 colours wrong) and passes after. Tests: `gl.grm.network` 35/35.
+
 ## Outcome
 
 All seven approved changes applied to `R/gl.grm.network.r` on 2026-09-23;

@@ -191,3 +191,31 @@ test_that("standardise = TRUE recovers pedigree kinship on filtered data", {
   expect_equal(mean(v), 0.25, tolerance = 0.03)
   expect_true(all(v > 0.1875))
 })
+
+test_that("gl.grm.network node colours keep user colour names", {
+  # before: names(colors_pops) <- levels(pop(x)) overwrote the names given,
+  # so named colours went to populations by position
+  pdf(NULL); on.exit(dev.off(), add = TRUE)
+  x <- platypus.gl[1:6, 1:50]
+  pop(x) <- factor(as.character(pop(x)),
+                   levels = c("SEVERN_BELOW", "TENTERFIELD", "SEVERN_ABOVE"))
+  expect_setequal(as.character(pop(x)), levels(pop(x)))
+  nm <- indNames(x)
+  G <- diag(1, nInd(x))
+  dimnames(G) <- list(nm, nm)
+  fills <- function(cols) {
+    p <- gl.grm.network(G, x, palette_discrete = cols, verbose = 0)$plot
+    b <- ggplot2::ggplot_build(p)
+    k <- which(vapply(b$data, function(d) "fill" %in% names(d), logical(1)))
+    k <- k[length(k)]
+    f <- tapply(b$data[[k]]$fill, as.character(b$plot$layers[[k]]$data$pop),
+                unique)
+    setNames(as.character(f), names(f))
+  }
+  named <- c(TENTERFIELD = "green", SEVERN_ABOVE = "red",
+             SEVERN_BELOW = "blue")
+  expect_equal(fills(named)[names(named)], named)
+  # unnamed colours follow levels(pop(x))
+  expect_equal(fills(c("red", "blue", "green"))[levels(pop(x))],
+               setNames(c("red", "blue", "green"), levels(pop(x))))
+})

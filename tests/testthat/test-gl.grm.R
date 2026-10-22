@@ -75,3 +75,25 @@ test_that("single-copy loci are kept, so the matrix is platform independent", {
                                                min.MAF = 0.1)[, ],
                ignore_attr = TRUE)
 })
+
+test_that("gl.grm legend keeps user colour names", {
+  # before: names(colors_pops) <- levels(x$pop) overwrote the names given,
+  # so named colours went to populations by position
+  pdf(NULL); on.exit(dev.off(), add = TRUE)
+  x <- platypus.gl[, 1:200]
+  pop(x) <- factor(as.character(pop(x)),
+                   levels = c("SEVERN_BELOW", "TENTERFIELD", "SEVERN_ABOVE"))
+  lgd <- NULL
+  local_mocked_bindings(legend = function(..., legend, fill) {
+    lgd <<- setNames(as.character(fill), as.character(legend))
+  })
+  named <- c(TENTERFIELD = "green", SEVERN_ABOVE = "red",
+             SEVERN_BELOW = "blue")
+  invisible(gl.grm(x, palette_discrete = named, verbose = 0))
+  expect_equal(lgd[names(named)], named)
+  # unnamed colours follow levels(pop(x))
+  invisible(gl.grm(x, palette_discrete = c("red", "blue", "green"),
+                   verbose = 0))
+  expect_equal(lgd[levels(pop(x))],
+               setNames(c("red", "blue", "green"), levels(pop(x))))
+})
