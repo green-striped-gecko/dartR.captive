@@ -169,6 +169,19 @@ FBM-backed objects.
 | 7 | approved | Bernd Gruber | |
 | 8 | approved | Bernd Gruber | |
 
+## Follow-up (2026-10-22): user colour names overwritten
+
+Found in the dartRverse population-colour audit after dartR.base PR #455 (`gl.report.heterozygosity`).
+
+**FU1 [LOW, confidence: high] — named `palette_discrete` colours go to populations by position (spec)**
+`R/gl.grm.r` — `names(colors_pops) <- as.character(levels(x$pop))` replaced the names given with the population levels, so named colours were assigned by position. platypus.gl with levels SEVERN_BELOW, TENTERFIELD, SEVERN_ABOVE and `c(TENTERFIELD = "green", SEVERN_ABOVE = "red", SEVERN_BELOW = "blue")`: legend SEVERN_BELOW green, TENTERFIELD red, SEVERN_ABOVE blue.
+Change: rename only when the names given do not cover every population; unnamed colours still follow `levels(pop(x))`.
+**Consequence: named colours now land on the populations they name; unnamed and default colours unchanged.**
+
+Approved by Luis (2026-10-22, "go ahead" on the audit).
+
+Evidence: new test "gl.grm legend keeps user colour names" fails on `origin/dev` (3/3 colours wrong) and passes after. Tests: `gl.grm` 17/17, `gl.assign.grm` 12/12.
+
 ## Outcome
 
 All eight approved changes applied to `R/gl.grm.r` on 2026-08-26.

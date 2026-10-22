@@ -185,7 +185,11 @@ gl.grm <- function(x,
       colors_pops <- gl.select.colors(x, verbose = 0)
     }
 
-    names(colors_pops) <- as.character(levels(x$pop))
+    # keep the names given when they cover every population, otherwise
+    # colours follow levels(pop(x))
+    if (!all(levels(x$pop) %in% names(colors_pops))) {
+      names(colors_pops) <- as.character(levels(x$pop))
+    }
 
     df_colors_temp_1 <-
       as.data.frame(cbind(indNames(x), as.character(pop(x)), 1:nInd(x)))
