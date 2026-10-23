@@ -27,3 +27,4 @@ gl.relatedness,dartR.captive,analysis,Claude,done#129
 utils.kin.check,dartR.captive,utility,luis,pr-open
 utils.kin.dgd,dartR.captive,utility,luis,pr-open
 utils.kin.dominant,dartR.captive,utility,luis,pr-open
+gl.inbreeding,dartR.captive,analysis,luis,pr-open#151

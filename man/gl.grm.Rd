@@ -108,7 +108,8 @@ realized relationship matrix. G3: Genes, Genomics, Genetics 2, 1405.
 \code{\link{gl.grm.network}}
 
 Other inbreeding functions: 
-\code{\link{gl.grm.network}()}
+\code{\link{gl.grm.network}()},
+\code{\link{gl.inbreeding}()}
 }
 \author{
 Author(s): Arthur Georges. Custodian: Arthur Georges -- Post to

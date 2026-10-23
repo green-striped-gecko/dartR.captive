@@ -201,7 +201,8 @@ is it still useful?. Nature Reviews Genetics, 16(1), 33-44.
 \code{\link{gl.grm}}
 
 Other inbreeding functions: 
-\code{\link{gl.grm}()}
+\code{\link{gl.grm}()},
+\code{\link{gl.inbreeding}()}
 }
 \author{
 Author(s): Arthur Georges. Custodian: Arthur Georges -- Post to

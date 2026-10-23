@@ -2,6 +2,14 @@
 
 ## dartR.captive 1.2.6
 
+* New `gl.inbreeding()` (contributed by Luis Mijangos) estimates the
+  inbreeding coefficient of each individual with PLINK 1.9 (`--het`, F) and
+  GCTA (`--ibc`, Fhat1, Fhat2 and Fhat3), and plots PLINK F and Fhat3 by
+  population. Both programs read the same loci: monomorphic loci are
+  removed first, and all loci are treated as autosomal. Allele frequencies
+  come from all individuals pooled, or from each population with
+  `by.pop = TRUE`. `method = "plink"` runs without GCTA.
+
 * `gl.grm()` and `gl.grm.network()`: BUG FIX: colours given to
   `palette_discrete` with population names now go to the populations they
   name. Before, the names were replaced by the population levels, so the
