@@ -198,7 +198,7 @@ package.
 
 ## Outcome
 
-Written as `R/gl.inbreeding.r`; tests in
+PR #151. Written as `R/gl.inbreeding.r`; tests in
 `tests/testthat/test-gl.inbreeding.R` (30 expectations, pass with PLINK
 v1.90b6.10 and GCTA 1.93.2; all tests that need a program skip when it is
 missing or does not run on the platform, as on CI).
@@ -250,7 +250,7 @@ missing or does not run on the platform, as on CI).
     {"id": "F8", "severity": "LOW", "confidence": "high", "rule": "DOC1", "status": "approved", "change": 5}
   ],
   "coverage_skipped": ["characterization test deferred to Phase C: script, not a function", "DAT6: gl2plink densifies, outside this function"],
-  "status": "awaiting-approval",
-  "pr": null
+  "status": "pr-open",
+  "pr": 151
 }
 ```
