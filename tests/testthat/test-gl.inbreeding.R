@@ -125,6 +125,29 @@ test_that("plot is optional and saved only on request (5)", {
   expect_s3_class(readRDS(file.path(dir, "inb.RDS")), "patchwork")
 })
 
+test_that("ind.labels puts the names of each population on its panel", {
+  skip_without_plink()
+  skip_without_gcta()
+  dir <- withr::local_tempdir()
+  x <- platypus.gl
+  res <- gl.inbreeding(x, plink.path = plink_path(), gcta.path = gcta_path(),
+                       ind.labels = TRUE, plot.display = FALSE,
+                       plot.file = "inb", plot.dir = dir, verbose = 0)
+  p <- readRDS(file.path(dir, "inb.RDS"))
+  b <- ggplot2::ggplot_build(p[[1]])
+  for (i in seq_len(nPop(x))) {
+    # breaks of other populations fall outside the panel and are NA
+    sc <- b$layout$panel_params[[i]]$y
+    br <- sc$get_breaks()
+    lab <- sc$get_labels(br)[!is.na(br)]
+    # every individual of the population, sorted by PLINK F, highest first
+    r <- res[res$pop == levels(pop(x))[i], ]
+    expect_equal(lab, r$id[order(-r$F)])
+  }
+  expect_error(gl.inbreeding(x, ind.labels = NA, verbose = 0), "ind.labels")
+  expect_error(gl.inbreeding(x, label.size = -1, verbose = 0), "label.size")
+})
+
 test_that("input and executables are checked before any work (5)", {
   expect_error(gl.inbreeding(testset.gs, verbose = 0))
   expect_error(gl.inbreeding(platypus.gl, plink.path = "no/such/folder",
