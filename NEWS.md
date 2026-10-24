@@ -8,7 +8,8 @@
   population. Both programs read the same loci: monomorphic loci are
   removed first, and all loci are treated as autosomal. Allele frequencies
   come from all individuals pooled, or from each population with
-  `by.pop = TRUE`. `method = "plink"` runs without GCTA.
+  `by.pop = TRUE`. `method = "plink"` runs without GCTA. `ind.labels = TRUE`
+  shows the names of the individuals on the vertical axis.
 
 * `gl.grm()` and `gl.grm.network()`: BUG FIX: colours given to
   `palette_discrete` with population names now go to the populations they

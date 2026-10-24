@@ -25,6 +25,10 @@
 #' @param plot.colors A vector of colours, one per population (named by
 #' population, or in the order of the population levels), or a palette
 #' function [default gl.select.colors(x)].
+#' @param ind.labels If TRUE, the names of the individuals are shown on the
+#' vertical axis of each panel [default FALSE].
+#' @param label.size Size, in points, of the names of the individuals
+#' [default 6].
 #' @param plot.file Name for the RDS binary file to save (base name only,
 #' exclude extension) [default NULL].
 #' @param plot.dir Directory to save the plot RDS files [default as specified
@@ -74,9 +78,16 @@
 #' which is deleted on exit.
 #'
 #' The plot shows PLINK F and GCTA Fhat3 side by side, one row of panels
-#' per population. A colour vector can be obtained with gl.select.colors()
-#' and passed with the plot.colors parameter. Themes can be obtained from
-#' \url{https://ggplot2.tidyverse.org/reference/ggtheme.html}. If a
+#' per population, with the population names on the right. Each panel sorts
+#' the individuals by its own estimate, highest at the bottom, so with
+#' ind.labels = TRUE the two panels list the names in different orders.
+#' Names need about 1 mm of height each: save a plot with many individuals
+#' with a larger height, or lower label.size. A colour vector can be
+#' obtained with gl.select.colors() and passed with the plot.colors
+#' parameter. Themes can be obtained from
+#' \url{https://ggplot2.tidyverse.org/reference/ggtheme.html}; the panel
+#' borders, grid lines, population strips and titles are drawn over the
+#' theme. If a
 #' plot.file is given, the ggplot is saved as an RDS binary file using
 #' saveRDS(); it can be reloaded with readRDS(). If a plot directory
 #' (plot.dir) is specified, the ggplot binary is saved to that directory;
@@ -99,6 +110,10 @@
 #' res.pop <- gl.inbreeding(platypus.gl, by.pop = TRUE,
 #'                          plink.path = "~/programs",
 #'                          gcta.path = "~/programs")
+#' # names of the individuals on the vertical axis
+#' res <- gl.inbreeding(platypus.gl, ind.labels = TRUE,
+#'                      plink.path = "~/programs",
+#'                      gcta.path = "~/programs")
 #' # PLINK only
 #' res.plink <- gl.inbreeding(platypus.gl, method = "plink",
 #'                            plink.path = "~/programs")
@@ -129,6 +144,8 @@ gl.inbreeding <- function(x,
                           plot.display = TRUE,
                           plot.theme = theme_dartR(),
                           plot.colors = NULL,
+                          ind.labels = FALSE,
+                          label.size = 6,
                           plot.file = NULL,
                           plot.dir = NULL,
                           verbose = NULL) {
@@ -155,6 +172,14 @@ gl.inbreeding <- function(x,
   method <- match.arg(method, several.ok = TRUE)
   if (!is.logical(by.pop) || length(by.pop) != 1 || is.na(by.pop)) {
     stop(error("  by.pop must be TRUE or FALSE\n"))
+  }
+  if (!is.logical(ind.labels) || length(ind.labels) != 1 ||
+      is.na(ind.labels)) {
+    stop(error("  ind.labels must be TRUE or FALSE\n"))
+  }
+  if (!is.numeric(label.size) || length(label.size) != 1 ||
+      is.na(label.size) || label.size <= 0) {
+    stop(error("  label.size must be a positive number\n"))
   }
 
   # a folder holding the executable, or the executable itself (GCTA's macOS
@@ -368,15 +393,19 @@ gl.inbreeding <- function(x,
     names(plot.colors) <- levels(pop(x))
   }
 
-  value <- NULL  # silence R CMD check note for ggplot NSE
+  value <- y <- NULL  # silence R CMD check note for ggplot NSE
   plot.panel <- function(col, title, strips) {
     df <- res[!is.na(res[[col]]), c("id", "pop", col)]
     names(df)[3] <- "value"
     df$pop <- factor(df$pop, levels = levels(pop(x)))
-    # individuals sorted by value within each population
-    df$order <- stats::ave(-df$value, df$pop,
-                           FUN = function(v) rank(v, ties.method = "first"))
-    p <- ggplot(df, aes(x = value, y = order, colour = pop)) +
+    # one y position per individual, sorted by value within each population
+    # (highest at the bottom); populations are spaced 2n positions apart, so
+    # the axis of one panel, expanded by 5% of its range, never reaches the
+    # positions, and names, of the next population
+    df <- df[order(df$pop, -df$value), ]
+    df$y <- stats::ave(df$value, df$pop, FUN = seq_along) +
+      2 * nrow(df) * (as.integer(df$pop) - 1)
+    p <- ggplot(df, aes(x = value, y = y, colour = pop)) +
       geom_point(size = 3, alpha = 1 / 2) +
       facet_grid(rows = vars(pop), scales = "free_y") +
       scale_colour_manual(values = plot.colors) +
@@ -384,11 +413,25 @@ gl.inbreeding <- function(x,
       plot.theme +
       theme(legend.position = "none",
             axis.title = element_blank(),
-            axis.text.y = element_blank(),
-            axis.ticks.y = element_blank())
+            panel.border = element_rect(fill = NA, colour = "grey20"),
+            panel.grid = element_line(colour = "grey92"),
+            panel.grid.minor = element_line(linewidth = rel(0.5)),
+            plot.title = element_text(hjust = 0, face = "plain"))
+    if (ind.labels) {
+      p <- p + scale_y_continuous(breaks = df$y, labels = df$id,
+                                  minor_breaks = NULL) +
+        theme(axis.text.y = element_text(size = label.size))
+    } else {
+      p <- p + theme(axis.text.y = element_blank(),
+                     axis.ticks.y = element_blank())
+    }
     if (strips) {
-      # horizontal labels, so long population names stay readable
-      p <- p + theme(strip.text.y = element_text(angle = 0))
+      p <- p + theme(strip.background = element_rect(fill = "grey85",
+                                                     colour = "grey20"),
+                     strip.text.y = element_text(angle = -90,
+                                                 face = "plain",
+                                                 size = rel(0.8),
+                                                 colour = "grey10"))
     } else {
       p <- p + theme(strip.background = element_blank(),
                      strip.text.y = element_blank())

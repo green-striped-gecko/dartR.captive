@@ -13,6 +13,8 @@ gl.inbreeding(
   plot.display = TRUE,
   plot.theme = theme_dartR(),
   plot.colors = NULL,
+  ind.labels = FALSE,
+  label.size = 6,
   plot.file = NULL,
   plot.dir = NULL,
   verbose = NULL
@@ -45,6 +47,12 @@ used when method includes "gcta" [default getwd()].}
 \item{plot.colors}{A vector of colours, one per population (named by
 population, or in the order of the population levels), or a palette
 function [default gl.select.colors(x)].}
+
+\item{ind.labels}{If TRUE, the names of the individuals are shown on the
+vertical axis of each panel [default FALSE].}
+
+\item{label.size}{Size, in points, of the names of the individuals
+[default 6].}
 
 \item{plot.file}{Name for the RDS binary file to save (base name only,
 exclude extension) [default NULL].}
@@ -108,9 +116,16 @@ files for both programs are written to a new folder under tempdir(),
 which is deleted on exit.
 
 The plot shows PLINK F and GCTA Fhat3 side by side, one row of panels
-per population. A colour vector can be obtained with gl.select.colors()
-and passed with the plot.colors parameter. Themes can be obtained from
-\url{https://ggplot2.tidyverse.org/reference/ggtheme.html}. If a
+per population, with the population names on the right. Each panel sorts
+the individuals by its own estimate, highest at the bottom, so with
+ind.labels = TRUE the two panels list the names in different orders.
+Names need about 1 mm of height each: save a plot with many individuals
+with a larger height, or lower label.size. A colour vector can be
+obtained with gl.select.colors() and passed with the plot.colors
+parameter. Themes can be obtained from
+\url{https://ggplot2.tidyverse.org/reference/ggtheme.html}; the panel
+borders, grid lines, population strips and titles are drawn over the
+theme. If a
 plot.file is given, the ggplot is saved as an RDS binary file using
 saveRDS(); it can be reloaded with readRDS(). If a plot directory
 (plot.dir) is specified, the ggplot binary is saved to that directory;
@@ -125,6 +140,10 @@ res <- gl.inbreeding(platypus.gl, plink.path = "~/programs",
 res.pop <- gl.inbreeding(platypus.gl, by.pop = TRUE,
                          plink.path = "~/programs",
                          gcta.path = "~/programs")
+# names of the individuals on the vertical axis
+res <- gl.inbreeding(platypus.gl, ind.labels = TRUE,
+                     plink.path = "~/programs",
+                     gcta.path = "~/programs")
 # PLINK only
 res.plink <- gl.inbreeding(platypus.gl, method = "plink",
                            plink.path = "~/programs")
