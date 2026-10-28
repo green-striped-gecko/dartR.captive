@@ -285,6 +285,13 @@ test_that("Ne is checked and resolved per population", {
   expect_equal(resolveNe(x, c(40, 60), NULL, 0), c(40, 60))
   expect_error(resolveNe(x, c(1, 2, 3), NULL, 0), "one per population")
   expect_error(resolveNe(x, NULL, NULL, 0), "give Ne, or neest.path")
+})
+
+test_that("a non-positive Ne stops gl.diagnostics.relatedness", {
+  # the dartR.coancestry check comes before argument validation
+  skip_if_not_installed("dartR.coancestry")
+  x <- testset.gl[1:20, 1:50]
+  pop(x) <- rep(c("A", "B"), each = 10)
   expect_error(gl.diagnostics.relatedness(x, Ne = -5, verbose = 0),
                "Ne must be positive")
 })
