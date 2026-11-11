@@ -61,30 +61,6 @@ cleanup_rel <- function(input_val, testSelect=NULL){
   
 }
 
-# Returns relatedness plot 
-plot_rel <- function(cleanup_out){
-  value <- NULL
-  variable <- NULL
-  yintercept<- NULL
-  rel_plotgg <- ggplot(cleanup_out,aes(y=value,x=variable,color = variable,fill = variable)) +
-    geom_point(position=position_jitterdodge(dodge.width=1),show.legend = F) +
-    geom_violin(alpha=0.1,scale = "count")+
-    geom_boxplot(alpha=0.35)+
-    theme_bw(base_size = 16) +
-    theme( legend.position = "bottom",
-           axis.ticks.x=element_blank() ,
-           axis.text.x = element_blank(),
-           axis.title.x=element_blank(),
-           legend.title=element_blank(),
-           legend.text=element_text(size = 18),
-           legend.key.height=unit(1, "cm"))+
-    ylab("Kinship") 
-  
-  return(rel_plotgg)
-  
-}
-
-
 # Extracts parents from iteration output 
 # Inbreeding of each population of x (1 - sum Ho / sum uHe, as dartR.sim's
 # real_inbreeding) on loci called in at least `threshold` of individuals,
@@ -471,21 +447,6 @@ CleanupExtractParents <- function(parentalTable){
   
   return(all_rel[])
   
-}
-
-
-printCorVals <- function(corValues, whichTests){
-  
-  cat("Number iterations:", length(corValues), "\n")
-  for(i in 1:length(corValues)){
-    cat("Iteration:", i, "\n")
-    cat("Correlation between `related` and:","\n")
-    colSelect <- colnames(corValues[[i]])[-which(colnames(corValues[[i]])=="rel")]
-    for(j in 1:length(colSelect)){
-      colSelect <- colnames(corValues[[i]])[-which(colnames(corValues[[i]])=="rel")]
-      cat(colSelect[j],": ", corValues[[i]]["rel", colSelect[j]], "\n", sep = "")
-    }
-  }
 }
 
 # Bias (estimate minus pedigree kinship) and RMSE of each estimator by
