@@ -148,9 +148,6 @@ test_that("output contract: invisible, tagged, NA for pairs without data", {
                                     plot.out = FALSE, verbose = 0))
   expect_false(vis$visible)                                   # change 7
   expect_equal(attr(vis$value$wang, "scale"), "relatedness")  # change 4
-  # the kinship series halves the tagged matrix
-  expect_equal(as.vector(utils.kin.as.kinship(vis$value$wang)),
-               as.vector(vis$value$wang) / 2)
   # an individual with no calls: NA in every estimator (was 0 / NaN; change 2)
   gx <- gl
   gx@gen[[1]] <- new("SNPbin", rep(NA_integer_, nLoc(gx)), ploidy = 2L)

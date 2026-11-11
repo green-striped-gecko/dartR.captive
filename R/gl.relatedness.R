@@ -63,9 +63,7 @@
 #' their rows and columns in the matrices, filled with NA.
 #'
 #' The matrices are on the relatedness scale (twice kinship) and carry
-#' \code{attr(, "scale") = "relatedness"}, so the kinship functions of this
-#' package (for example \code{gl.report.kin.classes}) halve them when they are
-#' passed as \code{kin}.
+#' \code{attr(, "scale") = "relatedness"}; kinship is half these values.
 #'
 #' Agreement with Coancestry: on 30 platypus (platypus.gl, 420 loci with no
 #' missing data), \code{lynchrd}, \code{ritland} and \code{quellergt} match

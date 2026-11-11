@@ -174,28 +174,11 @@ res_rel <- gl.run.EMIBD9(t1)
 \seealso{
 Other captive management: 
 \code{\link{gl.diagnostics.relatedness}()},
-\code{\link{gl.kin}()},
 \code{\link{gl.parentage.power}()},
 \code{\link{gl.plot.network}()},
-\code{\link{gl.report.gd.projection}()},
-\code{\link{gl.report.ind.add}()},
-\code{\link{gl.report.ind.move}()},
-\code{\link{gl.report.ind.remove}()},
-\code{\link{gl.report.kin.classes}()},
-\code{\link{gl.report.kin.confidence}()},
-\code{\link{gl.report.kin.groups}()},
-\code{\link{gl.report.kin.sets}()},
-\code{\link{gl.report.kinship}()},
-\code{\link{gl.report.mate.suitability}()},
-\code{\link{gl.report.repro.targets}()},
 \code{\link{gl.run.colony}()},
-\code{\link{gl.select.pairs}()},
 \code{\link{gl.sim.relatedness}()},
-\code{\link{gl2colony}()},
-\code{\link{utils.kin.as.kinship}()},
-\code{\link{utils.kin.check}()},
-\code{\link{utils.kin.dgd}()},
-\code{\link{utils.kin.dominant}()}
+\code{\link{gl2colony}()}
 }
 \author{
 Author(s): Luis Mijangos. Custodian: Luis Mijangos -- Post to

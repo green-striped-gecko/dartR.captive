@@ -80,7 +80,7 @@ off-diagonal element estimates twice the kinship of the pair. Both are
 relative to the allele frequencies of the supplied individuals, so f can
 be negative (diagonal below 1), and the matrix sums to zero: the mean of
 the off-diagonal elements is -(mean of the diagonal)/(n-1), where n is
-the number of individuals. For kinship (half these values), use gl.kin.
+the number of individuals. Kinship is half these values.
 
 This function also plots a heatmap, and a dendrogram, of the matrix.
  Individual names are shown in the margins of the heatmap and colors

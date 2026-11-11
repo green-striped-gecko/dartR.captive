@@ -363,8 +363,7 @@ gl.run.EMIBD9 <- function(x,
   res <- res[order(as.integer(rownames(res))),
              order(as.integer(colnames(res))), drop = FALSE]
   dimnames(res) <- list(hold_names, hold_names)
-  # EMIBD9's r(1,2) is the kinship coefficient; gl.kin, gl.grm.network and
-  # utils.kin.as.kinship read this tag
+  # EMIBD9's r(1,2) is the kinship coefficient; gl.grm.network reads this tag
   attr(res, "scale") <- "kinship"
 
   # restore original individual names in the raw table

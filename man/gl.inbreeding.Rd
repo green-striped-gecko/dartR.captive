@@ -165,7 +165,7 @@ Human Genetics, 88(1), 76-82.
 }
 }
 \seealso{
-\code{\link{gl.report.kinship}}, \code{\link{gl.run.EMIBD9}}
+\code{\link{gl.relatedness}}, \code{\link{gl.run.EMIBD9}}
 
 Other inbreeding functions: 
 \code{\link{gl.grm}()},

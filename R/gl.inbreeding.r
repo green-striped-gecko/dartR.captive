@@ -133,7 +133,7 @@
 #' Human Genetics, 88(1), 76-82.
 #' }
 #'
-#' @seealso \code{\link{gl.report.kinship}}, \code{\link{gl.run.EMIBD9}}
+#' @seealso \code{\link{gl.relatedness}}, \code{\link{gl.run.EMIBD9}}
 #' @export
 
 gl.inbreeding <- function(x,
