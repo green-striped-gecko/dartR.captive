@@ -1,6 +1,12 @@
 # dartR.captive NEWS
 
-## dartR.captive 1.2.6
+## dartR.captive 1.2.7
+
+* History: functions called through `do.call(fun, list(x = gl, ...))` no
+  longer store the whole input object in `@other$history` (the calls are
+  compacted with `dartR.base::utils.history.call()`), and no longer stop
+  with "cannot coerce type 'closure'" at `verbose >= 1`. Needs the current
+  dartR.base.
 
 * New `gl.inbreeding()` (contributed by Luis Mijangos) estimates the
   inbreeding coefficient of each individual with PLINK 1.9 (`--het`, F) and

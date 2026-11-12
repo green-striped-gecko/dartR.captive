@@ -100,7 +100,7 @@ gl.plot.network <- function(D,
 
   # FLAG SCRIPT START
   funname <- match.call()[[1]]
-  utils.flag.start(func = funname, verbose = verbose)
+  funname <- utils.flag.start(func = funname, verbose = verbose)
 
   # CHECK DATATYPE
   # x is optional; without it nodes are drawn in one colour

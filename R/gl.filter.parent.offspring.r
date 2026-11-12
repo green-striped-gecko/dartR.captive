@@ -114,7 +114,7 @@ gl.filter.parent.offspring <- function(x,
 
   # FLAG SCRIPT START
   funname <- match.call()[[1]]
-  utils.flag.start(func = funname, verbose = verbose)
+  funname <- utils.flag.start(func = funname, verbose = verbose)
 
   # CHECK DATATYPE
   datatype <- utils.check.datatype(x, verbose = verbose)
@@ -211,7 +211,7 @@ gl.filter.parent.offspring <- function(x,
   # ADD ACTION TO HISTORY
 
   nh <- length(hold@other$history)
-  hold@other$history[[nh + 1]] <- match.call()
+  hold@other$history[[nh + 1]] <- utils.history.call(match.call())
 
   # FLAG SCRIPT END
 

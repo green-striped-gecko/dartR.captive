@@ -37,7 +37,7 @@ gl.assign.grm <- function(x,
 
   # FLAG SCRIPT START
   funname <- match.call()[[1]]
-  utils.flag.start(
+  funname <- utils.flag.start(
     func = funname,
     build = "Jody",
     verbose = verbose

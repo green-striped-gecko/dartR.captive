@@ -148,7 +148,7 @@ gl.parentage.power <- function(x,
   if (is.null(plot.colors)) {
     plot.colors <- c("#2171B5", "#6BAED6")
   }
-  utils.flag.start(func = funname, build = "v.2026.1", verbose = verbose)
+  funname <- utils.flag.start(func = funname, build = "v.2026.1", verbose = verbose)
   datatype <- utils.check.datatype(x, accept = "genlight", verbose = verbose)
   engine <- match.arg(engine, c("exclusion", "colony"))
 

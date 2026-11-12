@@ -1,9 +1,9 @@
 Package: dartR.captive
 Type: Package
 Title: Analysing 'SNP' Data to Support Captive Breeding
-Version: 1.2.6
-Revision: Elastic Elapid
-Date: 2026-09-24
+Version: 1.2.7
+Revision: Generous Gecko
+Date: 2026-11-12
 Authors@R: c(
             person("Bernd",  "Gruber", email="bernd.gruber@canberra.edu.au", role=c("aut","cre")), 
             person("Arthur", "Georges", email="georges@aerg.edu.au", role="aut"),
@@ -24,7 +24,7 @@ Description: Functions are provided that facilitate the analysis of SNP
     Gruber et al. (2018) <doi:10.1111/1755-0998.12745>.
     Mijangos et al. (2022) <doi:10.1111/2041-210X.13918>.
 Encoding: UTF-8
-Depends: R (>= 3.5),  dartR.base, dartR.data (>= 1.2.5), dartR.sim
+Depends: R (>= 3.5),  dartR.base (>= 1.2.7), dartR.data (>= 1.2.5), dartR.sim
 Imports: adegenet (>= 2.0.0), methods, utils,  crayon, ggplot2, patchwork, poibin, stringr, data.table, gridExtra, magrittr,reshape2,tidyr
 Suggests:
     dartR.popgen,
