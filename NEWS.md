@@ -2,11 +2,26 @@
 
 ## dartR.captive 1.2.7
 
-* History: functions called through `do.call(fun, list(x = gl, ...))` no
-  longer store the whole input object in `@other$history` (the calls are
-  compacted with `dartR.base::utils.history.call()`), and no longer stop
-  with "cannot coerce type 'closure'" at `verbose >= 1`. Needs the current
-  dartR.base.
+### New functions
+
+* New `gl.test.offspring()` tests whether two candidate parents can be the
+  parents of an offspring. For each trio the number of Mendelian-incompatible
+  SNPs is compared with the number expected from genotyping error alone
+  (per-allele error `epsilon`, Poisson-binomial distribution, exact
+  prediction interval and p-value), and a LOD score ranks the candidate
+  parent pairs of each offspring. Candidate mode tests given fathers,
+  mothers and offspring (an individual in both parent sets is tested once
+  per unordered pair); exploratory mode tests every individual against all
+  pairs of the others. Returns the full table, the mismatching SNPs of each
+  trio, a candidate plot and a heatmap of all trios.
+
+* New `gl.report.errorrate()` estimates the per-allele genotyping error
+  rate (the `epsilon` of `gl.test.offspring()`) from replicate samples of
+  the same individual, given as pairs or as replicate groups. Error rate
+  and true genotype frequencies are estimated jointly by maximum
+  likelihood, per pair and pooled, with profile-likelihood confidence
+  intervals; a G-test of the model fit flags allelic dropout and pairs with
+  different error rates. Missing-data discordance is reported separately.
 
 * New `gl.inbreeding()` (contributed by Luis Mijangos) estimates the
   inbreeding coefficient of each individual with PLINK 1.9 (`--het`, F) and
@@ -17,12 +32,6 @@
   `by.pop = TRUE`. `method = "plink"` runs without GCTA. `ind.labels = TRUE`
   shows the names of the individuals on the vertical axis.
 
-* `gl.grm()` and `gl.grm.network()`: BUG FIX: colours given to
-  `palette_discrete` with population names now go to the populations they
-  name. Before, the names were replaced by the population levels, so the
-  colours were assigned by position. Unnamed colours and the default
-  palette are unchanged.
-
 * New `gl.parentage.power()` estimates, by simulation, how reliably a SNP
   panel assigns offspring to candidate parents across a range of locus
   counts, by Mendelian exclusion or with COLONY. Pair mode checks every
@@ -31,356 +40,181 @@
   other parent was not sampled. With `engine = "colony"`, `n.rep` runs
   COLONY once per replicate.
 
-* `gl.diagnostics.relatedness()` can recreate samples made of families,
-  a source of bias when allele frequencies come from a few families: new
-  `families` (an ind.metrics column of full-sib family identifiers, or
-  "colony" to reconstruct them with `gl.run.colony`, with `colony.path`)
-  and `familyParents` (x also holds the parents). Every stored generation
-  from generation 1 on is then sampled with the family sizes of `x`
-  (dartR.sim `sample_families`, `sample_parents`), and generation 0 is
-  left out of the analysis.
+* New `gl.relatedness()` estimates pairwise relatedness, and optionally
+  inbreeding, with Jinliang Wang's Coancestry estimators: the moment
+  estimators of Wang, Lynch & Li, Lynch & Ritland, Ritland, Queller &
+  Goodnight and Loiselle, and the likelihood estimators DyadML and TrioML,
+  with optional bootstrap confidence intervals. The numerical engine is the
+  closed-source package `dartR.coancestry`, installed separately. A pair of
+  individuals that shares no called locus gets `NA` for every estimator,
+  with a warning. The matrices are on the relatedness scale (twice kinship)
+  and are tagged `attr(, "scale") = "relatedness"`. `wang` and `lynchli`
+  sit above `related::coancestry()` by a small-sample term (+0.047 and
+  +0.018 on 30 platypus), while `lynchrd`, `ritland` and `quellergt` match
+  it.
 
-* `gl.diagnostics.relatedness()` estimates relatedness within each stored
-  generation by default (new `analysisUnit = "generation"`), so the
-  estimators take their allele frequencies from a sample the size of `x`,
-  as they do on the real data; `analysisUnit = "pooled"` keeps the previous
-  behaviour and is needed for pairs across generations (parent-offspring,
-  grandparent-grandchild, avuncular). `@MergedDf` gains a `generation`
-  column. A single population no longer stops the simulation, and a
-  failure of `gl.LDNe` is reported as a request for `Ne`.
+### Changes and bug fixes
 
-* `gl.diagnostics.relatedness()`: founder inbreeding is measured on loci
-  called in at least 99% of individuals (heterozygote calls lost at poorly
-  called loci inflate 1 - Ho/He), with dartR.sim's `inbreeding_founders`;
-  a warning flags `gl.LDNe` estimates of Ne that are unreliable (infinite
-  jackknife upper limit or more than 10 times the sample size); and a tile
-  plot of each estimator's bias and RMSE by relationship class is added to
-  `@plotList`.
+* History: functions called through `do.call(fun, list(x = gl, ...))` no
+  longer store the whole input object in `@other$history` (the calls are
+  compacted with `dartR.base::utils.history.call()`), and no longer stop
+  with "cannot coerce type 'closure'" at `verbose >= 1`. Needs dartR.base
+  1.2.7. dartR.data (>= 1.2.5) is now required, for `testset2.gl` in the
+  examples.
 
-* `gl.diagnostics.relatedness()` simulates the effective population size
-  of `x`: new arguments `Ne` (one value or one per population) and
-  `neest.path` (estimates Ne with `dartR.popgen::gl.LDNe` when `Ne` is not
-  given; the function stops when Ne is neither given nor estimable). Each
-  population gets a census size above 2 Ne and each generation stores a
-  sample with the sample sizes of `x`. The pedigree kinship is built from
-  the full simulated pedigree, so relatives linked through unsampled
-  ancestors are recognised. Needs dartR.sim with `ne_phase2` and
-  `store_pedigree`; older versions keep the previous behaviour.
+* `gl.diagnostics.relatedness()`:
+  * Simulations now mirror the input when no variable files are given: the
+    loci of `x` with their allele frequencies per population (same number
+    of loci, no extra neutral loci), the populations of `x` with its sample
+    sizes, and parents that mate with several partners so that half sibs
+    occur. The previous defaults simulated 100 loci at frequency 0.5 in one
+    population of 50, whatever `x` was. `run_sim = TRUE` works without
+    variable files.
+  * Simulates the effective population size of `x`: new arguments `Ne`
+    (one value or one per population) and `neest.path` (estimates Ne with
+    `dartR.popgen::gl.LDNe()` when `Ne` is not given; the function stops
+    when Ne is neither given nor estimable). Each population gets a census
+    size above 2 Ne and each generation stores a sample with the sample
+    sizes of `x`. The pedigree kinship is built from the full simulated
+    pedigree, so relatives linked through unsampled ancestors are
+    recognised. A warning flags `gl.LDNe` estimates of Ne that are
+    unreliable (infinite jackknife upper limit or more than 10 times the
+    sample size), and a failure of `gl.LDNe` is reported as a request for
+    `Ne`.
+  * Can recreate samples made of families, a source of bias when allele
+    frequencies come from a few families: new `families` (an ind.metrics
+    column of full-sib family identifiers, or "colony" to reconstruct them
+    with `gl.run.colony()`, with `colony.path`) and `familyParents` (`x`
+    also holds the parents). Every stored generation from generation 1 on
+    is then sampled with the family sizes of `x`, and generation 0 is left
+    out of the analysis.
+  * Estimates relatedness within each stored generation by default (new
+    `analysisUnit = "generation"`), so the estimators take their allele
+    frequencies from a sample the size of `x`, as they do on the real data;
+    `analysisUnit = "pooled"` keeps the previous behaviour and is needed
+    for pairs across generations. `@MergedDf` gains a `generation` column.
+    A single population no longer stops the simulation.
+  * Computes the `which_tests` estimators with `gl.relatedness()` instead
+    of `related::coancestry()`, so it needs the `dartR.coancestry` engine
+    rather than the `related` package. Every estimator except the slow
+    `trioml` runs by default. `lynchrd`, `quellergt` and rrBLUP results are
+    unchanged; `wang` differs (on 15 individuals of testset.gl, 0.045 higher
+    on average on the kinship scale). `loiselle` is now available, and an
+    unknown estimator in `which_tests` is an error.
+  * Accuracy statistics are computed against the exact pedigree kinship of
+    each pair (new column `rel`; inbreeding included), with one
+    relationship class per pair (`RelDegree`). New classes
+    grandparent_grandchild, avuncular, great_grandparent_grandchild,
+    half_avuncular, other_relatives and unrelated (pedigree kinship 0);
+    these pairs were labelled unrelated or discarded. Previously pairs
+    below 0.05 were discarded before any summary, founders in an attached
+    pedigree were labelled half siblings, some pairs were counted under two
+    relationships, and "RMSE" was the mean absolute error. RMSE and
+    variance values change. New `biasOut` reports the bias of each
+    estimator by relationship class, and a tile plot of bias and RMSE is
+    added to `@plotList`.
+  * The simulated genotypes take the missing-data pattern of `x` (new
+    `simMissing`, default TRUE), and `@SimOutput` keeps the parents and
+    generation of each individual. Founder inbreeding is measured on loci
+    called in at least 99% of individuals and carried into the simulation;
+    with a dartR.sim version that stores the founders, they are kept as
+    generation 0 and their inbreeding enters the pedigree kinship.
+    SilicoDArT input is an error.
 
-* `gl.diagnostics.relatedness()` runs every `gl.relatedness()` estimator
-  by default except the slow `trioml`, and reports the bias of each
-  estimator (mean of estimated minus pedigree kinship) by relationship
-  class with the new `biasOut`. The simulated genotypes take the missing
-  data pattern of `x` (new `simMissing`, default TRUE), and `@SimOutput`
-  keeps the parents and generation of each individual. With the default
-  variable files the founders carry the inbreeding of `x` and mating is
-  random afterwards; with a dartR.sim version that stores the founders
-  (`store_founders`), they are kept as generation 0 and their inbreeding
-  enters the pedigree kinship.
+* `gl.grm()`:
+  * Passes `min.MAF = 1/(2n) - 1e-10` to `rrBLUP::A.mat()` unless `min.MAF`
+    is given. With the default `1/(2n)`, a locus with a single minor-allele
+    copy sat exactly on the cut-off, and rounding decided whether it was
+    kept: Apple Silicon Macs dropped it, and Linux and Windows kept it
+    unless the minor allele was the one counted as 2. Such loci are now
+    kept on every platform. Results change mostly on Apple Silicon (on
+    `platypus.gl[1:12, 1:200]` the T27 diagonal goes from 0.943 to 0.986).
+    Same fix as `dartR.spatial::gl.grm2()`.
+  * Output is tagged `attr(, "scale") = "relatedness"`. Documentation
+    corrected: the diagonal can be below 1, and the off-diagonal mean is
+    `-mean(diag)/(n - 1)` with `n` individuals, not loci.
+  * Errors on SilicoDArT (presence/absence) input instead of returning a
+    meaningless matrix.
+  * Fixed a crash (`object 'p3' not found`) when `plotheatmap = FALSE` was
+    combined with a `plot.file`; the matrix is returned with a warning that
+    nothing was saved. Corrected the documented default of `legendy` (0.5).
 
-* `gl.diagnostics.relatedness()` simulations now mirror the input when no
-  variable files are given: the loci of `x` with their allele frequencies
-  per population (same number of loci, no extra neutral loci), the
-  populations of `x` with its sample sizes, and parents that mate with
-  several partners so that half sibs occur. The previous defaults simulated
-  100 loci at frequency 0.5 in one population of 50, whatever `x` was.
-  New relationship classes grandparent_grandchild, avuncular,
-  great_grandparent_grandchild, half_avuncular and other_relatives: these
-  pairs used to be labelled unrelated, which now means a pedigree kinship
-  of 0.
+* `gl.grm()` and `gl.grm.network()`: colours given to `palette_discrete`
+  with population names now go to the populations they name; they were
+  assigned by position.
 
-* `gl.diagnostics.relatedness()` now computes the `which_tests` estimators
-  with `gl.relatedness()` instead of `related::coancestry()`, so it needs
-  the `dartR.coancestry` engine rather than the `related` package.
-  `lynchrd`, `quellergt` and rrBLUP results are unchanged; `wang` differs
-  (on 15 individuals of testset.gl, 0.045 higher on average on the kinship
-  scale), as documented in `gl.relatedness()`. `loiselle` is now available,
-  and an unknown estimator in `which_tests` stops with an error.
-
-* `gl.kin()` on presence/absence data no longer prints "Starting" and
-  "Completed" lines for its internal estimator `utils.kin.dominant()` at
-  `verbose >= 1`. The internal `utils.kin.dgd()` accepts an empty table of
-  parent pairs (no current caller passes one). No results change.
-
-* `gl.relatedness()` (new on `dev`; Coancestry estimators through the
-  closed-source `dartR.coancestry` engine): the engine is fetched with
-  `getExportedValue()`, so R CMD check no longer warns about an
-  undeclared dependency. A pair of individuals that shares no called
-  locus now gets `NA` for every estimator (the engine returned 0, i.e.
-  "unrelated", for the moment estimators and `NaN` for the likelihood
-  ones), with a warning; with `n.boots > 0`, individuals dropped by the
-  pre-filter keep `NA` rows, so the matrices always cover `indNames(x)`.
-  The matrices are tagged `attr(, "scale") = "relatedness"`, so the
-  kinship functions halve them when they are passed as `kin`. Arguments
-  are checked before the engine runs (an invalid `plot.stat` used to stop
-  only after the run). The heatmap is saved whenever `plot.file` is
-  given; the result is returned invisibly. Details document that `wang`
-  and `lynchli` sit above `related::coancestry` by a small-sample term
-  (+0.047 and +0.018 on 30 platypus), while `lynchrd`, `ritland` and
-  `quellergt` match it.
-* `gl.select.pairs()`: a warning when any individual has call rate below
-  0.8, and Details on why: missing genotypes shrink kinship while `f.max`
-  is fixed, so on the `testset2.gl` captive colony one of the 10 pairs
-  selected unfiltered has kinship 0.185 after filtering loci at call rate
-  0.95; the example now filters first. Missing kinship values are ignored
-  in the means with a warning, and a pair with `NA` kinship is never
-  selected (one `NA` crashed the `dynamic` scheme and gave `NA` gene
-  diversity and a wrong order in `static` and `ranked`); an `NA` sex
-  counts as unknown (it crashed). Invalid `scheme`, `max.per.sire`,
-  `max.per.dam`, `f.max` or `n.pairs` are now errors (they were reset to
-  defaults). The `dynamic` scheme scores candidates in closed form, with
-  identical selections: 0.7 s instead of 164 s for 200 individuals.
-  Details now say that `dgd.cum` can fall as pairs are added.
-* `gl.report.repro.targets()`: a warning when any individual has call
-  rate below 0.8 (filtering loci at call rate 0.95 changes 9 of 24
-  targets on the `testset2.gl` captive colony; the example now filters
-  first). Missing kinship values are ignored in the mean kinship with a
-  warning, and an `NA` sex counts as unknown (each gave "missing value
-  where TRUE/FALSE needed"). An invalid `n.target` (0, negative, `NA`,
-  non-numeric) is now an error (it was reset to `nInd(x)`). The
-  description now says the targets lower the expected mean kinship of
-  the next generation (0.0582 on the colony, against 0.0667 for equal
-  contributions and 0.0560 for optimal contributions) rather than
-  equalising founder representation.
-* `gl.report.mate.suitability()`: a warning when any individual has call
-  rate below 0.8, and Details on why: missing genotypes shrink kinship
-  while the No Way point is fixed, so on the `testset2.gl` captive colony
-  17 of the 48 pairings that are 'NoWay' after filtering loci at call rate
-  0.95 are rated 4-6 unfiltered; the example now filters first. Missing
-  kinship values are ignored in the means with a warning, and a pairing
-  with `NA` kinship gets MSI `NA` (one `NA` gave "missing value where
-  TRUE/FALSE needed"); an `NA` sex counts as unknown (it gave "subscript
-  out of bounds"); an out-of-range `f.noway` is now an error (it was
-  reset to 0.125). Delta gene diversity uses a closed form with identical
-  results: 0.04 s instead of 1.7 s for 200 individuals.
-* `gl.report.kin.sets()`: a single-population `x` now needs kinship
-  estimated on a wider reference (`kin = NULL` or kinship estimated on
-  `x` gave `GD.w = 1` and `meanMK = 0` by construction; multi-population
-  calls are unchanged). Missing kinship values are ignored in the block
-  means with a warning (one `NA` pair voided a population's statistics
-  and its 60 Fst values). A warning when individuals have call rate
-  below 0.8. Details now describe the upward self-kinship term in the
-  kinship Fst (random halves of one population give 0.0098) and the
-  SilicoDArT `meanF` of 0; `@param kin` follows the #113 wording.
-* `gl.report.gd.projection()`: `summary` gains `years.to.target.source`
-  and `ne.required.source`, the PMx goal read as a proportion of SOURCE
-  gene diversity (after Soule et al. 1986). The existing
-  `years.to.target` and `ne.required` are relative to current gene
-  diversity and do not depend on the data. For the `testset2.gl` captive
-  colony at Ne = 50 the source-relative outputs are 3.7 years and
-  Ne 1360 (current-relative: 10.5 years, Ne 475); they are `NA`, with a
-  warning, when gene diversity is already at or below the target. The
-  plot adds the source-relative target line. Missing kinship values are
-  ignored in `gd.now` with a warning (one `NA` gave an opaque error), a
-  warning when individuals in `x` have call rate below 0.8, and scalar
-  arguments are checked before any kinship work.
-* `gl.report.ind.remove()`: missing kinship values are ignored in the
-  gene diversity means with a warning (one `NA` crashed the function
-  with "missing value where TRUE/FALSE needed"); an invalid `n.best`
-  (0, negative, non-numeric) is now an error (it removed without limit:
-  `n.best = 0` returned 7 removals on the captive colony); a warning when
-  any individual has call rate below 0.8 (the greedy set goes from 7 to
-  11 animals after filtering loci at call rate 0.95). The greedy search
-  now keeps running sums, with identical results: 0.08 s instead of 1.6 s
-  for 200 individuals.
-* `gl.report.ind.move()`: missing kinship values are ignored in the gene
-  diversity means with a warning (one `NA` pair inside a population made
-  every move into or out of it `NA`: 70 of 92 moves in the example); a
-  warning when any individual has call rate below 0.8. Details now say
-  what `net` measures: an unweighted sum of two populations' GD changes
-  that favours small destinations and genetically divergent or admixed
-  movers, and says nothing about genetic integrity.
-
-* `gl.report.ind.add()`: missing kinship values are ignored in the gene
-  diversity means with a warning (one `NA` in the target block made
-  every `dgd` `NA`); duplicated candidates are evaluated once; a warning
-  when any target or candidate individual has call rate below 0.8
-  (on `testset2.gl`, 5 of the top 10 candidates change after filtering
-  loci at call rate 0.95). `utils.kin.dgd()` gains `na.rm` (default
-  `FALSE`, so its other callers are unchanged).
-
-* `gl.report.kin.groups()` now needs kinship estimated on a wider
-  reference than `x` (as `gl.report.ind.remove()` and the other
-  functions in #113): group MK averages over all individuals, so with
-  kinship estimated on `x` itself (including `kin = NULL`) every group
-  had MK = 0 and GD = 1. The #113 audit listed this function as
-  unaffected; that was wrong. Missing kinship values are ignored in the
-  block means with a warning (one NA made MK and GD NA), and individuals
-  with call rate below 0.8 give a warning: missing genotypes pull kinship
-  and inbreeding toward 0 (captive cohorts in `testset2.gl`: meanF -0.25
-  to -0.38, and -0.15 to +0.01 after filtering loci at call rate 0.95).
-* `gl.grm()` passes `min.MAF = 1/(2n) - 1e-10` to `rrBLUP::A.mat()` unless
-  `min.MAF` is given. With the default `1/(2n)`, a locus with a single
-  minor-allele copy sat exactly on the cut-off, and rounding decided whether
-  it was kept: Apple Silicon Macs dropped it, and Linux and Windows kept it
-  unless the minor allele was the one counted as 2. Such loci are now kept
-  on every platform. Results change mostly on Apple Silicon (on
-  `platypus.gl[1:12, 1:200]` the T27 diagonal goes from 0.943 to 0.986),
-  and on Linux and Windows only for single-copy loci whose minor allele is
-  counted as 2 (2 of the 13 single-copy loci in `testset2.gl`).
-  Same fix as `dartR.spatial::gl.grm2()`.
-
-* `gl.report.kin.confidence()`: the standard errors now describe the
-  estimator `gl.kin()` returns. For SNP data each resample is `G/2`; it
-  still subtracted `mean(diag(G) - 1)`, the centring #108 removed from
-  `gl.kin()`, which made standard errors about 17% too large (median
-  0.0258 against 0.0220 on `testset2.gl`). For SilicoDArT data each
-  resample uses the `dominant` estimator of `gl.kin()`; it used the
-  correlation of band profiles / 2, a different estimator (correlation
-  0.75 with `gl.kin()`). New warnings: individuals with call rate below
-  0.8, whose standard errors mean imputation shrinks (on `testset2.gl`,
-  all 24 captive-bred individuals), and a `kin` from a method other than
-  the one bootstrapped. `kin` is now computed only when `verbose >= 3`
-  uses it.
-
-* `gl.report.kin.classes()`: a missing (`NA`) kinship no longer turns
-  every pair's class into `NA`; the median baseline ignores `NA`, only
-  the affected pairs are classed `NA` (returned with `all.pairs = TRUE`),
-  and a warning gives the count. `conflicts` is now a zero-row data frame
-  rather than `NULL` when there are no conflicts or no sire/dam columns.
-  At least three individuals are required (with two, the baseline is the
-  pair's own kinship, so it was always "unrelated"), and fewer than ten
-  give a warning. With more than one population in `x` the function now
-  warns that population structure inflates within-population classes and
-  deflates between-population ones. It also warns when any individual's
-  call rate is below 0.8: missing genotypes pull kinship toward 0, which
-  is the main reason 19 of 48 recorded parent-offspring links in
-  `testset2.gl` are called second-degree (5 after filtering loci at call
-  rate 0.95). An earlier version of this entry attributed those 19 to
-  population structure.
-* Kinship series: mean kinship (MK) and the gene diversity of a whole
-  group need kinship estimated on a wider reference than the group, because
-  `gl.kin()` centres kinship on the individuals it is given (each row
-  averages 0). `gl.report.ind.remove()`, `gl.report.repro.targets()`,
-  `gl.select.pairs()`, `gl.report.mate.suitability()` and
-  `gl.report.gd.projection()` (when given `x`) now stop with an explanation
-  when `kin` is `NULL` or was estimated on `x` alone; previously their MK
-  was ~1e-17 for everyone and they ranked, allocated and paired on rounding
-  noise (or, for removals, on inbreeding alone). Every series function now
-  accepts a `kin` covering more individuals than `x`, e.g.
-  `gl.select.pairs(captive, kin = gl.kin(full.dataset))`. `gl.kin()`
-  output records the individuals it was estimated on (`attr(, "ref.ids")`).
-  `gl.report.kin.sets()` reports `meanMK` as the within-set mean kinship
-  (it averaged the ~0 dataset-wide values). `gl.report.kinship()` warns
-  when a single population is analysed with self-referenced kinship.
-
-* `gl.report.kinship()`: `MK` and `MKrank` are now computed within each
-  individual's population (PMx's managed population), ranked within
-  population and sex; they were taken over the whole dataset, so a
-  captive animal's rank depended on its kinship to wild individuals, and
-  with `gl.kin()` method `"grm"` every dataset-wide MK was 0 up to
-  rounding (each row of the centred matrix sums to 0), so the rank sorted
-  rounding noise. In the `overall`
-  row `GD` and `FGE` are NA: the full-matrix mean kinship is about 0 by
-  construction, which gave `GD = 1` and `FGE` around 1e17. NA, empty and
-  "Unknown" sexes form one rank group, and missing kinship values are
-  ignored in the means with a warning.
-
-* Relationship matrices now carry their scale: `gl.grm()` output is tagged
-  `attr(, "scale") = "relatedness"` (`gl.run.EMIBD9()` and `gl.kin()`
-  already tag `"kinship"`). The kinship series (`gl.report.kin*`,
-  `gl.report.ind.*`, `gl.select.pairs`, ...) halves a `kin` tagged
-  `"relatedness"`, so passing `gl.grm()` output gives the same results as
-  `gl.kin()`; previously it was used as kinship, twice too large. A
-  matrix with any other tag is an error; untagged matrices are still
-  taken as kinship. `gl.grm()` documentation corrected: the diagonal can
-  be below 1, and the off-diagonal mean is `-mean(diag)/(n - 1)` with `n`
-  individuals, not loci.
-
-* `gl.grm.network(standardise = TRUE)` now follows Goudet et al. (2018):
-  kinship relative to the average pair, `(theta - mean) / (1 - mean)`.
-  It subtracted the mean inbreeding coefficient from every kinship, so
-  after call-rate filtering parent-offspring pairs came out near 0.1
-  instead of 0.25. Standardised kinship values, categories and the links
-  drawn above `kinship.threshold` change.
-* `gl.kin()`: `method = "grm"` (the SNP default) now returns `G / 2`.
-  It returned `G / 2 - mean(diag(G) - 1)` off the diagonal, which shifted
-  every pairwise kinship by the mean inbreeding of the sample; after
-  call-rate filtering, parent-offspring pairs came out near 0.1 instead of
-  0.25. `method = "emibd9"` no longer halves EMIBD9 kinship (it returned
-  half the kinship and a diagonal of 0.25) and has a new `emibd9.path`
-  argument. All kinship-series results computed from `gl.kin()` change
-  accordingly. The output carries `attr(, "scale") = "kinship"`, a warning
-  reports pairs above 0.5 (possible duplicates), and the verbose summary
-  prints mean pairwise kinship instead of a gene diversity that is about 1
-  by construction. dartR.data (>= 1.2.5) is now required, for
-  `testset2.gl` in the examples.
-* `gl.diagnostics.relatedness()`: accuracy statistics are now computed
-  against the exact pedigree kinship of each pair (new column `rel`;
-  inbreeding included), with one relationship class per pair
-  (`RelDegree`, including a new "unrelated" class). Previously pairs
-  below 0.05 were discarded before any summary, founders in an attached
-  pedigree were labelled half siblings, some pairs were counted under
-  two relationships, and "RMSE" was the mean absolute error. RMSE and
-  variance values change. `run_sim = TRUE` now works without supplying
-  variable files (dartR.sim's defaults are used). SilicoDArT input now
-  errors.
+* `gl.grm.network()`:
+  * Kinship is computed as G / 2 when `standardise = FALSE` (default);
+    relatedness values were treated as kinship, so thresholds and
+    categories were off by a factor of two. A `G` tagged
+    `attr(G, "scale") = "kinship"` (as returned by `gl.run.EMIBD9()`) is
+    used without halving.
+  * `standardise = TRUE` follows Goudet et al. (2018): kinship relative to
+    the average pair, `(theta - mean) / (1 - mean)`. It subtracted the mean
+    inbreeding coefficient from every kinship, so after call-rate filtering
+    parent-offspring pairs came out near 0.1 instead of 0.25.
+  * Fixed crashes when exactly one pair cleared `kinship.threshold`, and
+    when `categorise = TRUE` was combined with a `kinship.threshold` below
+    0.1 (the undocumented "First Cousins" category is removed). An
+    individual related to two or more others is plotted once instead of
+    as overlapping duplicates. `categorise` colours follow the documented
+    order.
+  * `G` must match `indNames(x)`; an invalid `method` is an error. Returns a
+    named list (`plot`, `kinship`). Corrected the documented defaults of
+    `node.label.size` and `title`.
 
 * `gl.plot.network()`: new argument `type = c("similarity", "distance")`;
   with `type = "distance"` the closest pairs (lowest values) are drawn.
   Previously the largest values were always drawn, i.e. the most distant
-  pairs of a distance matrix; the default keeps the previous behaviour
-  for similarity matrices such as `gl.grm()`. Link widths now reflect
-  each drawn link's own value (they were taken from other pairs).
-  `x = NULL` works as documented. D is checked against `indNames(x)`; an
-  invalid `method` errors. Returns the drawn igraph network invisibly
-  (was NULL). Much faster for many individuals.
+  pairs of a distance matrix; the default keeps the previous behaviour for
+  similarity matrices such as `gl.grm()`. Link widths reflect each drawn
+  link's own value (they were taken from other pairs). `x = NULL` works as
+  documented, D is checked against `indNames(x)`, and an invalid `method`
+  is an error. Returns the drawn igraph network invisibly (was NULL). Much
+  faster for many individuals.
+
 * `gl.sim.relatedness()`: `rel = "full.sib"` returned the average
   parent-offspring kinship; it now simulates two full siblings. The
-  reported interval was the confidence interval of the mean; it is now
-  the range holding the central `conf` proportion of simulated kinship
-  values, with the CI of the mean returned separately. The function now
-  returns a list (`values`, `mean`, `interval`, `ci.mean`, `plot`)
-  instead of printing, no longer requires the `related` package, and
-  runs EMIBD9 quietly without per-replicate heatmaps.
+  reported interval was the confidence interval of the mean; it is now the
+  range holding the central `conf` proportion of simulated kinship values,
+  with the CI of the mean returned separately. Returns a list (`values`,
+  `mean`, `interval`, `ci.mean`, `plot`) instead of printing, no longer
+  requires the `related` package, and runs EMIBD9 quietly.
+
+* `gl.report.parent.offspring()`: pairs are assessed on the proportion of
+  pedigree-inconsistent loci among loci genotyped in both individuals (new
+  columns `n.loci` and `prop`), so individuals with much missing data are
+  no longer flagged as relatives of many others. p-values were computed on
+  the wrong scale and are now `pnorm(zscore)` (larger than before). `range`
+  below 1.5 flags more pairs, as documented. SilicoDArT input is an error.
+  Faster on large data sets; nothing printed at `verbose = 0`.
 
 * `gl.filter.parent.offspring()`: `method = "best"` removed the member of
-  each pair with fewer missing genotypes (counts compared as text); it
-  now keeps the better-genotyped individual, as documented. Pairs now
-  come from `gl.report.parent.offspring()`, so the filter uses the same
-  proportion-based pairs, `range` is honoured by both methods (and
-  `range = 3` no longer errors), and SilicoDArT input errors.
-  Individuals in several pairs are removed first, so fewer individuals
-  are removed. One history entry per call; an unknown `method` errors.
+  each pair with fewer missing genotypes (counts compared as text); it now
+  keeps the better-genotyped individual, as documented. Pairs come from
+  `gl.report.parent.offspring()`, `range` is honoured by both methods (and
+  `range = 3` no longer errors), and SilicoDArT input is an error.
+  Individuals in several pairs are removed first, so fewer individuals are
+  removed. One history entry per call; an unknown `method` is an error.
 
-* `gl.report.parent.offspring()`: pairs are now assessed on the
-  proportion of pedigree-inconsistent loci among loci genotyped in both
-  individuals (new columns `n.loci` and `prop`), so individuals with much
-  missing data are no longer flagged as relatives of many others.
-  p-values were computed on the wrong scale and are now
-  `pnorm(zscore)` (larger than before). `range` below 1.5 now flags more
-  pairs, as documented. SilicoDArT input now errors. Faster on large
-  datasets; nothing printed at `verbose = 0`.
-* `gl.run.EMIBD9()`: a run in which EMIBD9 fails now stops with EMIBD9's
-  message; previously the results of the previous call in the same
-  session could be returned. `OutAlleleFre = TRUE` no longer crashes
-  EMIBD9. `raw` and `processed` columns are numeric (were character).
-  SilicoDArT input now errors. `rel` is documented as the kinship
-  coefficient (it always was) and carries `attr(rel, "scale") =
-  "kinship"`. Building the input file is faster for large numbers of
-  loci. EMIBD9's console output prints only at `verbose >= 2`.
+* `gl.run.EMIBD9()`: a run in which EMIBD9 fails stops with EMIBD9's
+  message; previously the results of the previous call in the same session
+  could be returned. `OutAlleleFre = TRUE` no longer crashes EMIBD9. `raw`
+  and `processed` columns are numeric (were character). SilicoDArT input is
+  an error. `rel` is documented as the kinship coefficient (it always was)
+  and carries `attr(rel, "scale") = "kinship"`. Building the input file is
+  faster for many loci, and EMIBD9's console output prints only at
+  `verbose >= 2`.
 
-* `gl.grm.network()`: a `G` tagged `attr(G, "scale") = "kinship"` (as
-  returned by `gl.run.EMIBD9()`) is used as kinship without halving.
-  Since the previous change EMIBD9 kinship was halved, because EMIBD9's
-  `r(1,2)` is kinship, not relatedness.
-* `gl.run.colony()`: COLONY's output files are now written to `outpath`
-  instead of the R working directory, and the function returns
+* `gl.run.colony()`: COLONY's output files are written to `outpath` instead
+  of the R working directory, and the function returns
   `list(files, best.config)`, where `best.config` is the COLONY best
-  configuration as a data frame (previously it returned `outpath`). The
-  default `outpath = NULL` now works, paths with spaces are supported,
-  and a run in which COLONY rejects its input now stops with COLONY's
-  error message instead of returning normally. COLONY's console output
-  prints only at `verbose >= 2`. Individual names longer than COLONY's
-  20-character limit or containing spaces are replaced by short IDs for
-  the run and restored in `best.config`.
-
-* `gl.grm.network()`: kinship is now computed as G / 2 when
-  `standardise = FALSE` (default); previously relatedness values were
-  treated as kinship, so thresholds and categories were off by a factor
-  of two. `categorise` colours now follow the documented order. `G` must
-  match `indNames(x)`; an invalid `method` now errors. The return value
-  is a named list (`plot`, `kinship`).
+  configuration as a data frame (it returned `outpath`). The default
+  `outpath = NULL` works, paths with spaces are supported, and a run in
+  which COLONY rejects its input stops with COLONY's error message.
+  COLONY's console output prints only at `verbose >= 2`. Individual names
+  longer than COLONY's 20-character limit or containing spaces are replaced
+  by short IDs for the run and restored in `best.config`.
 
 * `gl2colony()`: stops with an error, instead of writing a file COLONY
   rejects or misreads, when individual names contain whitespace, the data
@@ -388,73 +222,24 @@
   known/excluded count is non-zero. A missing offspring/mother/father
   column no longer resets the other two; column names and values are
   matched ignoring case. A single `allelic.dropout`/`other.typ.err` value
-  without `@` now applies to all loci. Progress messages follow
-  `verbose`.
+  without `@` applies to all loci. Progress messages follow `verbose`.
 
-* `gl.assign.pca()` moved out of dartR.captive: the successor in
-  dartR.popgen is the newer revision (April 2026 bug fixes and CL
-  ellipse documentation caveats); the copy here had diverged and its
-  only post-divergence change was a commented-out example line.
+* `gl.assign.grm()`: errors clearly when `pop(x)` is `NULL` and on duplicate
+  individual names (two individuals were folded into population
+  'unknown'). The documentation now describes the actual output, a named
+  numeric vector of mean pairwise relatedness scores, not assignment
+  probabilities. Prints a summary at `verbose >= 3` and a completion
+  message at `verbose >= 1`.
 
-* `gl.assign.pa()` moved out of dartR.captive: the reviewed successor
-  lives in dartR.popgen (arriving with the assignment-suite
-  migration).
+### Moved and removed functions
 
-* `gl.assign.on.genotype()` moved out of dartR.captive: the reviewed
-  successor lives in dartR.popgen (arriving with the assignment-suite
-  migration).
-* `utils.assignment()`, `utils.assignment_2()`, `utils.assignment_3()`
-  and `utils.assignment_4()` REMOVED: four side-by-side revisions of
-  the same helper ("Population assignment probabilities", identical
-  signatures), all exported yet called by nothing anywhere in the
-  family - development history versioned by filename rather than git.
+* `gl.assign.pca()`, `gl.assign.pa()` and `gl.assign.on.genotype()` moved
+  to dartR.popgen, which has the reviewed versions.
 
-* `gl.assign.mahal()` and `gl.assign.mahalanobis()` REMOVED (family
-  consolidation): two side-by-side versions of the same function
-  (identical signatures and titles). The reviewed and corrected
-  `gl.assign.mahalanobis()` becomes the single implementation across
-  the verse, arriving with the assignment-suite migration to
-  dartR.popgen; dartR.base's `gl.mahal.assign()` is removed in the
-  companion PR. No callers existed in the family.
+* `gl.assign.mahal()` and `gl.assign.mahalanobis()` removed from
+  dartR.captive: two versions of the same function. The reviewed
+  `gl.assign.mahalanobis()` is in dartR.popgen.
 
-* `gl.grm()`: now errors on SilicoDArT (presence/absence) input instead of
-  silently returning a numerically meaningless matrix — the additive
-  relationship algorithm and the documented diagonal range (1 to 2) only
-  hold for SNP dosage data. Callers passing SilicoDArT data will need to
-  filter to SNP data before calling `gl.grm()`.
-* `gl.grm()`: fixed a crash (`object 'p3' not found`) when
-  `plotheatmap = FALSE` was combined with a non-`NULL` `plot.file`; that
-  combination now computes and returns the matrix and warns that nothing
-  was saved, since no plot is generated.
-* `gl.grm()`: corrected the documented default for `legendy` (was `1`,
-  actual default is `0.5`).
-* `gl.grm.network()`: fixed a crash (`` `breaks` and `labels` have
-  different lengths``) whenever exactly one pair of individuals cleared
-  `kinship.threshold` — previously the common case of confirming a single
-  suspected relationship never returned a plot.
-* `gl.grm.network()`: fixed a crash (`Insufficient values in manual
-  scale`) when `categorise = TRUE` was combined with a
-  `kinship.threshold` below `0.1`. The undocumented "First Cousins"
-  bucket this produced has been removed; `categorise = TRUE` now always
-  shows the 3 documented kinship categories, and pairs below `0.1` are
-  left uncategorised.
-* `gl.grm.network()`: an individual related (above `kinship.threshold`)
-  to 2 or more other individuals was plotted as a duplicate, overlapping
-  node; each individual is now plotted once.
-* `gl.grm.network()`: corrected the documented defaults for
-  `node.label.size` (was `3`, actual default is `2`) and `title` (was
-  `'Network of similarity matrix'`, actual default is `'Network of a
-  similarity matrix'`).
-* `gl.assign.grm()`: now errors clearly when `pop(x)` is `NULL`, instead of
-  failing deep inside `order()` with an opaque `argument 1 is not a
-  vector` error.
-* `gl.assign.grm()`: now errors on genlight objects with duplicate
-  individual names, instead of silently folding two different individuals
-  into population `'unknown'` and returning a numerically wrong result.
-* `gl.assign.grm()`: corrected `@description`/`@return` to describe the
-  function's actual output (a named numeric vector of mean pairwise
-  relatedness scores) — previously documented as returning assignment
-  probabilities in a `data.frame`, which the code never did.
-* `gl.assign.grm()`: now prints a results summary (best-matching
-  population) at `verbose >= 3` and a completion message at
-  `verbose >= 1`, matching the documented verbosity levels.
+* `utils.assignment()`, `utils.assignment_2()`, `utils.assignment_3()` and
+  `utils.assignment_4()` removed: four revisions of the same helper, called
+  by no function.
