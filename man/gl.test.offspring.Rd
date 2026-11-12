@@ -115,7 +115,11 @@ ranks the candidate parent pairs of each offspring.
 \strong{Modes.} In candidate mode (p1, p2 and off given) every
 combination of a parent from p1, a parent from p2 and an offspring from
 off is tested, excluding combinations in which the same individual
-(by name) appears twice. In exploratory mode (x given) each individual
+(by name) appears twice. If an individual is in both p1 and p2 (e.g.
+when sexes are unknown and p1 = p2), each unordered parent pair is tested
+once per offspring, because swapping the two parents gives identical
+results; such individuals must have identical genotypes in p1 and p2.
+In exploratory mode (x given) each individual
 is tested as offspring of each unordered pair of the remaining
 individuals, i.e. n(n - 1)(n - 2)/2 trios, which grows quickly with n.
 The three objects must contain the same SNPs; if all have locus names,
@@ -133,6 +137,10 @@ then follows a Poisson-binomial distribution, which gives the expected
 number of mismatches, an exact (1 - alpha) prediction interval and the
 p-value P(mismatches >= observed). Trios with p-value < alpha are
 excluded (reject_H0 = TRUE).
+
+The Poisson-binomial is evaluated only over the range of counts that
+carries probability (the tail beyond it is < 1e-15), with one FFT per
+trio, and trios are processed in vectorised batches.
 
 \strong{LOD.} The LOD score is the log10 ratio of the likelihood of the
 offspring genotypes given both observed parents to their likelihood as

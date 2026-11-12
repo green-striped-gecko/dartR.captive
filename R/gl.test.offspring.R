@@ -52,7 +52,11 @@
 #' \strong{Modes.} In candidate mode (p1, p2 and off given) every
 #' combination of a parent from p1, a parent from p2 and an offspring from
 #' off is tested, excluding combinations in which the same individual
-#' (by name) appears twice. In exploratory mode (x given) each individual
+#' (by name) appears twice. If an individual is in both p1 and p2 (e.g.
+#' when sexes are unknown and p1 = p2), each unordered parent pair is tested
+#' once per offspring, because swapping the two parents gives identical
+#' results; such individuals must have identical genotypes in p1 and p2.
+#' In exploratory mode (x given) each individual
 #' is tested as offspring of each unordered pair of the remaining
 #' individuals, i.e. n(n - 1)(n - 2)/2 trios, which grows quickly with n.
 #' The three objects must contain the same SNPs; if all have locus names,
@@ -70,6 +74,10 @@
 #' number of mismatches, an exact (1 - alpha) prediction interval and the
 #' p-value P(mismatches >= observed). Trios with p-value < alpha are
 #' excluded (reject_H0 = TRUE).
+#'
+#' The Poisson-binomial is evaluated only over the range of counts that
+#' carries probability (the tail beyond it is < 1e-15), with one FFT per
+#' trio, and trios are processed in vectorised batches.
 #'
 #' \strong{LOD.} The LOD score is the log10 ratio of the likelihood of the
 #' offspring genotypes given both observed parents to their likelihood as
@@ -136,8 +144,7 @@
 #'
 #' @seealso \code{\link{gl.report.parent.offspring}},
 #' \code{\link{gl.filter.parent.offspring}}
-#' @importFrom poibin ppoibin qpoibin
-#' @importFrom stats setNames
+#' @importFrom stats setNames ave mvfft nextn
 #' @importFrom utils combn head
 #' @export
 
@@ -269,6 +276,27 @@ gl.test.offspring <- function(
       nm[[2]][cmb$j] != nm[[3]][cmb$k]
     cmb <- cmb[distinct, , drop = FALSE]
     if (!nrow(cmb)) stop('No distinct-individual trios')
+    # Individuals in both p1 and p2: the trios (A, B, off) and (B, A, off)
+    # give identical results (the model is symmetric in the two parents),
+    # so each unordered parent pair is tested only once.
+    shared <- intersect(nm[[1]], nm[[2]])
+    if (length(shared)) {
+      same.geno <- vapply(shared, function(s)
+        identical(G[[1]][match(s, nm[[1]]), ], G[[2]][match(s, nm[[2]]), ]),
+        logical(1))
+      if (!all(same.geno))
+        stop('Individuals with the same name in p1 and p2 have different ',
+             'genotypes: ', paste(head(shared[!same.geno], 5), collapse = ', '))
+      n1 <- nm[[1]][cmb$i]; n2 <- nm[[2]][cmb$j]
+      key <- paste(pmin(n1, n2), pmax(n1, n2), cmb$k, sep = '\r')
+      dup <- duplicated(key)
+      if (any(dup)) {
+        cmb <- cmb[!dup, , drop = FALSE]
+        if (verbose >= 2L)
+          message(sum(dup), ' trios with swapped parents (individuals in both ',
+                  'p1 and p2) removed; each parent pair is tested once')
+      }
+    }
   }
   if (verbose > 0) message('Testing ', nrow(cmb), ' trios at ', length(loci), ' SNPs')
   
@@ -279,21 +307,32 @@ gl.test.offspring <- function(
                 e^2, 2*e*(1-e), (1-e)^2), nrow = 3, byrow = TRUE)
   # Hardy-Weinberg prior probabilities for the true genotype.
   prior <- rbind((1-q)^2, 2*q*(1-q), q^2)
-  # Posterior(true genotype | observed genotype, allele frequency).
-  posterior <- function(obs) {
-    ans <- matrix(NA_real_, 3, length(obs))
-    for (g in 0:2) {
-      ix <- which(!is.na(obs) & obs == g)
-      if (length(ix)) {
-        z <- sweep(prior[, ix, drop = FALSE], 1, E[, g+1], '*')
-        ans[, ix] <- sweep(z, 2, colSums(z), '/')
-      }
-    }
-    ans
+
+  # Missing genotypes: work on 0-filled copies plus a 0/1 "typed" mask, so
+  # all trio calculations below are plain matrix arithmetic.
+  typed <- lapply(G, function(z) (!is.na(z)) * 1)
+  G0 <- lapply(G, function(z) { z[is.na(z)] <- 0; z })
+
+  # Posterior(true genotype | observed genotype, allele frequency) for every
+  # individual and SNP: a list of three matrices (true genotype 0, 1, 2),
+  # each individuals x SNPs.
+  posterior <- function(g0) {
+    n.ind <- nrow(g0)
+    w <- lapply(1:3, function(t)
+      matrix(E[t, g0 + 1], n.ind) * rep(prior[t, ], each = n.ind))
+    tot <- w[[1]] + w[[2]] + w[[3]]
+    lapply(w, function(z) z / tot)
   }
-  post <- lapply(G, function(z)
-    lapply(seq_len(nrow(z)), function(i) posterior(z[i, ])))
-  
+  post <- if (exploratory) rep(list(posterior(G0[[1]])), 3) else
+    lapply(G0, posterior)
+
+  # log10 P(observed offspring genotype | unrelated, HWE + error): LOD
+  # denominator, individuals x SNPs (offspring object only).
+  null.obs <- t(E) %*% prior
+  log.null <- matrix(log10(null.obs[cbind(as.vector(G0[[3]]) + 1,
+                                          rep(seq_len(L), each = nrow(G0[[3]])))]),
+                     nrow(G0[[3]]))
+
   # Mendelian true-offspring probabilities for each true-parent pair.
   T <- array(0, c(3, 3, 3))
   incompatible <- array(FALSE, c(3, 3, 3))
@@ -307,86 +346,106 @@ gl.test.offspring <- function(
   offspring.obs <- array(0, c(3, 3, 3))
   for (a in 1:3) for (b in 1:3)
     offspring.obs[a, b, ] <- as.vector(T[a, b, ] %*% E)
-  
-  results <- vector('list', nrow(cmb))
-  bad.loci <- if (return.loci) vector('list', nrow(cmb)) else NULL
-  for (t in seq_len(nrow(cmb))) {
-    i <- cmb$i[t]; j <- cmb$j[t]; k <- cmb$k[t]
-    a <- G[[1]][i, ]; b <- G[[2]][j, ]; o <- G[[3]][k, ]
-    keep <- which(!is.na(a) & !is.na(b) & !is.na(o))
-    n <- length(keep)
-    observed <- NA_integer_; exp.n <- NA_real_; pv <- NA_real_
-    lod <- NA_real_
-    pi.low <- NA_integer_; pi.high <- NA_integer_
-    if (return.loci) bad.loci[[t]] <- character(0)
-    if (n >= min.loci) {
-      aa <- as.integer(a[keep]) + 1L
-      bb <- as.integer(b[keep]) + 1L
-      oo <- as.integer(o[keep]) + 1L
-      bad <- incompatible[cbind(aa, bb, oo)]
-      observed <- sum(bad)
-      if (return.loci) bad.loci[[t]] <- loci[keep[bad]]
-      
-      # Predict offspring observations conditional on BOTH observed parents.
-      A <- post[[1]][[i]][, keep, drop = FALSE]
-      B <- post[[2]][[j]][, keep, drop = FALSE]
-      probs <- matrix(0, 3, n)
-      for (u in 1:3) for (v in 1:3)
-        probs <- probs +
-        matrix(A[u, ] * B[v, ], 3, n, byrow = TRUE) *
-        offspring.obs[u, v, ]
-      # Mismatch is defined relative to the OBSERVED parental genotypes.
-      pp <- numeric(n)
-      for (g in 1:3) {
-        ix <- which(incompatible[cbind(aa, bb, rep(g, n))])
-        if (length(ix)) pp[ix] <- pp[ix] + probs[g, ix]
-      }
-      pp <- pmin(pmax(pp, 0), 1)
-      # Trio likelihood / unrelated-offspring likelihood.
-      # Numerator: predictive probability of each observed offspring
-      # genotype conditional on both observed parental genotypes.
-      # Denominator: independent offspring with HWE prior at each SNP,
-      # subject to the same genotyping error matrix.
-      null.obs <- prior[, keep, drop = FALSE]
-      null.obs <- t(E) %*% null.obs
-      ix <- cbind(oo, seq_len(n))
-      numerator <- probs[ix]
-      denominator <- null.obs[ix]
-      if (any(numerator <= 0 | denominator <= 0)) {
-        lod <- NA_real_
-      } else {
-        lod <- sum(log10(numerator) - log10(denominator))
-      }
-      exp.n <- sum(pp)
-      # Equal-tailed exact Poisson-binomial prediction interval.
-      pi.bounds <- poibin::qpoibin(c(alpha / 2, 1 - alpha / 2),
-                                   pp = pp)
-      pi.low <- as.integer(pi.bounds[1])
-      pi.high <- as.integer(pi.bounds[2])
-      pv <- if (observed == 0) 1 else
-        1 - poibin::ppoibin(observed - 1L, pp = pp)
-      pv <- min(1, max(0, pv))
+  # Incompatibility as a 9 x 3 table: row = 3 * parent1 + parent2 + 1.
+  inc9 <- matrix(0, 9, 3)
+  for (a in 0:2) for (b in 0:2) inc9[3 * a + b + 1, ] <- incompatible[a+1, b+1, ]
+
+  # Trios are processed in batches: each batch is a set of
+  # batch x SNP matrices, so the work is vectorised over trios and SNPs.
+  ntrio <- nrow(cmb)
+  batch <- max(1L, floor(1e6 / L))   # ~8 MB per batch matrix
+  n.loci <- observed <- pi.low <- pi.high <- rep(NA_integer_, ntrio)
+  exp.n <- pv <- lod <- rep(NA_real_, ntrio)
+  bad.loci <- if (return.loci) vector('list', ntrio) else NULL
+
+  for (b0 in seq(1L, ntrio, by = batch)) {
+    rr <- b0:min(ntrio, b0 + batch - 1L)
+    i <- cmb$i[rr]; j <- cmb$j[rr]; k <- cmb$k[rr]
+    keep <- typed[[1]][i, , drop = FALSE] * typed[[2]][j, , drop = FALSE] *
+      typed[[3]][k, , drop = FALSE]
+    nk <- as.integer(rowSums(keep))
+    n.loci[rr] <- nk
+    ok <- nk >= min.loci
+    if (!any(ok)) next
+    rr <- rr[ok]; i <- i[ok]; j <- j[ok]; k <- k[ok]
+    keep <- keep[ok, , drop = FALSE]
+
+    ga <- G0[[1]][i, , drop = FALSE]
+    gb <- G0[[2]][j, , drop = FALSE]
+    go <- G0[[3]][k, , drop = FALSE]
+    ab <- 3 * ga + gb + 1                 # observed parental combination
+    nb <- nrow(ga)
+
+    # Observed Mendelian mismatches.
+    bad <- (matrix(inc9[cbind(as.vector(ab), as.vector(go) + 1)], nb) == 1) &
+      keep == 1
+    observed[rr] <- as.integer(rowSums(bad))
+    if (return.loci)
+      bad.loci[rr] <- lapply(seq_len(nb), function(z) loci[bad[z, ]])
+
+    # P(observed offspring genotype g | observed parents, H0), g = 0, 1, 2.
+    A <- lapply(post[[1]], function(z) z[i, , drop = FALSE])
+    B <- lapply(post[[2]], function(z) z[j, , drop = FALSE])
+    probs <- list(0, 0, 0)
+    for (u in 1:3) for (v in 1:3) {
+      AB <- A[[u]] * B[[v]]
+      for (g in 1:3) probs[[g]] <- probs[[g]] + AB * offspring.obs[u, v, g]
     }
-    results[[t]] <- data.frame(
-      test_id = t, offspring = nm[[3]][k], parent1 = nm[[1]][i],
-      parent2 = nm[[2]][j], loci = n,
-      observed_mismatches = observed, expected_mismatches = exp.n,
-      prediction_lower = pi.low, prediction_upper = pi.high,
-      expected_mismatch_rate = if (n >= min.loci) exp.n / n else NA_real_,
-      p_value = pv, LOD = lod,
-      reject_H0 = if (is.na(pv)) NA else pv < alpha)
+    # Per-SNP probability of a mismatch (relative to the OBSERVED parental
+    # genotypes); 0 at SNPs not typed in all three.
+    pp <- 0
+    for (g in 1:3) pp <- pp + probs[[g]] * matrix(inc9[as.vector(ab), g], nb)
+    pp <- pmin(pmax(pp * keep, 0), 1)
+    exp.n[rr] <- rowSums(pp)
+
+    # LOD: trio likelihood / unrelated-offspring likelihood.
+    num <- (go == 0) * probs[[1]] + (go == 1) * probs[[2]] + (go == 2) * probs[[3]]
+    zero <- rowSums(keep == 1 & num <= 0) > 0
+    num[keep == 0] <- 1
+    lb <- rowSums(log10(num)) -
+      rowSums(log.null[k, , drop = FALSE] * keep)
+    lb[zero] <- NA_real_
+    lod[rr] <- lb
+
+    # Poisson-binomial distribution of the number of mismatches.
+    pmf <- .pb_pmf(pp)
+    cdf <- apply(pmf, 2, cumsum)
+    if (is.null(dim(cdf))) cdf <- matrix(cdf, nrow = 1)
+    M <- nrow(cdf)
+    qlow <- alpha / 2; qhigh <- 1 - alpha / 2
+    # Smallest count with cdf >= quantile (same convention as poibin::qpoibin).
+    pi.low[rr]  <- as.integer(colSums(cdf < qlow))
+    pi.high[rr] <- as.integer(colSums(cdf < qhigh))
+    obs <- observed[rr]
+    pvb <- rep(0, nb)                     # beyond the computed range: < 1e-15
+    in.range <- obs <= M
+    pvb[obs == 0] <- 1
+    idx <- which(in.range & obs > 0)
+    if (length(idx)) pvb[idx] <- 1 - cdf[cbind(obs[idx], idx)]
+    pv[rr] <- pmin(1, pmax(0, pvb))
   }
-  out <- do.call(rbind, results)
+
+  out <- data.frame(
+    test_id = seq_len(ntrio), offspring = nm[[3]][cmb$k],
+    parent1 = nm[[1]][cmb$i], parent2 = nm[[2]][cmb$j], loci = n.loci,
+    observed_mismatches = observed, expected_mismatches = exp.n,
+    prediction_lower = pi.low, prediction_upper = pi.high,
+    expected_mismatch_rate = exp.n / ifelse(n.loci >= min.loci, n.loci, NA),
+    p_value = pv, LOD = lod,
+    reject_H0 = pv < alpha, stringsAsFactors = FALSE)
   rownames(out) <- NULL
   # Best trio for each offspring has delta_LOD = 0.
   # Lower-ranked trios have negative delta_LOD.
+  fin <- is.finite(out$LOD)
   out$delta_LOD <- NA_real_
-  for (offspring_id in unique(out$offspring)) {
-    ii <- which(out$offspring == offspring_id & is.finite(out$LOD))
-    if (length(ii)) out$delta_LOD[ii] <- out$LOD[ii] - max(out$LOD[ii])
+  if (any(fin))
+    out$delta_LOD[fin] <- out$LOD[fin] -
+    ave(out$LOD[fin], out$offspring[fin], FUN = max)
+  if (return.loci) {
+    bad.loci <- lapply(bad.loci, function(z) if (is.null(z)) character(0) else z)
+    names(bad.loci) <- paste0('test_', out$test_id)
   }
-  if (return.loci) names(bad.loci) <- paste0('test_', out$test_id)
-  
+
   # Display only the most promising trios per offspring by default.
   # The full, unfiltered table is always returned in $results.
   valid <- out[!is.na(out$p_value), , drop = FALSE]
@@ -500,26 +559,20 @@ gl.test.offspring <- function(
   if (nrow(heat.df)) {
     # Canonicalise parental pair labels, so swapped parents share a column.
     # If both orientations exist, display the best-LOD orientation.
-    heat.df$pair <- vapply(seq_len(nrow(heat.df)), function(i)
-      paste(sort(c(as.character(heat.df$parent1[i]),
-                   as.character(heat.df$parent2[i]))),
-            collapse = " x "), character(1))
+    par1 <- as.character(heat.df$parent1)
+    par2 <- as.character(heat.df$parent2)
+    heat.df$pair <- paste(pmin(par1, par2), pmax(par1, par2), sep = " x ")
     heat.df <- heat.df[order(-heat.df$LOD), , drop = FALSE]
     heat.df <- heat.df[!duplicated(
-      paste(heat.df$offspring, heat.df$pair, sep = "\\r")), , drop = FALSE]
+      paste(heat.df$offspring, heat.df$pair, sep = "\r")), , drop = FALSE]
     heat.df$not.excluded <- !heat.df$reject_H0
-    heat.df$best <- FALSE
-    for (kid in unique(heat.df$offspring)) {
-      ii <- which(heat.df$offspring == kid)
-      heat.df$best[ii[which.max(heat.df$LOD[ii])]] <- TRUE
-    }
+    # Rows are sorted by LOD, so the first row of each offspring is its best.
+    heat.df$best <- !duplicated(heat.df$offspring)
     # Most promising pairs first: number of non-excluded offspring,
-    # then maximum LOD, then lower observed mismatches.
+    # then maximum LOD.
     pair.names <- unique(heat.df$pair)
-    pair.score <- vapply(pair.names, function(nm)
-      sum(heat.df$not.excluded[heat.df$pair == nm]), numeric(1))
-    pair.lod <- vapply(pair.names, function(nm)
-      max(heat.df$LOD[heat.df$pair == nm]), numeric(1))
+    pair.score <- tapply(heat.df$not.excluded, heat.df$pair, sum)[pair.names]
+    pair.lod <- tapply(heat.df$LOD, heat.df$pair, max)[pair.names]
     pair.names <- pair.names[order(-pair.score, -pair.lod)]
     heat.df$pair <- factor(heat.df$pair, levels = pair.names)
     heat.df$offspring <- factor(heat.df$offspring,
@@ -587,4 +640,58 @@ gl.test.offspring <- function(
                        mode = if (exploratory) 'exploratory' else 'candidate',
                        min.loci = min.loci, n.tests = nrow(cmb)),
        plot.info = plot.info)
+}
+
+# Internal: Poisson-binomial probability mass functions for many trios.
+# pp: trios x SNPs matrix of per-SNP success probabilities (0 = not used).
+# Returns an M x trios matrix: P(X = 0), ..., P(X = M - 1). M is chosen so
+# the probability of more than M - 1 successes is below 1e-15 for every
+# trio, so only the useful part of the distribution is computed, instead of
+# all n + 1 values. Exact up to floating-point error (checked against
+# poibin::dpoibin).
+# Method: characteristic function at M points on the unit circle, then one
+# FFT. For SNPs with p <= 0.1, log(1 + p(z - 1)) is summed through its
+# power series, so only the power sums S_k = sum(p^k) are needed (k <= 24,
+# truncation error < 1e-17 per SNP). The rare SNPs with p > 0.1 are added
+# directly.
+.pb_pmf <- function(pp, tol = 1e-15, small = 0.1, nterm = 24L) {
+  if (is.null(dim(pp))) pp <- matrix(pp, nrow = 1)
+  nb <- nrow(pp)
+  mu <- rowSums(pp)
+  ntot <- rowSums(pp > 0)
+  # Chernoff bound for sums of Bernoullis: P(X >= k) <= exp(-mu) (e mu / k)^k
+  kcut <- pmax(ceiling(mu) + 1, 5)
+  repeat {
+    lb <- -mu + kcut * (1 + log(pmax(mu, 1e-300)) - log(kcut))
+    more <- lb > log(tol) & kcut < ntot
+    if (!any(more)) break
+    kcut[more] <- ceiling(kcut[more] * 1.15) + 1
+  }
+  kcut <- pmin(kcut, ntot)
+  M <- stats::nextn(max(kcut) + 1L)
+  zm1 <- exp(2i * pi * (0:(M - 1)) / M) - 1
+
+  big <- pp > small
+  ps <- pp
+  ps[big] <- 0
+  # Power sums S_k for the small-p SNPs, trios x nterm
+  S <- matrix(0, nb, nterm)
+  pk <- ps
+  for (k in seq_len(nterm)) {
+    S[, k] <- rowSums(pk)
+    if (k < nterm) pk <- pk * ps
+  }
+  coef <- outer(seq_len(nterm), zm1,
+                function(k, z) (-1)^(k + 1) * z^k / k)
+  logphi <- S %*% coef                       # trios x M
+  # Large-p SNPs, added directly
+  if (any(big)) {
+    for (r in which(rowSums(big) > 0)) {
+      p <- pp[r, big[r, ]]
+      logphi[r, ] <- logphi[r, ] + colSums(log(1 + outer(p, zm1)))
+    }
+  }
+  pmf <- Re(stats::mvfft(t(exp(logphi)))) / M  # M x trios
+  pmf[pmf < 0] <- 0
+  pmf
 }
