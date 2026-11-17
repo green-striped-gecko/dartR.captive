@@ -19,11 +19,9 @@
   stops above `getOption("dartR_fbm_max_decode_gb", 4)` Gb. Gen-backed
   objects are unchanged.
 
-# dartR.captive NEWS
+# dartR.captive 1.2.7
 
-## dartR.captive 1.2.7
-
-### New functions
+## New functions
 
 * New `gl.test.offspring()` tests whether two candidate parents can be the
   parents of an offspring. For each trio the number of Mendelian-incompatible
@@ -74,7 +72,7 @@
   +0.018 on 30 platypus), while `lynchrd`, `ritland` and `quellergt` match
   it.
 
-### Changes and bug fixes
+## Changes and bug fixes
 
 * History: functions called through `do.call(fun, list(x = gl, ...))` no
   longer store the whole input object in `@other$history` (the calls are
@@ -252,7 +250,7 @@
   probabilities. Prints a summary at `verbose >= 3` and a completion
   message at `verbose >= 1`.
 
-### Moved and removed functions
+## Moved and removed functions
 
 * `gl.assign.pca()`, `gl.assign.pa()` and `gl.assign.on.genotype()` moved
   to dartR.popgen, which has the reviewed versions.
