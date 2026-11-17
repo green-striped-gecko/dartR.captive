@@ -146,7 +146,7 @@ gl.filter.parent.offspring <- function(x,
         if (method == "best") "based on call rate\n" else "at random\n"
       ))
     }
-    fbm <- .fbm_or_null(hold)
+    fbm <- if (dartR.base::utils.fbm.has(hold)) hold@fbm else NULL
     missing.count <- function(ind) {
       i <- which(indNames(hold) == ind)[1]
       if (is.null(fbm)) {

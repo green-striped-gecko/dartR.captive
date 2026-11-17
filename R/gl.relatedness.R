@@ -82,6 +82,14 @@
 #' \code{quellergt} does (-0.009 at 120 individuals); for full sibs all give
 #' 0.57-0.58.
 #'
+#' File-backed (FBM) objects: the algorithm needs the whole genotype
+#' matrix in memory. It is decoded with a message stating the memory
+#' needed (verbose >= 2); above
+#' \code{getOption("dartR_fbm_max_decode_gb", 4)} Gb the function stops
+#' with an error instead of exhausting memory (raise the limit with
+#' \code{options(dartR_fbm_max_decode_gb = ...)} if enough memory is
+#' available). See \code{dartR.base::utils.fbm.decode}.
+#'
 #' @return Invisibly, a named list: one symmetric individual x individual matrix
 #' per requested dyad estimator (e.g. \code{$wang}; rownames/colnames =
 #' \code{indNames(x)}, diagonal NA, \code{attr(, "scale") = "relatedness"}); a
@@ -190,8 +198,11 @@ gl.relatedness <- function(x,
   if (n.boots > 0) {
     n0.loc <- nLoc(x); n0.ind <- nInd(x)
     x <- gl.filter.monomorphs(x, verbose = 0)
-    am <- as.matrix(x)
-    keep.ind <- rowSums(!is.na(am)) > 0
+    # called loci per individual, counted over blocks of loci
+    # (dartR.base::utils.fbm.rowwise): no whole-matrix decode for this check
+    keep.ind <- dartR.base::utils.fbm.rowwise(x, function(m) {
+      rowSums(!is.na(m))
+    }) > 0
     if (!all(keep.ind)) x <- x[keep.ind, ]
     d.loc <- n0.loc - nLoc(x); d.ind <- n0.ind - nInd(x)
     if ((d.loc > 0 || d.ind > 0) && verbose >= 1)
@@ -201,7 +212,11 @@ gl.relatedness <- function(x,
   }
 
   # PREPARE DOSAGE + RUN ENGINE --------------------------------------
-  snp <- as.matrix(x)
+  # The engine needs the whole integer matrix. For a file-backed object
+  # dartR.base::utils.fbm.decode states the memory (4 bytes per genotype)
+  # and stops above getOption("dartR_fbm_max_decode_gb")
+  snp <- dartR.base::utils.fbm.decode(x, what = "gl.relatedness", bytes = 4,
+                                      verbose = verbose)
   storage.mode(snp) <- "integer"
   nd <- choose(nInd(x), 2)
   if (nd > .Machine$integer.max)

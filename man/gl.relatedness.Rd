@@ -123,6 +123,14 @@ the same simulations neither implementation of \code{wang} or
 \code{lynchli} recovers r = 0 for unrelated pairs (both about -0.16), while
 \code{quellergt} does (-0.009 at 120 individuals); for full sibs all give
 0.57-0.58.
+
+File-backed (FBM) objects: the algorithm needs the whole genotype
+matrix in memory. It is decoded with a message stating the memory
+needed (verbose >= 2); above
+\code{getOption("dartR_fbm_max_decode_gb", 4)} Gb the function stops
+with an error instead of exhausting memory (raise the limit with
+\code{options(dartR_fbm_max_decode_gb = ...)} if enough memory is
+available). See \code{dartR.base::utils.fbm.decode}.
 }
 \examples{
 \dontrun{
