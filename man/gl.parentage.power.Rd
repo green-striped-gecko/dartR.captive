@@ -151,6 +151,14 @@ is among the assigned candidates; correct.unique, the assigned candidates
 are exactly the two true parents; false.rate, the proportion of offspring
 assigned at least one non-parent (an assignment error rate, not a
 per-comparison rate).
+
+File-backed (FBM) objects: the algorithm needs the whole genotype
+matrix in memory. It is decoded with a message stating the memory
+needed (verbose >= 2); above
+\code{getOption("dartR_fbm_max_decode_gb", 4)} Gb the function stops
+with an error instead of exhausting memory (raise the limit with
+\code{options(dartR_fbm_max_decode_gb = ...)} if enough memory is
+available). See \code{dartR.base::utils.fbm.decode}.
 }
 \examples{
 # A single breeding population from the example set.

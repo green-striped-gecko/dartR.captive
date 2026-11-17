@@ -180,17 +180,29 @@ gl.report.errorrate <- function(x,
     cat(report("  Comparing", nrow(pairs), "replicate pairs\n"))
 
   # ---------------------------------------------------------------- tables
-  gmat <- as.matrix(x)
-  tabs <- matrix(0, nrow(pairs), 9)   # counts of (g1, g2), g1 * 3 + g2 + 1
-  n.loci <- n.miss <- integer(nrow(pairs))
-  for (r in seq_len(nrow(pairs))) {
-    g1 <- gmat[pairs$i1[r], ]
-    g2 <- gmat[pairs$i2[r], ]
-    both <- !is.na(g1) & !is.na(g2)
-    tabs[r, ] <- tabulate(g1[both] * 3 + g2[both] + 1, nbins = 9)
-    n.loci[r] <- sum(both)
-    n.miss[r] <- sum(xor(is.na(g1), is.na(g2)))
-  }
+  # Only the replicates' rows are read, in blocks of loci
+  # (dartR.base::utils.fbm.colblocks), and the counts of each block are
+  # added: a file-backed object is never decoded as a whole, and the counts
+  # (whole numbers) are identical for any block size and storage type.
+  rows <- sort(unique(c(pairs$i1, pairs$i2)))
+  r1 <- match(pairs$i1, rows)
+  r2 <- match(pairs$i2, rows)
+  blk <- dartR.base::utils.fbm.colblocks(x, function(gmat) {
+    tb <- matrix(0, nrow(pairs), 9)   # counts of (g1, g2), g1 * 3 + g2 + 1
+    nl <- nm <- integer(nrow(pairs))
+    for (r in seq_len(nrow(pairs))) {
+      g1 <- gmat[r1[r], ]
+      g2 <- gmat[r2[r], ]
+      both <- !is.na(g1) & !is.na(g2)
+      tb[r, ] <- tabulate(g1[both] * 3 + g2[both] + 1, nbins = 9)
+      nl[r] <- sum(both)
+      nm[r] <- sum(xor(is.na(g1), is.na(g2)))
+    }
+    list(tb, nl, nm)
+  }, rows = rows)
+  tabs <- Reduce(`+`, lapply(blk, `[[`, 1))
+  n.loci <- Reduce(`+`, lapply(blk, `[[`, 2))
+  n.miss <- Reduce(`+`, lapply(blk, `[[`, 3))
   # Order within a pair is arbitrary, so make each table symmetric
   sym <- function(v) { m <- matrix(v, 3, 3, byrow = TRUE); (m + t(m)) / 2 }
 

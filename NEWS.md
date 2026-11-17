@@ -7,6 +7,17 @@
   `return.imputed`) convert the object explicitly, with a warning stating
   the memory A.mat needs. Gen-backed objects are unchanged. Needs
   dartR.base >= 1.2.7.9000.
+* `gl.report.parent.offspring()` (pairwise counts of opposite homozygotes
+  and loci typed in both) and `gl.report.errorrate()` (only the
+  replicates' rows, counted per block) read file-backed objects in blocks
+  of loci; results identical for both storage types. The all-NA checks
+  before the analysis in `gl.relatedness()` (bootstrap pre-filter) and
+  `gl.diagnostics.relatedness()` count in blocks of loci as well.
+* `gl.relatedness()` and `gl.parentage.power()` need the whole genotype
+  matrix by design: for a file-backed object it is now decoded explicitly
+  through `dartR.base::utils.fbm.decode()`, which reports the memory and
+  stops above `getOption("dartR_fbm_max_decode_gb", 4)` Gb. Gen-backed
+  objects are unchanged.
 
 # dartR.captive NEWS
 

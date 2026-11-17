@@ -111,6 +111,14 @@
 #' assigned at least one non-parent (an assignment error rate, not a
 #' per-comparison rate).
 #'
+#' File-backed (FBM) objects: the algorithm needs the whole genotype
+#' matrix in memory. It is decoded with a message stating the memory
+#' needed (verbose >= 2); above
+#' \code{getOption("dartR_fbm_max_decode_gb", 4)} Gb the function stops
+#' with an error instead of exhausting memory (raise the limit with
+#' \code{options(dartR_fbm_max_decode_gb = ...)} if enough memory is
+#' available). See \code{dartR.base::utils.fbm.decode}.
+#'
 #' @author Custodian: Peter J. Unmack -- Post to
 #' \url{https://groups.google.com/d/forum/dartr}
 #'
@@ -174,8 +182,12 @@ gl.parentage.power <- function(x,
   }
 
   # Candidate dosage matrix: individuals x loci, values in {0, 1, 2}, NA allowed.
-  geno <- as.matrix(x)
-  n.cand <- nrow(geno)
+  # The simulation needs the whole matrix. For a file-backed object
+  # dartR.base::utils.fbm.decode states the memory and stops above
+  # getOption("dartR_fbm_max_decode_gb")
+  geno <- dartR.base::utils.fbm.decode(x, what = "gl.parentage.power",
+                                       bytes = 4, verbose = verbose)
+n.cand <- nrow(geno)
 
   # Rarefaction series of locus counts.
   if (is.null(n.loci.steps)) {
