@@ -30,7 +30,18 @@ utils.coancestry.exe <- function(coancestry.path) {
       "out.dir = tempdir())\n",
       "  then use coancestry.path = file.path(tempdir(), 'coancestry')\n")))
   }
-  normalizePath(file.path(coancestry.path, exe))
+  path <- file.path(coancestry.path, exe)
+  if (dir.exists(path)) {
+    stop(error(paste0("  '", path, "' is a folder, not the program ", exe,
+                      ".\n")))
+  }
+  # a copy made by hand can lose its permission to run
+  if (.Platform$OS.type != "windows" && file.access(path, 1) != 0) {
+    stop(error(paste0("  The program '", path, "' cannot be run. ",
+                      "Make it executable with:\n    chmod +x '", path,
+                      "'\n")))
+  }
+  normalizePath(path)
 }
 
 # Writes the genotype file. The matrix is written in blocks of loci, so the
@@ -56,6 +67,21 @@ utils.coancestry.write <- function(snp, file, block.loci = NULL) {
 # program, a column type other than i or d, or a table file whose size does not
 # match its rows and columns.
 utils.coancestry.read <- function(prefix) {
+  # the connection is closed even on an interrupt, so that on Windows the
+  # file is not left locked and its folder can be removed
+  read.cols <- function(bin, cols, n) {
+    con <- file(bin, "rb")
+    on.exit(close(con))
+    df <- list()
+    for (cl in cols) {
+      df[[cl[1]]] <- if (cl[2] == "i") {
+        readBin(con, "integer", n, size = 4L, endian = "little")
+      } else {
+        readBin(con, "double", n, size = 8L, endian = "little")
+      }
+    }
+    df
+  }
   man <- readLines(paste0(prefix, ".manifest"))
   if (!length(man) || !startsWith(man[1], "dartR_coancestry ")) {
     stop(error("  The results are not a dartR_coancestry manifest.\n"))
@@ -67,7 +93,8 @@ utils.coancestry.read <- function(prefix) {
     cols <- strsplit(strsplit(f[3], ",", fixed = TRUE)[[1]], ":", fixed = TRUE)
     types <- vapply(cols, `[`, "", 2L)
     if (length(f) != 3 || is.na(n) || anyNA(types) ||
-        !all(types %in% c("i", "d"))) {
+        !all(types %in% c("i", "d")) ||
+        anyDuplicated(vapply(cols, `[`, "", 1L))) {
       stop(error(paste0("  Unknown column type or malformed line in the ",
                         "results of dartR_coancestry: ", ln, "\n")))
     }
@@ -77,17 +104,8 @@ utils.coancestry.read <- function(prefix) {
       stop(error(paste0("  The results of dartR_coancestry are incomplete: ",
                         "table '", f[1], "' has the wrong size.\n")))
     }
-    con <- file(bin, "rb")
-    df <- list()
-    for (cl in cols) {
-      df[[cl[1]]] <- if (cl[2] == "i") {
-        readBin(con, "integer", n, size = 4L, endian = "little")
-      } else {
-        readBin(con, "double", n, size = 8L, endian = "little")
-      }
-    }
-    close(con)
-    out[[f[1]]] <- as.data.frame(df, stringsAsFactors = FALSE)
+    out[[f[1]]] <- as.data.frame(read.cols(bin, cols, n),
+                                 stringsAsFactors = FALSE)
   }
   out
 }
@@ -115,8 +133,13 @@ utils.coancestry.run <- function(snp,
   if (any(snp < 0L | snp > 2L, na.rm = TRUE)) {
     stop(error("  Genotypes must be 0, 1, 2 or NA.\n"))
   }
-  run.dir <- tempfile("coancestry_")
-  dir.create(run.dir)
+  # tempdir(check = TRUE) recreates the session's temporary folder if the
+  # system has removed it during a long session
+  run.dir <- tempfile("coancestry_", tmpdir = tempdir(check = TRUE))
+  if (!dir.create(run.dir)) {
+    stop(error(paste0("  Cannot create a temporary folder for ",
+                      "dartR_coancestry: ", run.dir, "\n")))
+  }
   old.wd <- setwd(run.dir)
   on.exit({
     setwd(old.wd)
@@ -140,7 +163,11 @@ utils.coancestry.run <- function(snp,
   }
   status <- proc$get_exit_status()
   if (!identical(status, 0L) || !file.exists("res.manifest")) {
-    log <- if (file.exists("log.txt")) readLines("log.txt", warn = FALSE)
+    # the last lines only: R cuts long error messages, which would hide the
+    # program's own error message at the end
+    log <- if (file.exists("log.txt")) {
+      utils::tail(readLines("log.txt", warn = FALSE), 20)
+    }
     stop(error(paste0("  The program dartR_coancestry failed (status ",
                       status, "):\n    ",
                       paste(log, collapse = "\n    "), "\n")))

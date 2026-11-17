@@ -41,6 +41,43 @@ test_that("a failure of the program is reported with its message", {
   expect_identical(getwd(), wd)          # working directory restored after the error
 })
 
+test_that("the program's last error line is reported even after a long log", {
+  skip_on_os("windows")
+  skip_if_not_installed("dartR.data")
+  d <- withr::local_tempdir()
+  fake <- file.path(d, "dartR_coancestry")
+  writeLines(c("#!/bin/sh", "seq 1 20000",
+               'echo "dartR_coancestry: error: boom-last" >&2', "exit 1"), fake)
+  Sys.chmod(fake, "755")
+  gl <- dartR.data::platypus.gl[1:10, 1:100]
+  expect_error(gl.relatedness(gl, estimators = "wang", plot.out = FALSE,
+                              coancestry.path = d, verbose = 0), "boom-last")
+})
+
+test_that("a folder or a file that cannot be run is not taken for the program", {
+  skip_on_os("windows")
+  d <- withr::local_tempdir()
+  dir.create(file.path(d, "dartR_coancestry"))
+  expect_error(utils.coancestry.exe(d), "is a folder")
+  d2 <- withr::local_tempdir()
+  writeLines("#!/bin/sh", file.path(d2, "dartR_coancestry"))
+  Sys.chmod(file.path(d2, "dartR_coancestry"), "644")
+  expect_error(utils.coancestry.exe(d2), "chmod")
+})
+
+test_that("no estimator, or a number beyond the integer range, is refused before the program runs", {
+  skip_if_not_installed("dartR.data")
+  gl <- dartR.data::platypus.gl[1:10, 1:100]
+  d <- withr::local_tempdir()           # no program here: the checks must come first
+  run <- function(...) gl.relatedness(gl, plot.out = FALSE, coancestry.path = d,
+                                      verbose = 0, ...)
+  expect_error(run(estimators = character(0)), "at least one estimator")
+  expect_error(run(estimators = "wang", rng.seed = 1e10), "rng.seed")
+  expect_error(run(estimators = "wang", n.boots = 3e9), "n.boots")
+  expect_error(run(estimators = "wang", n.threads = 3e9), "n.threads")
+  expect_error(run(estimators = "wang", num.trios = 3e9), "num.trios")
+})
+
 test_that("genotypes written in blocks of loci are the same bytes", {
   skip_if_not_installed("dartR.data")
   snp <- as.matrix(dartR.data::platypus.gl[1:12, 1:300])
@@ -79,6 +116,9 @@ test_that("results the reader does not fully understand are an error", {
   expect_error(run(fake(c("dartR_coancestry 0.2.0", "dyads\\t45\\tind1:i,ind2:i,wang:x"), 45 * 16)),
                "column type")
   expect_error(run(fake(c("dartR_coancestry 0.2.0", ok.line), 45 * 16 - 1)), "size")
+  # a column named twice would silently overwrite the first
+  expect_error(run(fake(c("dartR_coancestry 0.2.0", "dyads\\t45\\tind1:i,ind2:i,wang:d,wang:d"),
+                        45 * 24)), "malformed")
 })
 
 test_that("the program runs from a folder with a space; the working directory is restored", {

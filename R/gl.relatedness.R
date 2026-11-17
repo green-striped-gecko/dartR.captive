@@ -4,13 +4,14 @@
 #'
 #' @description
 #' Estimates pairwise relatedness (and optionally inbreeding) between individuals
-#' in a genlight object using Jinliang Wang's Coancestry estimators, translated to
-#' C++/Rcpp. Method-of-moments estimators (Wang, Lynch & Li, Lynch & Ritland,
+#' in a genlight object using Jinliang Wang's Coancestry estimators.
+#' Method-of-moments estimators (Wang, Lynch & Li, Lynch & Ritland,
 #' Ritland, Queller & Goodnight, Loiselle) and maximum-likelihood estimators
 #' (DyadML, TrioML), plus per-individual inbreeding, are available.
 #'
 #' The estimators are computed by the closed-source program
-#' \code{dartR_coancestry}, which must be downloaded separately (see Details).
+#' \code{dartR_coancestry}, a C++ translation of Coancestry, which must be
+#' downloaded separately (see Details).
 #'
 #' @param x Name of the genlight object containing the SNP data [required].
 #' @param estimators Character vector of estimators; any subset of \code{"wang"},
@@ -145,6 +146,9 @@ gl.relatedness <- function(x,
     stop(error("  gl.relatedness requires diploid SNP data (ploidy 2).\n"))
   valid.est <- c("wang", "lynchli", "lynchrd", "ritland", "quellergt",
                  "loiselle", "inbreeding", "dyadml", "trioml")
+  if (!is.character(estimators) || length(estimators) == 0)
+    stop(error("  Give at least one estimator. Valid: ",
+               paste(valid.est, collapse = ", "), "\n"))
   bad <- setdiff(estimators, valid.est)
   if (length(bad))
     stop(error("  Unknown estimator(s): ", paste(bad, collapse = ", "),
@@ -154,7 +158,9 @@ gl.relatedness <- function(x,
       "dyadml", "trioml"))
   # Scalar arguments are checked before the engine runs, so a long run is
   # never discarded on a typing error
-  is.num1 <- function(v) is.numeric(v) && length(v) == 1 && !is.na(v)
+  # the program takes 32-bit integers
+  is.num1 <- function(v) is.numeric(v) && length(v) == 1 && !is.na(v) &&
+    abs(v) <= .Machine$integer.max
   is.flag <- function(v) is.logical(v) && length(v) == 1 && !is.na(v)
   if (!is.num1(n.boots) || n.boots < 0)
     stop(error("  n.boots must be a single number >= 0.\n"))

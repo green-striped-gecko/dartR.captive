@@ -75,13 +75,14 @@ and/or ML inbreeding).
 }
 \description{
 Estimates pairwise relatedness (and optionally inbreeding) between individuals
-in a genlight object using Jinliang Wang's Coancestry estimators, translated to
-C++/Rcpp. Method-of-moments estimators (Wang, Lynch & Li, Lynch & Ritland,
+in a genlight object using Jinliang Wang's Coancestry estimators.
+Method-of-moments estimators (Wang, Lynch & Li, Lynch & Ritland,
 Ritland, Queller & Goodnight, Loiselle) and maximum-likelihood estimators
 (DyadML, TrioML), plus per-individual inbreeding, are available.
 
 The estimators are computed by the closed-source program
-\code{dartR_coancestry}, which must be downloaded separately (see Details).
+\code{dartR_coancestry}, a C++ translation of Coancestry, which must be
+downloaded separately (see Details).
 }
 \details{
 \code{as.matrix(x)} supplies the individual x locus alternate-allele dosage
