@@ -1,4 +1,4 @@
-# dartR.captive (dev_fbm)
+# dartR.captive 1.3.0
 
 * `gl.grm()` no longer decodes a file-backed object for rrBLUP::A.mat's
   default method: the matrix is computed in blocks of loci
