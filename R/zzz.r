@@ -35,15 +35,6 @@ code <- crayon::cyan
 # Fix error using . as placeholder 
 if(getRversion() >= "2.15.1") utils::globalVariables(c(".", "prop.retained"))
 
-## returns NULL if the 'fbm' slot is missing OR is NULL
-.fbm_or_null <- function(x) {
-  if (methods::.hasSlot(x, "fbm")) {
-    val <- methods::slot(x, "fbm")
-    return(if (is.null(val)) NULL else val)
-  }
-  NULL
-}
-
 .onLoad <- function(libname, pkgname) {
   # Only set a default if user hasn’t set it already
   if (is.null(getOption("dartR_fbm"))) {

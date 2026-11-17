@@ -49,10 +49,15 @@
 #'  Individual names are shown in the margins of the heatmap and colors
 #'  represent different populations.
 #'
-#'  This function densifies the genotype matrix (\code{as.matrix(x)}) before
-#'  calling \link[rrBLUP]{A.mat}, which requires a dense matrix. It is not
-#'  suited to full-size FBM-backed objects, where densification defeats the
-#'  memory savings FBM backing is meant to provide.
+#'  A file-backed (FBM) object is not decoded as a whole for A.mat's
+#'  default method (mean imputation, no shrinkage; \code{min.MAF} and
+#'  \code{max.missing} may be given): the matrix is computed in blocks of
+#'  loci (\code{dartR.base::utils.fbm.grm}) and agrees with
+#'  \link[rrBLUP]{A.mat} to about 1e-13. Other A.mat options
+#'  (\code{shrink}, \code{impute.method = "EM"}, \code{return.imputed})
+#'  need the whole matrix: the object is then converted to a genlight, with
+#'  a warning stating the memory A.mat uses (about four doubles per
+#'  genotype). Gen-backed objects use \link[rrBLUP]{A.mat} as before.
 #'
 #' @return A square genomic relationship matrix on the relatedness scale
 #' (diagonal 1+f, off-diagonal twice the kinship), with row and column names
@@ -154,7 +159,10 @@ gl.grm <- function(x,
   if (is.null(dots$min.MAF)) {
     dots$min.MAF <- 1 / (2 * nInd(x)) - 1e-10
   }
-  G <- do.call(rrBLUP::A.mat, c(list(as.matrix(x) - 1), dots))
+  # rrBLUP::A.mat for a gen-backed object; a file-backed object is read in
+  # blocks of loci for A.mat's default method, and converted explicitly
+  # (with a warning) only for other A.mat options
+  G <- dartR.base::utils.fbm.amat(x, dots, verbose = verbose)
   # diagonal 1 + F, off-diagonal ~2 x kinship; gl.grm.network reads this tag
   attr(G, "scale") <- "relatedness"
 

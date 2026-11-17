@@ -436,10 +436,15 @@ gl.diagnostics.relatedness <- function(
   }
   name.map <- stats::setNames(orig.names, safe.names)
 
-  am <- as.matrix(x)
-  keep.loc <- colSums(!is.na(am)) > 0
-  keep.ind <- rowSums(!is.na(am)) > 0
-  if (!all(keep.loc)) x <- x[, keep.loc]
+  # called genotypes per locus and per individual, counted over blocks of
+  # loci (dartR.base::utils.fbm.*): no whole-matrix decode for this check
+  keep.loc <- dartR.base::utils.fbm.colwise(x, function(m) {
+    colSums(!is.na(m))
+  }) > 0
+  keep.ind <- dartR.base::utils.fbm.rowwise(x, function(m) {
+    rowSums(!is.na(m))
+  }) > 0
+if (!all(keep.loc)) x <- x[, keep.loc]
   if (!all(keep.ind)) x <- x[keep.ind, ]
   if ((!all(keep.loc) || !all(keep.ind)) && verbose >= 1) {
     cat(warn(sprintf(

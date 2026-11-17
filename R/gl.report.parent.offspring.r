@@ -165,6 +165,21 @@ gl.report.parent.offspring <- function(x,
   # pairs at once with matrix products, and divided by the number of loci
   # typed in both individuals, so pairs with missing data are not flagged
   # merely because fewer loci could be compared.
+  if (dartR.base::utils.fbm.has(x)) {
+    # File-backed: the pairwise counts are added over blocks of loci read
+    # from the backing file (dartR.base::utils.fbm.pair.counts), so the
+    # genotype matrix is never decoded as a whole. Opposite homozygotes are
+    # the loci differing by two allele copies (n2), loci typed in both are
+    # L; both are whole numbers, so the lower triangle used below is
+    # identical to the cross-products (the upper triangle is not used).
+    n <- nInd(x)
+    pc <- dartR.base::utils.fbm.pair.counts(x)
+    lt <- lower.tri(matrix(0, n, n))
+    count.mat <- n.mat <- matrix(0, n, n)
+    count.mat[lt] <- as.numeric(pc$n2)
+    n.mat[lt] <- as.numeric(pc$L)
+    rm(pc)
+  } else {
   genmat <- as.matrix(x)
   typed <- !is.na(genmat)
   hom.ref <- (genmat == 0) & typed
@@ -175,6 +190,7 @@ gl.report.parent.offspring <- function(x,
   storage.mode(typed) <- "double"
   count.mat <- tcrossprod(hom.ref, hom.alt) + tcrossprod(hom.alt, hom.ref)
   n.mat <- tcrossprod(typed)
+  }
   dimnames(count.mat) <- dimnames(n.mat) <- list(indNames(x), indNames(x))
 
   pairs.idx <- which(lower.tri(count.mat), arr.ind = TRUE)
