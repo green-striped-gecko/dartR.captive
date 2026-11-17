@@ -9,8 +9,8 @@
 #' Ritland, Queller & Goodnight, Loiselle) and maximum-likelihood estimators
 #' (DyadML, TrioML), plus per-individual inbreeding, are available.
 #'
-#' The numerical engine is the closed-source, binary-only package
-#' \code{dartR.coancestry}, which must be installed separately (see Details).
+#' The estimators are computed by the closed-source program
+#' \code{dartR_coancestry}, which must be downloaded separately (see Details).
 #'
 #' @param x Name of the genlight object containing the SNP data [required].
 #' @param estimators Character vector of estimators; any subset of \code{"wang"},
@@ -25,6 +25,9 @@
 #' @param rng.seed Random seed (matters for \code{dyadml}/\code{trioml} and the
 #'   bootstrap) [default 42].
 #' @param n.threads Threads for the moment tier (the ML tier is serial) [default 1].
+#' @param coancestry.path Path to the folder with the program
+#'   \code{dartR_coancestry} (\code{dartR_coancestry.exe} on Windows); see
+#'   Details [default getwd()].
 #' @param plot.stat Estimator whose matrix is drawn as a heatmap; NULL = the first
 #'   requested dyad estimator [default NULL].
 #' @param plot.out If TRUE, display a heatmap of \code{plot.stat}; the heatmap
@@ -46,15 +49,16 @@
 #' the bootstrap loop, faithful to Coancestry, does not terminate on a pair with
 #' no usable polymorphic locus.
 #'
-#' The engine \code{dartR.coancestry} is closed-source, binary-only, not on CRAN.
-#' Download the build matching your operating system, CPU architecture and R
-#' version from
-#' \url{https://github.com/mijangos81/dartR.coancestry-binaries/releases}, then
-#' install it with:
-#' \preformatted{install.packages("<path-to-downloaded-file>",
-#'   repos = NULL, type = "binary")}
-#' Binary R packages are tied to the R minor version they were built against, so
-#' a build for R 4.4 will not load under R 4.5.
+#' The program \code{dartR_coancestry} is closed-source and is not part of this
+#' package. Download the build for your operating system with
+#' \preformatted{dartRverse::gl.download.binary(software = "coancestry",
+#'   out.dir = tempdir())}
+#' and give its folder in \code{coancestry.path}, for example
+#' \code{coancestry.path = file.path(tempdir(), "coancestry")}. The genotypes
+#' and the results pass between R and the program through temporary files,
+#' which are removed afterwards. A run can be stopped as any R command
+#' (RStudio's Stop button, Esc or Ctrl-C); the program is then ended and its
+#' files removed.
 #'
 #' A pair of individuals that shares no called locus has no information on
 #' relatedness; every estimate for it is set to NA (the engine returns 0 for the
@@ -90,8 +94,11 @@
 #'
 #' @examples
 #' \dontrun{
+#' # download the program once per session (see Details)
+#' dartRverse::gl.download.binary(software = "coancestry", out.dir = tempdir())
 #' gl  <- dartR.data::platypus.gl[1:40, 1:1000]
-#' res <- gl.relatedness(gl, estimators = c("wang", "lynchrd"))
+#' res <- gl.relatedness(gl, estimators = c("wang", "lynchrd"),
+#'                       coancestry.path = file.path(tempdir(), "coancestry"))
 #' res$wang[1:5, 1:5]
 #' head(res$dyads)
 #' }
@@ -110,6 +117,7 @@ gl.relatedness <- function(x,
                            num.trios = 100,
                            rng.seed = 42,
                            n.threads = 1,
+                           coancestry.path = getwd(),
                            plot.stat = NULL,
                            plot.out = TRUE,
                            plot.colors = NULL,
@@ -165,19 +173,9 @@ gl.relatedness <- function(x,
         plot.stat %in% dyad.est))
     stop(error("  plot.stat must be one of the requested dyad estimators (",
                paste(dyad.est, collapse = ", "), ").\n"))
-  # The engine is not a declared dependency (closed-source, not in a CRAN-like
-  # repository); naming it through a variable keeps R CMD check clean
-  engine.pkg <- "dartR.coancestry"
-  if (!requireNamespace(engine.pkg, quietly = TRUE))
-    stop(error(
-      "  gl.relatedness needs the 'dartR.coancestry' engine (closed-source, binary-only).\n",
-      "  Download the build matching your operating system, CPU architecture and\n",
-      "  R version from:\n",
-      "    https://github.com/mijangos81/dartR.coancestry-binaries/releases\n",
-      "  then install it with:\n",
-      "    install.packages('<path-to-downloaded-file>', repos = NULL, type = 'binary')\n"))
-
-  relatedness.cpp <- getExportedValue(engine.pkg, "relatedness_cpp")
+  # The estimators are computed by the standalone program 'dartR_coancestry'
+  # (closed-source, downloaded separately); checked before any long work
+  coancestry.exe <- utils.coancestry.exe(coancestry.path)
   nm.all <- indNames(x)
 
   # BOOTSTRAP PRE-FILTER: the engine's resample loop (faithful to trior11) does not
@@ -203,12 +201,11 @@ gl.relatedness <- function(x,
   if (nd > .Machine$integer.max)
     stop(error("  Too many individuals (", nInd(x), "): ", nd,
                " dyads exceeds the integer limit for a single run.\n"))
-  max.dyads <- as.integer(nd)
-  res <- relatedness.cpp(
-    snp, estimators = estimators, max_dyads = max.dyads,
-    n_threads = as.integer(n.threads), n_bootstrap = as.integer(n.boots),
-    rng_seed = as.integer(rng.seed), allow_inbreeding = allow.inbreeding,
-    num_trios = as.integer(num.trios))
+  res <- utils.coancestry.run(
+    snp, estimators = estimators,
+    n_threads = n.threads, n_bootstrap = n.boots, rng_seed = rng.seed,
+    allow_inbreeding = allow.inbreeding, num_trios = num.trios,
+    exe = coancestry.exe)
 
   # PAIRS WITHOUT DATA: a pair sharing no called locus carries no
   # information; the engine returns 0 (moment) or NaN (ML) for it

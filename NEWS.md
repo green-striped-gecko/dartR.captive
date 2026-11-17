@@ -44,8 +44,11 @@
   inbreeding, with Jinliang Wang's Coancestry estimators: the moment
   estimators of Wang, Lynch & Li, Lynch & Ritland, Ritland, Queller &
   Goodnight and Loiselle, and the likelihood estimators DyadML and TrioML,
-  with optional bootstrap confidence intervals. The numerical engine is the
-  closed-source package `dartR.coancestry`, installed separately. A pair of
+  with optional bootstrap confidence intervals. The estimators are computed
+  by the closed-source program `dartR_coancestry`, downloaded separately with
+  `dartRverse::gl.download.binary()` and located with the argument
+  `coancestry.path`. A run can be stopped with RStudio's Stop button, Esc or
+  Ctrl-C, which also ends the program (new dependency: `processx`). A pair of
   individuals that shares no called locus gets `NA` for every estimator,
   with a warning. The matrices are on the relatedness scale (twice kinship)
   and are tagged `attr(, "scale") = "relatedness"`. `wang` and `lynchli`
@@ -95,8 +98,8 @@
     for pairs across generations. `@MergedDf` gains a `generation` column.
     A single population no longer stops the simulation.
   * Computes the `which_tests` estimators with `gl.relatedness()` instead
-    of `related::coancestry()`, so it needs the `dartR.coancestry` engine
-    rather than the `related` package. Every estimator except the slow
+    of `related::coancestry()`, so it needs the `dartR_coancestry` program
+    (new argument `coancestry.path`) rather than the `related` package. Every estimator except the slow
     `trioml` runs by default. `lynchrd`, `quellergt` and rrBLUP results are
     unchanged; `wang` differs (on 15 individuals of testset.gl, 0.045 higher
     on average on the kinship scale). `loiselle` is now available, and an

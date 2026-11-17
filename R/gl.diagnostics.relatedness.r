@@ -101,6 +101,9 @@
 #' @param familyParents Logical. If TRUE, x also contains the parents of its
 #'   families, and the simulated samples include them; they count towards
 #'   the sample size [default FALSE].
+#' @param coancestry.path Path to the folder with the program
+#'   \code{dartR_coancestry}, which computes the estimators in
+#'   \code{which_tests}; see \code{gl.relatedness} [required].
 #'
 #' @details
 #' \subsection{What the output means}{
@@ -197,8 +200,9 @@
 #'
 #' \subsection{Requirements}{
 #' The estimators in \code{which_tests} are computed by
-#' \code{gl.relatedness}, which needs the engine package
-#' \code{dartR.coancestry} (not on CRAN; see \code{gl.relatedness}). The
+#' \code{gl.relatedness}, which needs the separately downloaded program
+#' \code{dartR_coancestry} (argument \code{coancestry.path}; see
+#' \code{gl.relatedness}). The
 #' simulation needs a recent dartR.sim (store_founders, store_pedigree,
 #' ne_phase2, inbreeding_founders, sample_families). Estimating Ne needs
 #' dartR.popgen and NeEstimator; reconstructing families needs COLONY; the
@@ -230,10 +234,13 @@
 #'
 #' @examples
 #' \dontrun{
-#' # requires dartR.coancestry (see gl.relatedness)
+#' # requires the program dartR_coancestry (see gl.relatedness)
+#' dartRverse::gl.download.binary(software = "coancestry", out.dir = tempdir())
 #' x <- gl.filter.callrate(platypus.gl, threshold = 0.9)
 #' x <- gl.filter.monomorphs(x)
 #' res <- gl.diagnostics.relatedness(x, run_sim = TRUE,
+#'                                   coancestry.path = file.path(tempdir(),
+#'                                                               "coancestry"),
 #'                                   numberIterations = 2,
 #'                                   Ne = c(40, 40, 90),
 #'                                   biasOut = TRUE, rmseOut = TRUE,
@@ -292,7 +299,8 @@ gl.diagnostics.relatedness <- function(
     analysisUnit = c("generation", "pooled"),
     families = NULL,
     colony.path = NULL,
-    familyParents = FALSE
+    familyParents = FALSE,
+    coancestry.path = NULL
 ) {
 
   # SET VERBOSITY ----
@@ -307,15 +315,10 @@ gl.diagnostics.relatedness <- function(
 
   # FUNCTION SPECIFIC ERROR CHECKING ----
   analysisUnit <- match.arg(analysisUnit)
-  # gl.relatedness computes the which_tests estimators with the engine
-  # 'dartR.coancestry', which is not on CRAN; check for it before a long
-  # simulation runs. The variable keeps R CMD check's dependency scan quiet.
-  pkg <- "dartR.coancestry"
-  if (!requireNamespace(pkg, quietly = TRUE)) {
-    stop(error(
-      "  gl.diagnostics.relatedness needs the package 'dartR.coancestry'",
-      "(not on CRAN); see ?gl.relatedness for how to install it\n"))
-  }
+  # gl.relatedness computes the which_tests estimators with the program
+  # 'dartR_coancestry', downloaded separately; check for it before a long
+  # simulation runs
+  invisible(utils.coancestry.exe(coancestry.path))
   valid.tests <- c("wang", "lynchli", "lynchrd", "ritland", "quellergt",
                    "loiselle", "dyadml", "trioml")
   bad.tests <- setdiff(which_tests, valid.tests)
@@ -640,7 +643,8 @@ gl.diagnostics.relatedness <- function(
   # 2. Run analysis
   # estimators, rrBLUP and optionally EMIBD9 on one sample of individuals
   analyseSample <- function(g) {
-    out <- stats::na.omit(cleanup_rel(g, testSelect = which_tests))
+    out <- stats::na.omit(cleanup_rel(g, testSelect = which_tests,
+                                      coancestry.path = coancestry.path))
     if (isTRUE(run.e9)) {
       out <- runE9(g, e9Path, e9parallel = e9parallel, numCores = nCores) %>%
         mergeE9Related(out, test_select = c(which_tests, "rrBLUP", "E9"))
