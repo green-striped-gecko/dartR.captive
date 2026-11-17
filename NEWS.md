@@ -1,3 +1,13 @@
+# dartR.captive (dev_fbm)
+
+* `gl.grm()` no longer decodes a file-backed object for rrBLUP::A.mat's
+  default method: the matrix is computed in blocks of loci
+  (`dartR.base::utils.fbm.amat()`) and equals the gen-backed result up to
+  rounding. Other A.mat options (`shrink`, `impute.method = "EM"`,
+  `return.imputed`) convert the object explicitly, with a warning stating
+  the memory A.mat needs. Gen-backed objects are unchanged. Needs
+  dartR.base >= 1.2.7.9000.
+
 # dartR.captive NEWS
 
 ## dartR.captive 1.2.7
