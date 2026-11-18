@@ -1,3 +1,7 @@
+# Slow file: skipped on CRAN to keep the check time under 10 minutes; runs
+# with devtools::test() and on GitHub Actions.
+skip_on_cran()
+
 # File-backed objects: gl.grm computes rrBLUP::A.mat's default relationship
 # matrix in blocks of loci (dartR.base::utils.fbm.amat / utils.fbm.grm)
 # without decoding the genotype matrix; it agrees with the gen-backed result
