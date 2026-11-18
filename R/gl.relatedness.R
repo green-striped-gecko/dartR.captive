@@ -4,19 +4,20 @@
 #'
 #' @description
 #' Estimates pairwise relatedness (and optionally inbreeding) between individuals
-#' in a genlight object using Jinliang Wang's Coancestry estimators, translated to
-#' C++/Rcpp. Method-of-moments estimators (Wang, Lynch & Li, Lynch & Ritland,
-#' Ritland, Queller & Goodnight, Loiselle) and maximum-likelihood estimators
+#' in a genlight object using Jinliang Wang's Coancestry estimators.
+#' Method-of-moments estimators (Wang, Lynch & Li, Lynch & Ritland,
+#' Ritland, Queller & Goodnight) and maximum-likelihood estimators
 #' (DyadML, TrioML), plus per-individual inbreeding, are available.
 #'
-#' The numerical engine is the closed-source, binary-only package
-#' \code{dartR.coancestry}, which must be installed separately (see Details).
+#' The estimators are computed by the closed-source program
+#' \code{dartR_coancestry}, a C++ translation of Coancestry, which must be
+#' downloaded separately (see Details).
 #'
 #' @param x Name of the genlight object containing the SNP data [required].
 #' @param estimators Character vector of estimators; any subset of \code{"wang"},
 #'   \code{"lynchli"}, \code{"lynchrd"}, \code{"ritland"}, \code{"quellergt"},
-#'   \code{"loiselle"}, \code{"inbreeding"}, \code{"dyadml"}, \code{"trioml"}
-#'   [default the six moment estimators].
+#'   \code{"inbreeding"}, \code{"dyadml"}, \code{"trioml"}
+#'   [default the five moment estimators].
 #' @param allow.inbreeding If TRUE, fit the inbreeding-aware ML model for
 #'   \code{dyadml}/\code{trioml} [default FALSE].
 #' @param n.boots Bootstrap-over-loci replicates for 95\% CIs; 0 disables CIs
@@ -25,6 +26,9 @@
 #' @param rng.seed Random seed (matters for \code{dyadml}/\code{trioml} and the
 #'   bootstrap) [default 42].
 #' @param n.threads Threads for the moment tier (the ML tier is serial) [default 1].
+#' @param coancestry.path Path to the folder with the program
+#'   \code{dartR_coancestry} (\code{dartR_coancestry.exe} on Windows); see
+#'   Details [default getwd()].
 #' @param plot.stat Estimator whose matrix is drawn as a heatmap; NULL = the first
 #'   requested dyad estimator [default NULL].
 #' @param plot.out If TRUE, display a heatmap of \code{plot.stat}; the heatmap
@@ -46,15 +50,16 @@
 #' the bootstrap loop, faithful to Coancestry, does not terminate on a pair with
 #' no usable polymorphic locus.
 #'
-#' The engine \code{dartR.coancestry} is closed-source, binary-only, not on CRAN.
-#' Download the build matching your operating system, CPU architecture and R
-#' version from
-#' \url{https://github.com/mijangos81/dartR.coancestry-binaries/releases}, then
-#' install it with:
-#' \preformatted{install.packages("<path-to-downloaded-file>",
-#'   repos = NULL, type = "binary")}
-#' Binary R packages are tied to the R minor version they were built against, so
-#' a build for R 4.4 will not load under R 4.5.
+#' The program \code{dartR_coancestry} is closed-source and is not part of this
+#' package. Download the build for your operating system with
+#' \preformatted{dartRverse::gl.download.binary(software = "coancestry",
+#'   out.dir = tempdir())}
+#' and give its folder in \code{coancestry.path}, for example
+#' \code{coancestry.path = file.path(tempdir(), "coancestry")}. The genotypes
+#' and the results pass between R and the program through temporary files,
+#' which are removed afterwards. A run can be stopped as any R command
+#' (RStudio's Stop button, Esc or Ctrl-C); the program is then ended and its
+#' files removed.
 #'
 #' A pair of individuals that shares no called locus has no information on
 #' relatedness; every estimate for it is set to NA (the engine returns 0 for the
@@ -77,6 +82,14 @@
 #' \code{quellergt} does (-0.009 at 120 individuals); for full sibs all give
 #' 0.57-0.58.
 #'
+#' File-backed (FBM) objects: the algorithm needs the whole genotype
+#' matrix in memory. It is decoded with a message stating the memory
+#' needed (verbose >= 2); above
+#' \code{getOption("dartR_fbm_max_decode_gb", 4)} Gb the function stops
+#' with an error instead of exhausting memory (raise the limit with
+#' \code{options(dartR_fbm_max_decode_gb = ...)} if enough memory is
+#' available). See \code{dartR.base::utils.fbm.decode}.
+#'
 #' @return Invisibly, a named list: one symmetric individual x individual matrix
 #' per requested dyad estimator (e.g. \code{$wang}; rownames/colnames =
 #' \code{indNames(x)}, diagonal NA, \code{attr(, "scale") = "relatedness"}); a
@@ -90,26 +103,51 @@
 #'
 #' @examples
 #' \dontrun{
+#' # download the program once per session (see Details)
+#' dartRverse::gl.download.binary(software = "coancestry", out.dir = tempdir())
 #' gl  <- dartR.data::platypus.gl[1:40, 1:1000]
-#' res <- gl.relatedness(gl, estimators = c("wang", "lynchrd"))
+#' res <- gl.relatedness(gl, estimators = c("wang", "lynchrd"),
+#'                       coancestry.path = file.path(tempdir(), "coancestry"))
 #' res$wang[1:5, 1:5]
 #' head(res$dyads)
 #' }
 #'
 #' @references
-#' Wang, J. (2002). An estimator for pairwise relatedness using molecular markers.
-#' Genetics, 160, 1203-1215.
+#' \itemize{
+#' \item Wang, J. (2011). COANCESTRY: a program for simulating, estimating and
+#' analysing relatedness and inbreeding coefficients. Molecular Ecology
+#' Resources, 11, 141-145.
+#' \item Li, C.C. & Horvitz, D.G. (1953). Some methods of estimating the
+#' inbreeding coefficient. American Journal of Human Genetics, 5, 107-117.
+#' \item Li, C.C., Weeks, D.E. & Chakravarti, A. (1993). Similarity of DNA
+#' fingerprints due to chance and relatedness. Human Heredity, 43, 45-52.
+#' \item Lynch, M. (1988). Estimation of relatedness by DNA fingerprinting.
+#' Molecular Biology and Evolution, 5, 584-599.
+#' \item Lynch, M. & Ritland, K. (1999). Estimation of pairwise relatedness with
+#' molecular markers. Genetics, 152, 1753-1766.
+#' \item Milligan, B.G. (2003). Maximum-likelihood estimation of relatedness.
+#' Genetics, 163, 1153-1167.
+#' \item Queller, D.C. & Goodnight, K.F. (1989). Estimating relatedness using
+#' genetic markers. Evolution, 43, 258-275.
+#' \item Ritland, K. (1996). Estimators for pairwise relatedness and individual
+#' inbreeding coefficients. Genetical Research, 67, 175-185.
+#' \item Wang, J. (2002). An estimator for pairwise relatedness using molecular
+#' markers. Genetics, 160, 1203-1215.
+#' \item Wang, J. (2007). Triadic IBD coefficients and applications to
+#' estimating pairwise relatedness. Genetical Research, 89, 135-153.
+#' }
 #'
 #' @export
 
 gl.relatedness <- function(x,
                            estimators = c("wang", "lynchli", "lynchrd",
-                                          "ritland", "quellergt", "loiselle"),
+                                          "ritland", "quellergt"),
                            allow.inbreeding = FALSE,
                            n.boots = 0,
                            num.trios = 100,
                            rng.seed = 42,
                            n.threads = 1,
+                           coancestry.path = getwd(),
                            plot.stat = NULL,
                            plot.out = TRUE,
                            plot.colors = NULL,
@@ -136,17 +174,22 @@ gl.relatedness <- function(x,
   if (any(ploidy(x) != 2))
     stop(error("  gl.relatedness requires diploid SNP data (ploidy 2).\n"))
   valid.est <- c("wang", "lynchli", "lynchrd", "ritland", "quellergt",
-                 "loiselle", "inbreeding", "dyadml", "trioml")
+                 "inbreeding", "dyadml", "trioml")
+  if (!is.character(estimators) || length(estimators) == 0)
+    stop(error("  Give at least one estimator. Valid: ",
+               paste(valid.est, collapse = ", "), "\n"))
   bad <- setdiff(estimators, valid.est)
   if (length(bad))
     stop(error("  Unknown estimator(s): ", paste(bad, collapse = ", "),
                ". Valid: ", paste(valid.est, collapse = ", "), "\n"))
   dyad.est <- intersect(estimators,
-    c("wang", "lynchli", "lynchrd", "ritland", "quellergt", "loiselle",
+    c("wang", "lynchli", "lynchrd", "ritland", "quellergt",
       "dyadml", "trioml"))
   # Scalar arguments are checked before the engine runs, so a long run is
   # never discarded on a typing error
-  is.num1 <- function(v) is.numeric(v) && length(v) == 1 && !is.na(v)
+  # the program takes 32-bit integers
+  is.num1 <- function(v) is.numeric(v) && length(v) == 1 && !is.na(v) &&
+    abs(v) <= .Machine$integer.max
   is.flag <- function(v) is.logical(v) && length(v) == 1 && !is.na(v)
   if (!is.num1(n.boots) || n.boots < 0)
     stop(error("  n.boots must be a single number >= 0.\n"))
@@ -165,19 +208,9 @@ gl.relatedness <- function(x,
         plot.stat %in% dyad.est))
     stop(error("  plot.stat must be one of the requested dyad estimators (",
                paste(dyad.est, collapse = ", "), ").\n"))
-  # The engine is not a declared dependency (closed-source, not in a CRAN-like
-  # repository); naming it through a variable keeps R CMD check clean
-  engine.pkg <- "dartR.coancestry"
-  if (!requireNamespace(engine.pkg, quietly = TRUE))
-    stop(error(
-      "  gl.relatedness needs the 'dartR.coancestry' engine (closed-source, binary-only).\n",
-      "  Download the build matching your operating system, CPU architecture and\n",
-      "  R version from:\n",
-      "    https://github.com/mijangos81/dartR.coancestry-binaries/releases\n",
-      "  then install it with:\n",
-      "    install.packages('<path-to-downloaded-file>', repos = NULL, type = 'binary')\n"))
-
-  relatedness.cpp <- getExportedValue(engine.pkg, "relatedness_cpp")
+  # The estimators are computed by the standalone program 'dartR_coancestry'
+  # (closed-source, downloaded separately); checked before any long work
+  coancestry.exe <- utils.coancestry.exe(coancestry.path)
   nm.all <- indNames(x)
 
   # BOOTSTRAP PRE-FILTER: the engine's resample loop (faithful to trior11) does not
@@ -186,8 +219,11 @@ gl.relatedness <- function(x,
   if (n.boots > 0) {
     n0.loc <- nLoc(x); n0.ind <- nInd(x)
     x <- gl.filter.monomorphs(x, verbose = 0)
-    am <- as.matrix(x)
-    keep.ind <- rowSums(!is.na(am)) > 0
+    # called loci per individual, counted over blocks of loci
+    # (dartR.base::utils.fbm.rowwise): no whole-matrix decode for this check
+    keep.ind <- dartR.base::utils.fbm.rowwise(x, function(m) {
+      rowSums(!is.na(m))
+    }) > 0
     if (!all(keep.ind)) x <- x[keep.ind, ]
     d.loc <- n0.loc - nLoc(x); d.ind <- n0.ind - nInd(x)
     if ((d.loc > 0 || d.ind > 0) && verbose >= 1)
@@ -197,18 +233,21 @@ gl.relatedness <- function(x,
   }
 
   # PREPARE DOSAGE + RUN ENGINE --------------------------------------
-  snp <- as.matrix(x)
+  # The engine needs the whole integer matrix. For a file-backed object
+  # dartR.base::utils.fbm.decode states the memory (4 bytes per genotype)
+  # and stops above getOption("dartR_fbm_max_decode_gb")
+  snp <- dartR.base::utils.fbm.decode(x, what = "gl.relatedness", bytes = 4,
+                                      verbose = verbose)
   storage.mode(snp) <- "integer"
   nd <- choose(nInd(x), 2)
   if (nd > .Machine$integer.max)
     stop(error("  Too many individuals (", nInd(x), "): ", nd,
                " dyads exceeds the integer limit for a single run.\n"))
-  max.dyads <- as.integer(nd)
-  res <- relatedness.cpp(
-    snp, estimators = estimators, max_dyads = max.dyads,
-    n_threads = as.integer(n.threads), n_bootstrap = as.integer(n.boots),
-    rng_seed = as.integer(rng.seed), allow_inbreeding = allow.inbreeding,
-    num_trios = as.integer(num.trios))
+  res <- utils.coancestry.run(
+    snp, estimators = estimators,
+    n_threads = n.threads, n_bootstrap = n.boots, rng_seed = rng.seed,
+    allow_inbreeding = allow.inbreeding, num_trios = num.trios,
+    exe = coancestry.exe)
 
   # PAIRS WITHOUT DATA: a pair sharing no called locus carries no
   # information; the engine returns 0 (moment) or NaN (ML) for it

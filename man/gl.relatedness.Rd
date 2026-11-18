@@ -6,12 +6,13 @@
 \usage{
 gl.relatedness(
   x,
-  estimators = c("wang", "lynchli", "lynchrd", "ritland", "quellergt", "loiselle"),
+  estimators = c("wang", "lynchli", "lynchrd", "ritland", "quellergt"),
   allow.inbreeding = FALSE,
   n.boots = 0,
   num.trios = 100,
   rng.seed = 42,
   n.threads = 1,
+  coancestry.path = getwd(),
   plot.stat = NULL,
   plot.out = TRUE,
   plot.colors = NULL,
@@ -25,8 +26,8 @@ gl.relatedness(
 
 \item{estimators}{Character vector of estimators; any subset of \code{"wang"},
 \code{"lynchli"}, \code{"lynchrd"}, \code{"ritland"}, \code{"quellergt"},
-\code{"loiselle"}, \code{"inbreeding"}, \code{"dyadml"}, \code{"trioml"}
-[default the six moment estimators].}
+\code{"inbreeding"}, \code{"dyadml"}, \code{"trioml"}
+[default the five moment estimators].}
 
 \item{allow.inbreeding}{If TRUE, fit the inbreeding-aware ML model for
 \code{dyadml}/\code{trioml} [default FALSE].}
@@ -40,6 +41,10 @@ gl.relatedness(
 bootstrap) [default 42].}
 
 \item{n.threads}{Threads for the moment tier (the ML tier is serial) [default 1].}
+
+\item{coancestry.path}{Path to the folder with the program
+\code{dartR_coancestry} (\code{dartR_coancestry.exe} on Windows); see
+Details [default getwd()].}
 
 \item{plot.stat}{Estimator whose matrix is drawn as a heatmap; NULL = the first
 requested dyad estimator [default NULL].}
@@ -70,13 +75,14 @@ and/or ML inbreeding).
 }
 \description{
 Estimates pairwise relatedness (and optionally inbreeding) between individuals
-in a genlight object using Jinliang Wang's Coancestry estimators, translated to
-C++/Rcpp. Method-of-moments estimators (Wang, Lynch & Li, Lynch & Ritland,
-Ritland, Queller & Goodnight, Loiselle) and maximum-likelihood estimators
+in a genlight object using Jinliang Wang's Coancestry estimators.
+Method-of-moments estimators (Wang, Lynch & Li, Lynch & Ritland,
+Ritland, Queller & Goodnight) and maximum-likelihood estimators
 (DyadML, TrioML), plus per-individual inbreeding, are available.
 
-The numerical engine is the closed-source, binary-only package
-\code{dartR.coancestry}, which must be installed separately (see Details).
+The estimators are computed by the closed-source program
+\code{dartR_coancestry}, a C++ translation of Coancestry, which must be
+downloaded separately (see Details).
 }
 \details{
 \code{as.matrix(x)} supplies the individual x locus alternate-allele dosage
@@ -86,15 +92,16 @@ all-missing individuals are dropped first (reported at \code{verbose >= 1}):
 the bootstrap loop, faithful to Coancestry, does not terminate on a pair with
 no usable polymorphic locus.
 
-The engine \code{dartR.coancestry} is closed-source, binary-only, not on CRAN.
-Download the build matching your operating system, CPU architecture and R
-version from
-\url{https://github.com/mijangos81/dartR.coancestry-binaries/releases}, then
-install it with:
-\preformatted{install.packages("<path-to-downloaded-file>",
-  repos = NULL, type = "binary")}
-Binary R packages are tied to the R minor version they were built against, so
-a build for R 4.4 will not load under R 4.5.
+The program \code{dartR_coancestry} is closed-source and is not part of this
+package. Download the build for your operating system with
+\preformatted{dartRverse::gl.download.binary(software = "coancestry",
+  out.dir = tempdir())}
+and give its folder in \code{coancestry.path}, for example
+\code{coancestry.path = file.path(tempdir(), "coancestry")}. The genotypes
+and the results pass between R and the program through temporary files,
+which are removed afterwards. A run can be stopped as any R command
+(RStudio's Stop button, Esc or Ctrl-C); the program is then ended and its
+files removed.
 
 A pair of individuals that shares no called locus has no information on
 relatedness; every estimate for it is set to NA (the engine returns 0 for the
@@ -116,19 +123,51 @@ the same simulations neither implementation of \code{wang} or
 \code{lynchli} recovers r = 0 for unrelated pairs (both about -0.16), while
 \code{quellergt} does (-0.009 at 120 individuals); for full sibs all give
 0.57-0.58.
+
+File-backed (FBM) objects: the algorithm needs the whole genotype
+matrix in memory. It is decoded with a message stating the memory
+needed (verbose >= 2); above
+\code{getOption("dartR_fbm_max_decode_gb", 4)} Gb the function stops
+with an error instead of exhausting memory (raise the limit with
+\code{options(dartR_fbm_max_decode_gb = ...)} if enough memory is
+available). See \code{dartR.base::utils.fbm.decode}.
 }
 \examples{
 \dontrun{
+# download the program once per session (see Details)
+dartRverse::gl.download.binary(software = "coancestry", out.dir = tempdir())
 gl  <- dartR.data::platypus.gl[1:40, 1:1000]
-res <- gl.relatedness(gl, estimators = c("wang", "lynchrd"))
+res <- gl.relatedness(gl, estimators = c("wang", "lynchrd"),
+                      coancestry.path = file.path(tempdir(), "coancestry"))
 res$wang[1:5, 1:5]
 head(res$dyads)
 }
 
 }
 \references{
-Wang, J. (2002). An estimator for pairwise relatedness using molecular markers.
-Genetics, 160, 1203-1215.
+\itemize{
+\item Wang, J. (2011). COANCESTRY: a program for simulating, estimating and
+analysing relatedness and inbreeding coefficients. Molecular Ecology
+Resources, 11, 141-145.
+\item Li, C.C. & Horvitz, D.G. (1953). Some methods of estimating the
+inbreeding coefficient. American Journal of Human Genetics, 5, 107-117.
+\item Li, C.C., Weeks, D.E. & Chakravarti, A. (1993). Similarity of DNA
+fingerprints due to chance and relatedness. Human Heredity, 43, 45-52.
+\item Lynch, M. (1988). Estimation of relatedness by DNA fingerprinting.
+Molecular Biology and Evolution, 5, 584-599.
+\item Lynch, M. & Ritland, K. (1999). Estimation of pairwise relatedness with
+molecular markers. Genetics, 152, 1753-1766.
+\item Milligan, B.G. (2003). Maximum-likelihood estimation of relatedness.
+Genetics, 163, 1153-1167.
+\item Queller, D.C. & Goodnight, K.F. (1989). Estimating relatedness using
+genetic markers. Evolution, 43, 258-275.
+\item Ritland, K. (1996). Estimators for pairwise relatedness and individual
+inbreeding coefficients. Genetical Research, 67, 175-185.
+\item Wang, J. (2002). An estimator for pairwise relatedness using molecular
+markers. Genetics, 160, 1203-1215.
+\item Wang, J. (2007). Triadic IBD coefficients and applications to
+estimating pairwise relatedness. Genetical Research, 89, 135-153.
+}
 }
 \author{
 Author(s): Luis Mijangos. Custodian: Luis Mijangos -- Post to

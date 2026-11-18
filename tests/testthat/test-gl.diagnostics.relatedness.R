@@ -1,7 +1,7 @@
 # Tests of the reviewed gl.diagnostics.relatedness and its helpers
 # (function-review/reports/dartR.captive/gl.diagnostics.relatedness.md).
-# Tests that run the relatedness estimators need the non-CRAN engine
-# 'dartR.coancestry' (used by gl.relatedness).
+# Tests that run the relatedness estimators need the separately downloaded
+# program 'dartR_coancestry' (used by gl.relatedness); see helper-coancestry.R.
 
 hand_pedigree <- function() {
   # F1-F4 founders; O1, O2 full sibs; O3 unrelated to them; O4 = O1 x O2
@@ -37,18 +37,18 @@ test_that("RMSE is the root mean square error against rel (4)", {
 })
 
 test_that("all pairs are kept (3)", {
-  skip_if_not_installed("dartR.coancestry")
+  skip_if_no_coancestry()
   pdf(NULL)
   on.exit(grDevices::dev.off())
   x <- gl.filter.allna(testset.gl[1:15, ], verbose = 0)
   capture.output(
-    res <- gl.diagnostics.relatedness(x, which_tests = "wang", verbose = 0)
+    res <- gl.diagnostics.relatedness(x, coancestry.path = coancestry_path(), which_tests = "wang", verbose = 0)
   )
   expect_equal(nrow(res@MergedDf[[1]]) / 2, choose(15, 2))
 })
 
 test_that("attached pedigree: one row per pair, classes and rel (1, 2, 3)", {
-  skip_if_not_installed("dartR.coancestry")
+  skip_if_no_coancestry()
   pdf(NULL)
   on.exit(grDevices::dev.off())
   x <- gl.filter.allna(testset.gl[1:15, ], verbose = 0)
@@ -57,7 +57,7 @@ test_that("attached pedigree: one row per pair, classes and rel (1, 2, 3)", {
   x@other$ind.metrics$dad <- c(0, 0, 0, 0, ids[1], ids[1], ids[3], rep(0, 8))
   x@other$ind.metrics$mom <- c(0, 0, 0, 0, ids[2], ids[2], ids[4], rep(0, 8))
   capture.output(
-    res <- gl.diagnostics.relatedness(x, which_tests = "wang",
+    res <- gl.diagnostics.relatedness(x, coancestry.path = coancestry_path(), which_tests = "wang",
                                       includedPed = TRUE, rmseOut = TRUE,
                                       verbose = 0)
   )
@@ -73,13 +73,13 @@ test_that("attached pedigree: one row per pair, classes and rel (1, 2, 3)", {
 })
 
 test_that("simulation runs with the default variable files (5)", {
-  skip_if_not_installed("dartR.coancestry")
+  skip_if_no_coancestry()
   pdf(NULL)
   on.exit(grDevices::dev.off())
   x <- gl.filter.allna(testset.gl[1:30, ], verbose = 0)
   set.seed(1)
   capture.output(
-    res <- gl.diagnostics.relatedness(x, which_tests = "wang",
+    res <- gl.diagnostics.relatedness(x, coancestry.path = coancestry_path(), which_tests = "wang",
                                       run_sim = TRUE, rmseOut = TRUE, Ne = 50,
                                       verbose = 0)
   )
@@ -93,53 +93,66 @@ test_that("simulation runs with the default variable files (5)", {
 })
 
 test_that("analysisUnit = 'pooled' estimates all pairs across generations", {
-  skip_if_not_installed("dartR.coancestry")
+  skip_if_no_coancestry()
   pdf(NULL)
   on.exit(grDevices::dev.off())
   x <- gl.filter.allna(testset.gl[1:20, 1:200], verbose = 0)
   set.seed(1)
   capture.output(
-    res <- gl.diagnostics.relatedness(x, which_tests = "wang",
+    res <- gl.diagnostics.relatedness(x, coancestry.path = coancestry_path(), which_tests = "wang",
                                       run_sim = TRUE, Ne = 30,
                                       analysisUnit = "pooled", verbose = 0)
   )
   m <- res@MergedDf[[1]]
   expect_equal(nrow(m), choose(nInd(res@SimOutput[[1]]), 2))
   expect_true("parent_offspring" %in% m$RelDegree)
-  expect_error(gl.diagnostics.relatedness(x, analysisUnit = "bad",
+  expect_error(gl.diagnostics.relatedness(x, coancestry.path = coancestry_path(), analysisUnit = "bad",
                                           verbose = 0))
 })
 
 test_that("SilicoDArT input errors (6)", {
-  skip_if_not_installed("dartR.coancestry")
-  expect_error(gl.diagnostics.relatedness(testset.gs[1:10, 1:50],
+  skip_if_no_coancestry()
+  expect_error(gl.diagnostics.relatedness(testset.gs[1:10, 1:50], coancestry.path = coancestry_path(),
                                           verbose = 0),
                "Only SNP data")
 })
 
 test_that("estimates are gl.relatedness halved to kinship", {
-  skip_if_not_installed("dartR.coancestry")
+  skip_if_no_coancestry()
   pdf(NULL)
   on.exit(grDevices::dev.off())
   x <- gl.filter.allna(testset.gl[1:15, ], verbose = 0)
-  res <- gl.diagnostics.relatedness(x, which_tests = c("wang", "loiselle"),
+  res <- gl.diagnostics.relatedness(x, coancestry.path = coancestry_path(), which_tests = c("wang", "lynchrd"),
                                     verbose = 0)
   m <- tidyr::pivot_wider(res@MergedDf[[1]], names_from = "variable",
                           values_from = "value")
-  r <- gl.relatedness(x, estimators = c("wang", "loiselle"),
+  r <- gl.relatedness(x, estimators = c("wang", "lynchrd"),
+                      coancestry.path = coancestry_path(),
                       plot.out = FALSE, verbose = 0)
   ij <- cbind(as.character(m$ind1), as.character(m$ind2))
   expect_equal(m$wang, r$wang[ij] / 2)
-  expect_equal(m$loiselle, r$loiselle[ij] / 2)
+  expect_equal(m$lynchrd, r$lynchrd[ij] / 2)
 })
 
 test_that("unknown estimators in which_tests error", {
-  skip_if_not_installed("dartR.coancestry")
+  skip_if_no_coancestry()
   expect_error(
-    gl.diagnostics.relatedness(testset.gl[1:10, ], which_tests = "foo",
+    gl.diagnostics.relatedness(testset.gl[1:10, ], coancestry.path = coancestry_path(), which_tests = "foo",
                                verbose = 0),
     "Unknown estimator"
   )
+})
+
+test_that("which_tests offers exactly the dyad estimators of the program", {
+  skip_if_no_coancestry()
+  msg <- tryCatch(
+    gl.diagnostics.relatedness(testset.gl[1:10, ], coancestry.path = coancestry_path(),
+                               which_tests = "foo", verbose = 0),
+    error = conditionMessage)
+  expect_match(msg, "valid are wang, lynchli, lynchrd, ritland, quellergt, dyadml, trioml",
+               fixed = TRUE)
+  expect_identical(eval(formals(gl.diagnostics.relatedness)$which_tests),
+                   c("wang", "lynchli", "lynchrd", "ritland", "quellergt", "dyadml"))
 })
 
 test_that("relatives across generations get their own class, not unrelated", {
@@ -171,7 +184,7 @@ test_that("relatives across generations get their own class, not unrelated", {
 })
 
 test_that("default variable files mirror x", {
-  skip_if_not_installed("dartR.coancestry")
+  skip_if_no_coancestry()
   pdf(NULL)
   on.exit(grDevices::dev.off())
   x <- gl.filter.allna(testset.gl[1:30, 1:200], verbose = 0)
@@ -179,7 +192,7 @@ test_that("default variable files mirror x", {
   pop(x) <- rep(c("A", "B"), c(16, 14))
   set.seed(3)
   capture.output(
-    res <- gl.diagnostics.relatedness(x, which_tests = "wang", run_sim = TRUE,
+    res <- gl.diagnostics.relatedness(x, coancestry.path = coancestry_path(), which_tests = "wang", run_sim = TRUE,
                                       Ne = c(30, 20),
                                       verbose = 0)
   )
@@ -195,13 +208,13 @@ test_that("default variable files mirror x", {
 })
 
 test_that("a missing variable file takes real_freq from the one given", {
-  skip_if_not_installed("dartR.coancestry")
+  skip_if_no_coancestry()
   pdf(NULL)
   on.exit(grDevices::dev.off())
   x <- gl.filter.allna(testset.gl[1:20, 1:100], verbose = 0)
   capture.output(
     res <- gl.diagnostics.relatedness(
-      x, which_tests = "wang", run_sim = TRUE,
+      x, coancestry.path = coancestry_path(), which_tests = "wang", run_sim = TRUE,
       sim_variables = system.file("extdata", "sim_variables.csv",
                                   package = "dartR.sim"),
       verbose = 0)
@@ -247,14 +260,14 @@ test_that("copyMissing copies the missing pattern of a same-population donor", {
 })
 
 test_that("simulation keeps parents, copies missing data and reports bias", {
-  skip_if_not_installed("dartR.coancestry")
+  skip_if_no_coancestry()
   pdf(NULL)
   on.exit(grDevices::dev.off())
   x <- gl.filter.allna(testset.gl[1:30, 1:200], verbose = 0)
   x <- gl.filter.monomorphs(x, verbose = 0)
   set.seed(5)
   capture.output(
-    res <- gl.diagnostics.relatedness(x, which_tests = c("wang", "lynchrd"),
+    res <- gl.diagnostics.relatedness(x, coancestry.path = coancestry_path(), which_tests = c("wang", "lynchrd"),
                                       run_sim = TRUE, biasOut = TRUE, Ne = 50,
                                       verbose = 0)
   )
@@ -288,11 +301,11 @@ test_that("Ne is checked and resolved per population", {
 })
 
 test_that("a non-positive Ne stops gl.diagnostics.relatedness", {
-  # the dartR.coancestry check comes before argument validation
-  skip_if_not_installed("dartR.coancestry")
+  # the check for the dartR_coancestry program comes before argument validation
+  skip_if_no_coancestry()
   x <- testset.gl[1:20, 1:50]
   pop(x) <- rep(c("A", "B"), each = 10)
-  expect_error(gl.diagnostics.relatedness(x, Ne = -5, verbose = 0),
+  expect_error(gl.diagnostics.relatedness(x, coancestry.path = coancestry_path(), Ne = -5, verbose = 0),
                "Ne must be positive")
 })
 
@@ -341,7 +354,7 @@ test_that("inbreeding on high-call-rate loci drops loci with lost calls", {
 })
 
 test_that("a single population simulates without shrinkage or migration", {
-  skip_if_not_installed("dartR.coancestry")
+  skip_if_no_coancestry()
   pdf(NULL)
   on.exit(grDevices::dev.off())
   x <- gl.filter.monomorphs(gl.filter.allna(testset.gl[1:24, 1:150],
@@ -349,7 +362,7 @@ test_that("a single population simulates without shrinkage or migration", {
   pop(x) <- rep("one", nInd(x))
   set.seed(9)
   capture.output(
-    res <- gl.diagnostics.relatedness(x, which_tests = "wang", run_sim = TRUE,
+    res <- gl.diagnostics.relatedness(x, coancestry.path = coancestry_path(), which_tests = "wang", run_sim = TRUE,
                                       Ne = 30, verbose = 0)
   )
   expect_s4_class(res, "finalOutputClass")

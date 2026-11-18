@@ -1,8 +1,29 @@
-# dartR.captive NEWS
+# dartR.captive 1.3.0
 
-## dartR.captive 1.2.7
+* `gl.grm()` no longer decodes a file-backed object for rrBLUP::A.mat's
+  default method: the matrix is computed in blocks of loci
+  (`dartR.base::utils.fbm.amat()`) and equals the gen-backed result up to
+  rounding. Other A.mat options (`shrink`, `impute.method = "EM"`,
+  `return.imputed`) convert the object explicitly, with a warning stating
+  the memory A.mat needs. Gen-backed objects are unchanged. Needs
+  dartR.base >= 1.2.7.9000.
+* `gl.report.parent.offspring()` (pairwise counts of opposite homozygotes
+  and loci typed in both) and `gl.report.errorrate()` (only the
+  replicates' rows, counted per block) read file-backed objects in blocks
+  of loci; results identical for both storage types. The all-NA checks
+  before the analysis in `gl.relatedness()` (bootstrap pre-filter) and
+  `gl.diagnostics.relatedness()` count in blocks of loci as well.
+* `gl.relatedness()` and `gl.parentage.power()` need the whole genotype
+  matrix by design: for a file-backed object it is now decoded explicitly
+  through `dartR.base::utils.fbm.decode()`, which reports the memory and
+  stops above `getOption("dartR_fbm_max_decode_gb", 4)` Gb. Gen-backed
+  objects are unchanged.
+* `gl.relatedness()` cites Coancestry and the paper behind each estimator,
+  and Jinliang Wang, the author of Coancestry, is listed as a contributor.
 
-### New functions
+# dartR.captive 1.2.7
+
+## New functions
 
 * New `gl.test.offspring()` tests whether two candidate parents can be the
   parents of an offspring. For each trio the number of Mendelian-incompatible
@@ -42,10 +63,13 @@
 
 * New `gl.relatedness()` estimates pairwise relatedness, and optionally
   inbreeding, with Jinliang Wang's Coancestry estimators: the moment
-  estimators of Wang, Lynch & Li, Lynch & Ritland, Ritland, Queller &
-  Goodnight and Loiselle, and the likelihood estimators DyadML and TrioML,
-  with optional bootstrap confidence intervals. The numerical engine is the
-  closed-source package `dartR.coancestry`, installed separately. A pair of
+  estimators of Wang, Lynch & Li, Lynch & Ritland, Ritland and Queller &
+  Goodnight, and the likelihood estimators DyadML and TrioML,
+  with optional bootstrap confidence intervals. The estimators are computed
+  by the closed-source program `dartR_coancestry`, downloaded separately with
+  `dartRverse::gl.download.binary()` and located with the argument
+  `coancestry.path`. A run can be stopped with RStudio's Stop button, Esc or
+  Ctrl-C, which also ends the program (new dependency: `processx`). A pair of
   individuals that shares no called locus gets `NA` for every estimator,
   with a warning. The matrices are on the relatedness scale (twice kinship)
   and are tagged `attr(, "scale") = "relatedness"`. `wang` and `lynchli`
@@ -53,7 +77,7 @@
   +0.018 on 30 platypus), while `lynchrd`, `ritland` and `quellergt` match
   it.
 
-### Changes and bug fixes
+## Changes and bug fixes
 
 * History: functions called through `do.call(fun, list(x = gl, ...))` no
   longer store the whole input object in `@other$history` (the calls are
@@ -95,12 +119,12 @@
     for pairs across generations. `@MergedDf` gains a `generation` column.
     A single population no longer stops the simulation.
   * Computes the `which_tests` estimators with `gl.relatedness()` instead
-    of `related::coancestry()`, so it needs the `dartR.coancestry` engine
-    rather than the `related` package. Every estimator except the slow
+    of `related::coancestry()`, so it needs the `dartR_coancestry` program
+    (new argument `coancestry.path`) rather than the `related` package. Every estimator except the slow
     `trioml` runs by default. `lynchrd`, `quellergt` and rrBLUP results are
     unchanged; `wang` differs (on 15 individuals of testset.gl, 0.045 higher
-    on average on the kinship scale). `loiselle` is now available, and an
-    unknown estimator in `which_tests` is an error.
+    on average on the kinship scale). An unknown estimator in
+    `which_tests` is an error.
   * Accuracy statistics are computed against the exact pedigree kinship of
     each pair (new column `rel`; inbreeding included), with one
     relationship class per pair (`RelDegree`). New classes
@@ -231,7 +255,7 @@
   probabilities. Prints a summary at `verbose >= 3` and a completion
   message at `verbose >= 1`.
 
-### Moved and removed functions
+## Moved and removed functions
 
 * `gl.assign.pca()`, `gl.assign.pa()` and `gl.assign.on.genotype()` moved
   to dartR.popgen, which has the reviewed versions.

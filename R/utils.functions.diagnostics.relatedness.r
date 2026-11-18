@@ -1,9 +1,9 @@
-coanct_clean <- function(input, coanctTests = NULL){
+coanct_clean <- function(input, coanctTests = NULL, coancestry.path = NULL){
   
   # Coancestry estimators from gl.relatedness (relatedness scale, symmetric
   # matrices with diagonal NA); pairs sharing no called locus are NA
   res <- gl.relatedness(input, estimators = coanctTests, plot.out = FALSE,
-                        verbose = 0)
+                        coancestry.path = coancestry.path, verbose = 0)
   
   new_x <- NULL
   
@@ -46,8 +46,10 @@ GRM_clean <- function(input){
 
 
 # Cleanup relatedness output 
-cleanup_rel <- function(input_val, testSelect=NULL){
-  rel_cal <- cbind(coanct_clean(input_val, coanctTests=testSelect), GRM_clean(input_val))
+cleanup_rel <- function(input_val, testSelect=NULL, coancestry.path = NULL){
+  rel_cal <- cbind(coanct_clean(input_val, coanctTests=testSelect,
+                                coancestry.path = coancestry.path),
+                   GRM_clean(input_val))
   rel_cal <- rel_cal[complete.cases(rel_cal[testSelect]),]
   colnames(rel_cal) <- c("ind1","ind2", testSelect, "rrBLUP")
   rel_plot_2 <- reshape2::melt(rel_cal, id.vars = c("ind1","ind2"))

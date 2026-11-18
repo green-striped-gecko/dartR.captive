@@ -10,8 +10,7 @@ gl.diagnostics.relatedness(
   cleanup = FALSE,
   ref_variables = NULL,
   sim_variables = NULL,
-  which_tests = c("wang", "lynchli", "lynchrd", "ritland", "quellergt", "loiselle",
-    "dyadml"),
+  which_tests = c("wang", "lynchli", "lynchrd", "ritland", "quellergt", "dyadml"),
   run_sim = FALSE,
   IncludePlots = FALSE,
   plotOut = FALSE,
@@ -34,7 +33,8 @@ gl.diagnostics.relatedness(
   analysisUnit = c("generation", "pooled"),
   families = NULL,
   colony.path = NULL,
-  familyParents = FALSE
+  familyParents = FALSE,
+  coancestry.path = NULL
 )
 }
 \arguments{
@@ -54,7 +54,7 @@ mirrors x; see Details].}
 mirrors x; see Details]. A file given here is used as it is.}
 
 \item{which_tests}{Relatedness estimators of \code{gl.relatedness}: any
-of "wang", "lynchli", "lynchrd", "ritland", "quellergt", "loiselle",
+of "wang", "lynchli", "lynchrd", "ritland", "quellergt",
 "dyadml" and "trioml". rrBLUP (genomic relationship matrix) is always
 added. "trioml" is left out of the default: with biallelic SNPs it
 gives the same estimates as "dyadml" (pairwise correlation 0.999 on
@@ -149,6 +149,10 @@ when \code{families = "colony"} [default NULL].}
 \item{familyParents}{Logical. If TRUE, x also contains the parents of its
 families, and the simulated samples include them; they count towards
 the sample size [default FALSE].}
+
+\item{coancestry.path}{Path to the folder with the program
+\code{dartR_coancestry}, which computes the estimators in
+\code{which_tests}; see \code{gl.relatedness} [required].}
 }
 \value{
 An S4 object with the slots:
@@ -279,8 +283,9 @@ as the populations of x.
 
 \subsection{Requirements}{
 The estimators in \code{which_tests} are computed by
-\code{gl.relatedness}, which needs the engine package
-\code{dartR.coancestry} (not on CRAN; see \code{gl.relatedness}). The
+\code{gl.relatedness}, which needs the separately downloaded program
+\code{dartR_coancestry} (argument \code{coancestry.path}; see
+\code{gl.relatedness}). The
 simulation needs a recent dartR.sim (store_founders, store_pedigree,
 ne_phase2, inbreeding_founders, sample_families). Estimating Ne needs
 dartR.popgen and NeEstimator; reconstructing families needs COLONY; the
@@ -290,10 +295,13 @@ EMIBD9 estimates need EMIBD9. A run of 2 iterations on 81 individuals and
 }
 \examples{
 \dontrun{
-# requires dartR.coancestry (see gl.relatedness)
+# requires the program dartR_coancestry (see gl.relatedness)
+dartRverse::gl.download.binary(software = "coancestry", out.dir = tempdir())
 x <- gl.filter.callrate(platypus.gl, threshold = 0.9)
 x <- gl.filter.monomorphs(x)
 res <- gl.diagnostics.relatedness(x, run_sim = TRUE,
+                                  coancestry.path = file.path(tempdir(),
+                                                              "coancestry"),
                                   numberIterations = 2,
                                   Ne = c(40, 40, 90),
                                   biasOut = TRUE, rmseOut = TRUE,

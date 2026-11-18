@@ -86,10 +86,15 @@ This function also plots a heatmap, and a dendrogram, of the matrix.
  Individual names are shown in the margins of the heatmap and colors
  represent different populations.
 
- This function densifies the genotype matrix (\code{as.matrix(x)}) before
- calling \link[rrBLUP]{A.mat}, which requires a dense matrix. It is not
- suited to full-size FBM-backed objects, where densification defeats the
- memory savings FBM backing is meant to provide.
+ A file-backed (FBM) object is not decoded as a whole for A.mat's
+ default method (mean imputation, no shrinkage; \code{min.MAF} and
+ \code{max.missing} may be given): the matrix is computed in blocks of
+ loci (\code{dartR.base::utils.fbm.grm}) and agrees with
+ \link[rrBLUP]{A.mat} to about 1e-13. Other A.mat options
+ (\code{shrink}, \code{impute.method = "EM"}, \code{return.imputed})
+ need the whole matrix: the object is then converted to a genlight, with
+ a warning stating the memory A.mat uses (about four doubles per
+ genotype). Gen-backed objects use \link[rrBLUP]{A.mat} as before.
 }
 \examples{
 if (isTRUE(getOption("dartR_fbm"))) platypus.gl <- gl.gen2fbm(platypus.gl)
