@@ -193,8 +193,8 @@ test_that("gl.relatedness default estimators and optional frames", {
   skip_if_no_coancestry(); skip_if_not_installed("dartR.data")
   gl  <- dartR.data::platypus.gl[1:40, 1:1000]
   got <- gl.relatedness(gl, coancestry.path = coancestry_path(), plot.out = FALSE, verbose = 0)
-  expect_true(all(c("wang","lynchli","lynchrd","ritland","quellergt","loiselle")
-                  %in% names(got)))
+  expect_setequal(setdiff(names(got), "dyads"),
+                  c("wang","lynchli","lynchrd","ritland","quellergt"))
   expect_true("dyads" %in% names(got))
   expect_null(got$delta19); expect_null(got$trio_delta); expect_null(got$inbreeding)
 })
@@ -254,7 +254,19 @@ test_that("gl.relatedness with only 'inbreeding' returns no dyad matrices", {
   got <- gl.relatedness(gl, coancestry.path = coancestry_path(), estimators = "inbreeding", plot.out = FALSE, verbose = 0)
   expect_false(is.null(got$inbreeding))
   expect_true(all(!c("wang","lynchli","lynchrd","ritland","quellergt",
-                     "loiselle","dyadml","trioml") %in% names(got)))
+                     "dyadml","trioml") %in% names(got)))
+})
+
+test_that("gl.relatedness offers exactly the estimators of the program", {
+  skip_if_not_installed("dartR.data")
+  gl  <- dartR.data::platypus.gl[1:5, 1:20]
+  msg <- tryCatch(gl.relatedness(gl, estimators = "foo", coancestry.path = tempdir(),
+                                 plot.out = FALSE, verbose = 0),
+                  error = conditionMessage)
+  expect_match(msg, paste("Valid:\\s+wang, lynchli, lynchrd, ritland, quellergt,",
+                          "inbreeding, dyadml, trioml\\s*$"))
+  expect_identical(eval(formals(gl.relatedness)$estimators),
+                   c("wang", "lynchli", "lynchrd", "ritland", "quellergt"))
 })
 
 # Tests added by the function review

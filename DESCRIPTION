@@ -15,7 +15,9 @@ Authors@R: c(
             person("Floriaan", "Devloo-Delva",email="Floriaan.Devloo-Delva@csiro.au", role="ctb"),
             person("Eric","Archer", email="eric.archer@noaa.gov", role="ctb"),
             person("Sam", "Amini", email="samuelamini20@gmail.com", role="ctb"),
-            person("Ethan","Halford", email="ethan.halford03@gmail.com", role="ctb")
+            person("Ethan","Halford", email="ethan.halford03@gmail.com", role="ctb"),
+            person("Jinliang", "Wang", role="ctb",
+                   comment="author of Coancestry, on which gl.relatedness is based")
             )
 Description: Functions are provided that facilitate the analysis of SNP 
     (single nucleotide polymorphism) data to answer questions regarding 
@@ -54,7 +56,9 @@ Author: Bernd Gruber [aut, cre],
   Floriaan Devloo-Delva [ctb],
   Eric Archer [ctb],
   Sam Amini [ctb],
-  Ethan Halford [ctb]
+  Ethan Halford [ctb],
+  Jinliang Wang [ctb] (author of Coancestry, on which gl.relatedness is
+    based)
 URL: https://green-striped-gecko.github.io/dartR/
 BugReports: https://groups.google.com/g/dartr?pli=1
 Language: en-US

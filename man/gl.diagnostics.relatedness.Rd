@@ -10,8 +10,7 @@ gl.diagnostics.relatedness(
   cleanup = FALSE,
   ref_variables = NULL,
   sim_variables = NULL,
-  which_tests = c("wang", "lynchli", "lynchrd", "ritland", "quellergt", "loiselle",
-    "dyadml"),
+  which_tests = c("wang", "lynchli", "lynchrd", "ritland", "quellergt", "dyadml"),
   run_sim = FALSE,
   IncludePlots = FALSE,
   plotOut = FALSE,
@@ -55,7 +54,7 @@ mirrors x; see Details].}
 mirrors x; see Details]. A file given here is used as it is.}
 
 \item{which_tests}{Relatedness estimators of \code{gl.relatedness}: any
-of "wang", "lynchli", "lynchrd", "ritland", "quellergt", "loiselle",
+of "wang", "lynchli", "lynchrd", "ritland", "quellergt",
 "dyadml" and "trioml". rrBLUP (genomic relationship matrix) is always
 added. "trioml" is left out of the default: with biallelic SNPs it
 gives the same estimates as "dyadml" (pairwise correlation 0.999 on
