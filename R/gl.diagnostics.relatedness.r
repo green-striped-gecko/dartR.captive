@@ -29,7 +29,7 @@
 #'   \code{dartR.sim::gl.sim.WF.run} [default NULL, which builds one that
 #'   mirrors x; see Details]. A file given here is used as it is.
 #' @param which_tests Relatedness estimators of \code{gl.relatedness}: any
-#'   of "wang", "lynchli", "lynchrd", "ritland", "quellergt", "loiselle",
+#'   of "wang", "lynchli", "lynchrd", "ritland", "quellergt",
 #'   "dyadml" and "trioml". rrBLUP (genomic relationship matrix) is always
 #'   added. "trioml" is left out of the default: with biallelic SNPs it
 #'   gives the same estimates as "dyadml" (pairwise correlation 0.999 on
@@ -276,7 +276,7 @@ gl.diagnostics.relatedness <- function(
     ref_variables = NULL,
     sim_variables = NULL,
     which_tests = c("wang", "lynchli", "lynchrd", "ritland", "quellergt",
-                    "loiselle", "dyadml"),
+                    "dyadml"),
     run_sim = FALSE,
     IncludePlots = FALSE,
     plotOut = FALSE,
@@ -320,7 +320,7 @@ gl.diagnostics.relatedness <- function(
   # simulation runs
   invisible(utils.coancestry.exe(coancestry.path))
   valid.tests <- c("wang", "lynchli", "lynchrd", "ritland", "quellergt",
-                   "loiselle", "dyadml", "trioml")
+                   "dyadml", "trioml")
   bad.tests <- setdiff(which_tests, valid.tests)
   if (length(bad.tests) > 0) {
     stop(error(

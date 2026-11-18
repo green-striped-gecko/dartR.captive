@@ -6,7 +6,7 @@
 #' Estimates pairwise relatedness (and optionally inbreeding) between individuals
 #' in a genlight object using Jinliang Wang's Coancestry estimators.
 #' Method-of-moments estimators (Wang, Lynch & Li, Lynch & Ritland,
-#' Ritland, Queller & Goodnight, Loiselle) and maximum-likelihood estimators
+#' Ritland, Queller & Goodnight) and maximum-likelihood estimators
 #' (DyadML, TrioML), plus per-individual inbreeding, are available.
 #'
 #' The estimators are computed by the closed-source program
@@ -16,8 +16,8 @@
 #' @param x Name of the genlight object containing the SNP data [required].
 #' @param estimators Character vector of estimators; any subset of \code{"wang"},
 #'   \code{"lynchli"}, \code{"lynchrd"}, \code{"ritland"}, \code{"quellergt"},
-#'   \code{"loiselle"}, \code{"inbreeding"}, \code{"dyadml"}, \code{"trioml"}
-#'   [default the six moment estimators].
+#'   \code{"inbreeding"}, \code{"dyadml"}, \code{"trioml"}
+#'   [default the five moment estimators].
 #' @param allow.inbreeding If TRUE, fit the inbreeding-aware ML model for
 #'   \code{dyadml}/\code{trioml} [default FALSE].
 #' @param n.boots Bootstrap-over-loci replicates for 95\% CIs; 0 disables CIs
@@ -113,14 +113,35 @@
 #' }
 #'
 #' @references
-#' Wang, J. (2002). An estimator for pairwise relatedness using molecular markers.
-#' Genetics, 160, 1203-1215.
+#' \itemize{
+#' \item Wang, J. (2011). COANCESTRY: a program for simulating, estimating and
+#' analysing relatedness and inbreeding coefficients. Molecular Ecology
+#' Resources, 11, 141-145.
+#' \item Li, C.C. & Horvitz, D.G. (1953). Some methods of estimating the
+#' inbreeding coefficient. American Journal of Human Genetics, 5, 107-117.
+#' \item Li, C.C., Weeks, D.E. & Chakravarti, A. (1993). Similarity of DNA
+#' fingerprints due to chance and relatedness. Human Heredity, 43, 45-52.
+#' \item Lynch, M. (1988). Estimation of relatedness by DNA fingerprinting.
+#' Molecular Biology and Evolution, 5, 584-599.
+#' \item Lynch, M. & Ritland, K. (1999). Estimation of pairwise relatedness with
+#' molecular markers. Genetics, 152, 1753-1766.
+#' \item Milligan, B.G. (2003). Maximum-likelihood estimation of relatedness.
+#' Genetics, 163, 1153-1167.
+#' \item Queller, D.C. & Goodnight, K.F. (1989). Estimating relatedness using
+#' genetic markers. Evolution, 43, 258-275.
+#' \item Ritland, K. (1996). Estimators for pairwise relatedness and individual
+#' inbreeding coefficients. Genetical Research, 67, 175-185.
+#' \item Wang, J. (2002). An estimator for pairwise relatedness using molecular
+#' markers. Genetics, 160, 1203-1215.
+#' \item Wang, J. (2007). Triadic IBD coefficients and applications to
+#' estimating pairwise relatedness. Genetical Research, 89, 135-153.
+#' }
 #'
 #' @export
 
 gl.relatedness <- function(x,
                            estimators = c("wang", "lynchli", "lynchrd",
-                                          "ritland", "quellergt", "loiselle"),
+                                          "ritland", "quellergt"),
                            allow.inbreeding = FALSE,
                            n.boots = 0,
                            num.trios = 100,
@@ -153,7 +174,7 @@ gl.relatedness <- function(x,
   if (any(ploidy(x) != 2))
     stop(error("  gl.relatedness requires diploid SNP data (ploidy 2).\n"))
   valid.est <- c("wang", "lynchli", "lynchrd", "ritland", "quellergt",
-                 "loiselle", "inbreeding", "dyadml", "trioml")
+                 "inbreeding", "dyadml", "trioml")
   if (!is.character(estimators) || length(estimators) == 0)
     stop(error("  Give at least one estimator. Valid: ",
                paste(valid.est, collapse = ", "), "\n"))
@@ -162,7 +183,7 @@ gl.relatedness <- function(x,
     stop(error("  Unknown estimator(s): ", paste(bad, collapse = ", "),
                ". Valid: ", paste(valid.est, collapse = ", "), "\n"))
   dyad.est <- intersect(estimators,
-    c("wang", "lynchli", "lynchrd", "ritland", "quellergt", "loiselle",
+    c("wang", "lynchli", "lynchrd", "ritland", "quellergt",
       "dyadml", "trioml"))
   # Scalar arguments are checked before the engine runs, so a long run is
   # never discarded on a typing error

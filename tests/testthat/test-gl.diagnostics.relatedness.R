@@ -122,16 +122,16 @@ test_that("estimates are gl.relatedness halved to kinship", {
   pdf(NULL)
   on.exit(grDevices::dev.off())
   x <- gl.filter.allna(testset.gl[1:15, ], verbose = 0)
-  res <- gl.diagnostics.relatedness(x, coancestry.path = coancestry_path(), which_tests = c("wang", "loiselle"),
+  res <- gl.diagnostics.relatedness(x, coancestry.path = coancestry_path(), which_tests = c("wang", "lynchrd"),
                                     verbose = 0)
   m <- tidyr::pivot_wider(res@MergedDf[[1]], names_from = "variable",
                           values_from = "value")
-  r <- gl.relatedness(x, estimators = c("wang", "loiselle"),
+  r <- gl.relatedness(x, estimators = c("wang", "lynchrd"),
                       coancestry.path = coancestry_path(),
                       plot.out = FALSE, verbose = 0)
   ij <- cbind(as.character(m$ind1), as.character(m$ind2))
   expect_equal(m$wang, r$wang[ij] / 2)
-  expect_equal(m$loiselle, r$loiselle[ij] / 2)
+  expect_equal(m$lynchrd, r$lynchrd[ij] / 2)
 })
 
 test_that("unknown estimators in which_tests error", {
@@ -141,6 +141,18 @@ test_that("unknown estimators in which_tests error", {
                                verbose = 0),
     "Unknown estimator"
   )
+})
+
+test_that("which_tests offers exactly the dyad estimators of the program", {
+  skip_if_no_coancestry()
+  msg <- tryCatch(
+    gl.diagnostics.relatedness(testset.gl[1:10, ], coancestry.path = coancestry_path(),
+                               which_tests = "foo", verbose = 0),
+    error = conditionMessage)
+  expect_match(msg, "valid are wang, lynchli, lynchrd, ritland, quellergt, dyadml, trioml",
+               fixed = TRUE)
+  expect_identical(eval(formals(gl.diagnostics.relatedness)$which_tests),
+                   c("wang", "lynchli", "lynchrd", "ritland", "quellergt", "dyadml"))
 })
 
 test_that("relatives across generations get their own class, not unrelated", {

@@ -18,6 +18,8 @@
   through `dartR.base::utils.fbm.decode()`, which reports the memory and
   stops above `getOption("dartR_fbm_max_decode_gb", 4)` Gb. Gen-backed
   objects are unchanged.
+* `gl.relatedness()` cites Coancestry and the paper behind each estimator,
+  and Jinliang Wang, the author of Coancestry, is listed as a contributor.
 
 # dartR.captive 1.2.7
 
@@ -61,8 +63,8 @@
 
 * New `gl.relatedness()` estimates pairwise relatedness, and optionally
   inbreeding, with Jinliang Wang's Coancestry estimators: the moment
-  estimators of Wang, Lynch & Li, Lynch & Ritland, Ritland, Queller &
-  Goodnight and Loiselle, and the likelihood estimators DyadML and TrioML,
+  estimators of Wang, Lynch & Li, Lynch & Ritland, Ritland and Queller &
+  Goodnight, and the likelihood estimators DyadML and TrioML,
   with optional bootstrap confidence intervals. The estimators are computed
   by the closed-source program `dartR_coancestry`, downloaded separately with
   `dartRverse::gl.download.binary()` and located with the argument
@@ -121,8 +123,8 @@
     (new argument `coancestry.path`) rather than the `related` package. Every estimator except the slow
     `trioml` runs by default. `lynchrd`, `quellergt` and rrBLUP results are
     unchanged; `wang` differs (on 15 individuals of testset.gl, 0.045 higher
-    on average on the kinship scale). `loiselle` is now available, and an
-    unknown estimator in `which_tests` is an error.
+    on average on the kinship scale). An unknown estimator in
+    `which_tests` is an error.
   * Accuracy statistics are computed against the exact pedigree kinship of
     each pair (new column `rel`; inbreeding included), with one
     relationship class per pair (`RelDegree`). New classes
