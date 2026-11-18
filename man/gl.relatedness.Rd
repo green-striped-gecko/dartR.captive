@@ -12,6 +12,7 @@ gl.relatedness(
   num.trios = 100,
   rng.seed = 42,
   n.threads = 1,
+  coancestry.path = getwd(),
   plot.stat = NULL,
   plot.out = TRUE,
   plot.colors = NULL,
@@ -40,6 +41,10 @@ gl.relatedness(
 bootstrap) [default 42].}
 
 \item{n.threads}{Threads for the moment tier (the ML tier is serial) [default 1].}
+
+\item{coancestry.path}{Path to the folder with the program
+\code{dartR_coancestry} (\code{dartR_coancestry.exe} on Windows); see
+Details [default getwd()].}
 
 \item{plot.stat}{Estimator whose matrix is drawn as a heatmap; NULL = the first
 requested dyad estimator [default NULL].}
@@ -70,13 +75,14 @@ and/or ML inbreeding).
 }
 \description{
 Estimates pairwise relatedness (and optionally inbreeding) between individuals
-in a genlight object using Jinliang Wang's Coancestry estimators, translated to
-C++/Rcpp. Method-of-moments estimators (Wang, Lynch & Li, Lynch & Ritland,
+in a genlight object using Jinliang Wang's Coancestry estimators.
+Method-of-moments estimators (Wang, Lynch & Li, Lynch & Ritland,
 Ritland, Queller & Goodnight, Loiselle) and maximum-likelihood estimators
 (DyadML, TrioML), plus per-individual inbreeding, are available.
 
-The numerical engine is the closed-source, binary-only package
-\code{dartR.coancestry}, which must be installed separately (see Details).
+The estimators are computed by the closed-source program
+\code{dartR_coancestry}, a C++ translation of Coancestry, which must be
+downloaded separately (see Details).
 }
 \details{
 \code{as.matrix(x)} supplies the individual x locus alternate-allele dosage
@@ -86,15 +92,16 @@ all-missing individuals are dropped first (reported at \code{verbose >= 1}):
 the bootstrap loop, faithful to Coancestry, does not terminate on a pair with
 no usable polymorphic locus.
 
-The engine \code{dartR.coancestry} is closed-source, binary-only, not on CRAN.
-Download the build matching your operating system, CPU architecture and R
-version from
-\url{https://github.com/mijangos81/dartR.coancestry-binaries/releases}, then
-install it with:
-\preformatted{install.packages("<path-to-downloaded-file>",
-  repos = NULL, type = "binary")}
-Binary R packages are tied to the R minor version they were built against, so
-a build for R 4.4 will not load under R 4.5.
+The program \code{dartR_coancestry} is closed-source and is not part of this
+package. Download the build for your operating system with
+\preformatted{dartRverse::gl.download.binary(software = "coancestry",
+  out.dir = tempdir())}
+and give its folder in \code{coancestry.path}, for example
+\code{coancestry.path = file.path(tempdir(), "coancestry")}. The genotypes
+and the results pass between R and the program through temporary files,
+which are removed afterwards. A run can be stopped as any R command
+(RStudio's Stop button, Esc or Ctrl-C); the program is then ended and its
+files removed.
 
 A pair of individuals that shares no called locus has no information on
 relatedness; every estimate for it is set to NA (the engine returns 0 for the
@@ -127,8 +134,11 @@ available). See \code{dartR.base::utils.fbm.decode}.
 }
 \examples{
 \dontrun{
+# download the program once per session (see Details)
+dartRverse::gl.download.binary(software = "coancestry", out.dir = tempdir())
 gl  <- dartR.data::platypus.gl[1:40, 1:1000]
-res <- gl.relatedness(gl, estimators = c("wang", "lynchrd"))
+res <- gl.relatedness(gl, estimators = c("wang", "lynchrd"),
+                      coancestry.path = file.path(tempdir(), "coancestry"))
 res$wang[1:5, 1:5]
 head(res$dyads)
 }
