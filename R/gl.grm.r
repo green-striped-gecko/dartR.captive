@@ -13,15 +13,19 @@
 #' @param palette_convergent A convergent palette for the IBD values
 #'  [default convergent_palette].
 #' @param legendx x coordinates for the legend[default 0].
-#' @param legendy y coordinates for the legend[default 1].
+#' @param legendy y coordinates for the legend[default 0.5].
 #' @param label.size Specify the size of the population labels [default 0.75].
 #' @param legend.title Legend title [default "Populations"].
-#' @param plot.file Name for the RDS binary file to save (base name only, exclude extension) [default NULL]
+#' @param plot.file Name for the RDS binary file to save (base name only,
+#'  exclude extension); saved only when \code{plotheatmap = TRUE}
+#'  [default NULL]
 #' @param plot.dir Directory in which to save files [default = working directory]
 #' @param verbose Verbosity: 0, silent or fatal errors; 1, begin and end; 2,
 #'  progress log ; 3, progress and results summary; 5, full report
 #'  [default 2 or as specified using gl.set.verbosity].
 #' @param ... Parameters passed to function A.mat from package rrBLUP.
+#' Unless min.MAF is given, it is set to 1/(2n) - 1e-10, so loci with a
+#' single copy of the minor allele are kept on every platform.
 #'
 #' @details
 #' This function uses the A.mat function from the rrBLUP package. This method 
@@ -33,18 +37,33 @@
 #' While IBS does not necessarily imply IBD, using high-density SNP data 
 #' improves the estimation of IBD probabilities from IBS measures.
 #'
-#' This function also plots a heatmap, and a dendrogram, of IBD values where
-#' each diagonal element has a mean that equals 1+f, where f is the inbreeding
-#' coefficient (i.e. the probability that the two alleles at a randomly chosen
-#' locus are IBD from the base population). As this probability lies between 0
-#'  and 1, the diagonal elements range from 1 to 2. Because the inbreeding
-#'  coefficients are expressed relative to the current population, the mean of
-#'  the off-diagonal elements is -(1+f)/n, where n is the number of loci.
+#' The matrix is on the relatedness scale: each diagonal element estimates
+#' 1+f, where f is the inbreeding coefficient of the individual, and each
+#' off-diagonal element estimates twice the kinship of the pair. Both are
+#' relative to the allele frequencies of the supplied individuals, so f can
+#' be negative (diagonal below 1), and the matrix sums to zero: the mean of
+#' the off-diagonal elements is -(mean of the diagonal)/(n-1), where n is
+#' the number of individuals. Kinship is half these values.
+#'
+#' This function also plots a heatmap, and a dendrogram, of the matrix.
 #'  Individual names are shown in the margins of the heatmap and colors
 #'  represent different populations.
 #'
-#' @return An identity by descent matrix
-#' @author Custodian: Arthur Georges -- Post to
+#'  A file-backed (FBM) object is not decoded as a whole for A.mat's
+#'  default method (mean imputation, no shrinkage; \code{min.MAF} and
+#'  \code{max.missing} may be given): the matrix is computed in blocks of
+#'  loci (\code{dartR.base::utils.fbm.grm}) and agrees with
+#'  \link[rrBLUP]{A.mat} to about 1e-13. Other A.mat options
+#'  (\code{shrink}, \code{impute.method = "EM"}, \code{return.imputed})
+#'  need the whole matrix: the object is then converted to a genlight, with
+#'  a warning stating the memory A.mat uses (about four doubles per
+#'  genotype). Gen-backed objects use \link[rrBLUP]{A.mat} as before.
+#'
+#' @return A square genomic relationship matrix on the relatedness scale
+#' (diagonal 1+f, off-diagonal twice the kinship), with row and column names
+#' set to the individual names and attr(, "scale") = "relatedness", returned
+#' invisibly.
+#' @author Author(s): Arthur Georges. Custodian: Arthur Georges -- Post to
 #' \url{https://groups.google.com/d/forum/dartr}
 #' @references \itemize{
 #' \item Endelman, J. B. (2011). Ridge regression and other kernels for genomic
@@ -75,9 +94,12 @@ gl.grm <- function(x,
   # SET VERBOSITY
   verbose <- gl.check.verbosity(verbose)
 
+  # SET WORKING DIRECTORY
+  plot.dir <- gl.check.wd(plot.dir, verbose = 0)
+
   # FLAG SCRIPT START
   funname <- match.call()[[1]]
-  utils.flag.start(
+  funname <- utils.flag.start(
     func = funname,
     build = "Jody",
     verbose = verbose
@@ -99,14 +121,15 @@ gl.grm <- function(x,
     return(-1)
   }
 
-  pkg <- "gplots"
-  if (!(requireNamespace(pkg, quietly = TRUE))) {
-    cat(error(
-      "Package",
-      pkg,
-      " needed for this function to work. Please install it.\n"
+  # gl.grm computes an additive relationship matrix intended for SNP
+  # (diploid, 0/1/2) dosage; it is not valid for SilicoDArT (presence/
+  # absence, ploidy 1) data
+  if (datatype == "SilicoDArT") {
+    stop(error(
+      "Fatal Error: gl.grm computes an additive relationship matrix for",
+      "SNP (diploid) data; it is not valid for SilicoDArT",
+      "(presence/absence) data.\n"
     ))
-    return(-1)
   }
 
   # Set a population if none is specified (such as if the genlight object has been generated manually)
@@ -125,47 +148,76 @@ gl.grm <- function(x,
 
   # DO THE JOB
 
-  # assigning colors to populations
-  if(!is.null(palette_discrete)){
-  # if pop colors is a palette
-  if (is(palette_discrete, "function")) {
-    colors_pops <- palette_discrete(length(levels(pop(x))))
-  }
-  # if pop colors is a vector
-  if (!is(palette_discrete, "function")) {
-    colors_pops <- palette_discrete
-  }
-  }else{
-    colors_pops <- gl.select.colors(x, verbose = 0)
-  }
-  
-  names(colors_pops) <- as.character(levels(x$pop))
-
   # calculating the realized additive relationship matrix
 
-  G <- rrBLUP::A.mat(as.matrix(x) - 1, ...)
-
-  df_colors_temp_1 <-
-    as.data.frame(cbind(indNames(x), as.character(pop(x)), 1:nInd(x)))
-  colnames(df_colors_temp_1) <- c("ind", "pop", "order")
-  df_colors_temp_2 <-
-    as.data.frame(cbind(names(colors_pops), colors_pops))
-  colnames(df_colors_temp_2) <- c("pop", "color")
-  df_colors <-
-    merge(df_colors_temp_1, df_colors_temp_2, by = "pop")
-  df_colors$order <- as.numeric(df_colors$order)
-  df_colors <- df_colors[order(df_colors$order), ]
-  df_colors_2 <- df_colors[, c("pop", "color")]
-  df_colors_2 <- unique(df_colors_2)
+  # A.mat keeps loci with MAF >= 1/(2n) by default, i.e. at least one copy
+  # of the minor allele. A single copy sits exactly on that cut-off, so
+  # rounding in mean() decided whether it passed: arm64 macOS dropped it,
+  # x86 dropped it only when the minor allele was counted as 2. A small
+  # tolerance keeps such loci on every platform and allele coding.
+  dots <- list(...)
+  if (is.null(dots$min.MAF)) {
+    dots$min.MAF <- 1 / (2 * nInd(x)) - 1e-10
+  }
+  # rrBLUP::A.mat for a gen-backed object; a file-backed object is read in
+  # blocks of loci for A.mat's default method, and converted explicitly
+  # (with a warning) only for other A.mat options
+  G <- dartR.base::utils.fbm.amat(x, dots, verbose = verbose)
+  # diagonal 1 + F, off-diagonal ~2 x kinship; gl.grm.network reads this tag
+  attr(G, "scale") <- "relatedness"
 
   if (plotheatmap == TRUE) {
+    # check if package is installed
+    pkg <- "gplots"
+    if (!(requireNamespace(pkg, quietly = TRUE))) {
+      cat(error(
+        "Package",
+        pkg,
+        " needed for this function to work. Please install it.\n"
+      ))
+      return(-1)
+    }
+
+    # assigning colors to populations
+    if (!is.null(palette_discrete)) {
+      # if pop colors is a palette
+      if (is(palette_discrete, "function")) {
+        colors_pops <- palette_discrete(length(levels(pop(x))))
+      }
+      # if pop colors is a vector
+      if (!is(palette_discrete, "function")) {
+        colors_pops <- palette_discrete
+      }
+    } else {
+      colors_pops <- gl.select.colors(x, verbose = 0)
+    }
+
+    # keep the names given when they cover every population, otherwise
+    # colours follow levels(pop(x))
+    if (!all(levels(x$pop) %in% names(colors_pops))) {
+      names(colors_pops) <- as.character(levels(x$pop))
+    }
+
+    df_colors_temp_1 <-
+      as.data.frame(cbind(indNames(x), as.character(pop(x)), 1:nInd(x)))
+    colnames(df_colors_temp_1) <- c("ind", "pop", "order")
+    df_colors_temp_2 <-
+      as.data.frame(cbind(names(colors_pops), colors_pops))
+    colnames(df_colors_temp_2) <- c("pop", "color")
+    df_colors <-
+      merge(df_colors_temp_1, df_colors_temp_2, by = "pop")
+    df_colors$order <- as.numeric(df_colors$order)
+    df_colors <- df_colors[order(df_colors$order), ]
+    df_colors_2 <- df_colors[, c("pop", "color")]
+    df_colors_2 <- unique(df_colors_2)
+
     if (is.null(palette_convergent)) {
       cols <- gl.select.colors(library = "baseR", palette = "cm.colors", ncolors = 255, verbose = 0)
     } else {
       cols <- palette_convergent(255)
     }
     # plotting heatmap
-    
+
     oldpar <- par(no.readonly = TRUE)
     on.exit(par(oldpar))
     par(mar = c(1, 1, 1, 1))
@@ -188,16 +240,23 @@ gl.grm <- function(x,
       cex = label.size,
       title = legend.title
     )
-  }
 
-  # Optionally save the plot ---------------------
+    # Optionally save the plot ---------------------
 
-  if (!is.null(plot.file)) {
-    tmp <- utils.plot.save(p3,
-      dir = plot.dir,
-      file = plot.file,
-      verbose = verbose
-    )
+    if (!is.null(plot.file)) {
+      tmp <- utils.plot.save(p3,
+        dir = plot.dir,
+        file = plot.file,
+        verbose = verbose
+      )
+    }
+  } else if (!is.null(plot.file)) {
+    if (verbose >= 1) {
+      cat(warn(
+        "  plot.file was set but plotheatmap = FALSE; no plot is",
+        "generated, so nothing was saved.\n"
+      ))
+    }
   }
 
   # FLAG SCRIPT END

@@ -16,13 +16,15 @@ progress log; 3, progress and results summary; 5, full report
 [default 2, unless specified using gl.set.verbosity].}
 }
 \value{
-A \code{data.frame} consisting of assignment probabilities for each
- population.
+A named \code{numeric} vector giving, for each candidate
+ population, the mean pairwise GRM (identity-by-descent) value between
+ the unknown individual and that population's members, sorted from most
+ to least related.
 }
 \description{
-This function takes one individual and estimates
-their probability of coming from individual populations
-from multilocus genotype frequencies.
+This function takes one individual and, for each candidate population,
+estimates their mean relatedness (via a genomic relationship matrix) to
+that population's members, based on multilocus genotype frequencies.
 }
 \details{
 This function is a re-implementation of the function multilocus_assignment
@@ -32,12 +34,12 @@ https://dyerlab.github.io/applied_population_genetics/population-assignment.html
 }
 \examples{
 require("dartR.data")
-if ((requireNamespace("rrBLUP", quietly = TRUE)) & (requireNamespace("gplots", quietly = TRUE))) {
+if (requireNamespace("rrBLUP", quietly = TRUE)) {
   if (isTRUE(getOption("dartR_fbm"))) platypus.gl <- gl.gen2fbm(platypus.gl)
   res <- gl.assign.grm(platypus.gl, unknown = "T27")
 }
 }
 \author{
-Custodian: Luis Mijangos -- Post to
+Author(s): Luis Mijangos. Custodian: Luis Mijangos -- Post to
 \url{https://groups.google.com/d/forum/dartr}
 }

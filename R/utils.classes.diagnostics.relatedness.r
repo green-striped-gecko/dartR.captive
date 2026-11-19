@@ -5,12 +5,13 @@ slotDescriptions[["InputDf"]] <- "Original genlight input"
 slotDescriptions[["SimOutput"]] <- "Genlight object of simulation output"
 slotDescriptions[["MergedDf"]] <- "Final dataframe containing results of relatedness analysis"
 slotDescriptions[["corOutList"]] <- "Results of correlation analysis"
-slotDescriptions[["corVals"]] <- "Output of correlation results bewteen methods"
+slotDescriptions[["corVals"]] <- "Output of correlation results between methods"
 slotDescriptions[["plotList"]] <- "List of plots"
 
 corrSlotDescriptions <- NULL
-corrSlotDescriptions[["rmsePlot"]] <- "Plot of RMSE bewteen actual and estimated related values"
-corrSlotDescriptions[["varPlot"]] <- "Plot of variance bewteen actual and estimated related values"
+corrSlotDescriptions[["rmsePlot"]] <- "Table of RMSE between pedigree and estimated kinship"
+corrSlotDescriptions[["varPlot"]] <- "Table of the variance of estimated kinship"
+corrSlotDescriptions[["biasPlot"]] <- "Table of the bias (estimated minus pedigree kinship)"
 
 # Base output class (stores original genlight input)
 setClass("OutputS4",
@@ -47,7 +48,7 @@ setMethod("do_sim", "DartSim", function(object) {
     interactive_vars = FALSE
   )
   
-  res_sim <- gl.sim.WF.run(
+  run.args <- list(
     file_var = object@sim_input,
     ref_table = ref_table,
     x = object@input_data,
@@ -57,6 +58,16 @@ setMethod("do_sim", "DartSim", function(object) {
     sample_percent = 100,
     gen_number_phase2 = object@gen_number
   )
+  # founders (with their realised inbreeding) are kept as generation_0 by
+  # the dartR.sim versions that can store them
+  if ("store_founders" %in% names(formals(gl.sim.WF.run))) {
+    run.args$store_founders <- TRUE
+  }
+  # and the pedigree of every individual, sampled or not
+  if ("store_pedigree" %in% names(formals(gl.sim.WF.run))) {
+    run.args$store_pedigree <- TRUE
+  }
+  res_sim <- do.call("gl.sim.WF.run", run.args)
   
   return(res_sim)
 })
@@ -64,9 +75,10 @@ setMethod("do_sim", "DartSim", function(object) {
 
 setClass("finalOutputClass", 
          slots = c(
-           "InputDf" = "ANY", 
-           "SimOutput" = "ANY", 
-           "corOutList" = "ANY", 
+           "InputDf" = "ANY",
+           "SimOutput" = "ANY",
+           "MergedDf" = "ANY",
+           "corOutList" = "ANY",
            "corVals" = "ANY", 
            "plotList" = "ANY"
          ))
@@ -94,7 +106,8 @@ setMethod("show", signature =  "finalOutputClass",
 setClass("corOutList", 
          slots = c(
            "rmsePlot" = "ANY", 
-           "varPlot" = "ANY"
+           "varPlot" = "ANY",
+           "biasPlot" = "ANY"
          ))
 
 setMethod("show", signature =  "corOutList", 

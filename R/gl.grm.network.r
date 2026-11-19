@@ -1,30 +1,36 @@
 #' @name gl.grm.network
 #' @title Represents a similarity matrix as a network
 #' @description
-#' This script takes any similarity matrix and represents
-#' the relationship among the specimens as a network diagram. 
+#' This script takes a genomic relationship matrix and represents the
+#' kinship among the specimens as a network diagram.
 #'
-#' @param G A similarity matrix [required].
+#' @param G A square relationship matrix, such as the output of gl.grm or the
+#' $rel element of gl.run.EMIBD9. Row and column names must be the individual
+#' names of x. The scale is read from attr(G, "scale"): a G tagged
+#' "kinship" is used as kinship directly; any other G (tagged "relatedness",
+#' or untagged) is taken as relatedness and halved [required].
 #' @param x A genlight object from which the matrix was generated [required].
 #' @param standardise Whether to standardise matrix using Goudet et al method, 
 #' see details [default FALSE].
 #' @param categorise Whether to categorise the color of the link representing 
-#' kinship values into relationships. Same Individual (>0.3), Full Siblings / Parent-Offspring 
-#' (>0.2 & <0.3) and Half Siblings (>0.1 & <0.2) [default FALSE].
-#' @param color.categories A vector of three colors to represent the above 
-#' kinship categories [default = c("#E63E94","#E5D44C","#3ED2E6")].
+#' kinship values (G / 2) into relationships. Same Individual (>=0.3), Full
+#' Siblings / Parent-Offspring (>=0.2 & <0.3) and Half Siblings (>=0.1 & <0.2)
+#' [default FALSE].
+#' @param color.categories A vector of three colors for the above kinship
+#' categories, in the order Same Individual, Full Siblings / Parent-Offspring,
+#' Half Siblings [default = c("#E63E94","#E5D44C","#3ED2E6")].
 #' @param method One of 'fr', 'kk', 'gh' or 'mds' [default 'fr'].
 #' @param node.size Size of the symbols for the network nodes [default 8].
 #' @param node.label TRUE to display node labels [default TRUE].
-#' @param node.label.size Size of the node labels [default 3].
+#' @param node.label.size Size of the node labels [default 2].
 #' @param node.label.color Color of the text of the node labels
 #' [default 'black'].
 #' @param link.color Colors for links, either a vector of colors or a color 
 #' palette function [NULL].
 #' @param link.size Size of the links [default 2].
-#' @param kinship.threshold Threshold of kinship value to display in the 
-#' network diagram [default 0.125].
-#' @param title Title for the plot [default 'Network of similarity matrix'].
+#' @param kinship.threshold Threshold of kinship value (G / 2) to display in
+#' the network diagram [default 0.125].
+#' @param title Title for the plot [default 'Network of a similarity matrix'].
 #' @param legend.title Title for the legend [default "Populations"].
 #' @param title.size Font size of the title [default 16].
 #' @param legend.size Font size of the legend [default 14].
@@ -40,7 +46,10 @@
 #'  [default 2 or as specified using gl.set.verbosity].
 #' @details
 #' The gl.grm.network function creates a network diagram that represents 
-#' genetic relationships among individuals in a dataset. 
+#' genetic relationships among individuals in a dataset. Off-diagonal
+#' elements of G are relatedness coefficients, so they are divided by 2 to
+#' obtain the kinship values (not for G tagged as kinship, see G) that are compared with kinship.threshold, used
+#' for the categories and returned in the kinship matrix.
 #' 
 #'\strong{Layout options}
 #'  
@@ -61,46 +70,58 @@
 #' individuals can be challenging because kinship and inbreeding coefficients 
 #' are relative measures. To standardize a genomic relationship matrix (GRM),
 #' such as the one produced by the function gl.grm, and facilitate interpretation, 
-#' the function adjusts the matrix through the following steps:
+#' the function re-expresses kinship relative to the average pair of
+#' individuals in the sample, following Goudet et al. (2018):
 #' 
-#' 1. Centering Inbreeding Coefficients: Subtract 1 from the mean of the 
-#' diagonal elements to calculate the average inbreeding coefficient. This 
-#' centers the inbreeding coefficients around zero, providing a reference point 
-#' relative to the population's average inbreeding level.
+#' 1. Off-diagonal elements are converted to kinship theta (G / 2, or G
+#' itself when G is tagged as kinship).
 #' 
-#' 2. Calculating Kinship Coefficients: Divide the off-diagonal elements by 2 
-#' to obtain the kinship coefficients. This conversion reflects the probability 
-#' of sharing alleles IBD between pairs of individuals.
+#' 2. The mean kinship over all pairs of distinct individuals, mean_theta, is
+#' taken as the reference.
 #' 
-#' 3. Centering Kinship Coefficients: Subtract the adjusted mean inbreeding 
-#' coefficient (from step 1) from each kinship coefficient (from step 2). This 
-#' centers the kinship coefficients relative to the population average, 
-#' allowing for meaningful comparisons.
+#' 3. Each kinship becomes (theta - mean_theta) / (1 - mean_theta), so the
+#' average pair has kinship 0 and a pair identical by descent at every locus
+#' keeps kinship 0.5.
 #' 
-#' This adjustment method aligns with the approach used by Goudet et al. (2018), 
-#' enabling the relationships to be interpreted in the context of the overall 
-#' genetic relatedness within the population.
+#' For gl.grm input, which is already centred on the sample allele
+#' frequencies, mean_theta is close to 0 and the change is small; it matters
+#' for matrices on another reference, such as EMIBD9 output. The diagonal
+#' (inbreeding) is not used, because the mean inbreeding of the sample
+#' reflects population structure and missing data rather than the
+#' relationship between pairs.
+#' Because the average pair becomes the zero point, a sample made up mostly
+#' of relatives gives standardised values below the pedigree expectations
+#' (e.g. parent-offspring 0.12 instead of 0.21 in an EMIBD9 run on a single
+#' captive family with a few wild individuals); standardise only when the
+#' sample represents the wider population.
 #'
 #' Below is a table modified from Speed & Balding (2015) showing kinship values,
 #'  and their confidence intervals (CI), for different relationships that could
 #'  be used to guide the choosing of the kinship threshold in the function.
 #'
 #' \tabular{lll}{
-#'   \strong{Relationship} \tab \strong{Kinship} \tab \strong{95\% CI} \cr
-#'   Identical twins / clones / same individual \tab 0.5   \tab –              \cr
-#'   Sibling / Parent–Offspring                \tab 0.25  \tab (0.204, 0.296)\cr
-#'   Half‑sibling                              \tab 0.125 \tab (0.092, 0.158)\cr
-#'   First cousin                              \tab 0.062 \tab (0.038, 0.089)\cr
-#'   Half‑cousin                               \tab 0.031 \tab (0.012, 0.055)\cr
-#'   Second cousin                             \tab 0.016 \tab (0.004, 0.031)\cr
-#'   Half‑second cousin                        \tab 0.008 \tab (0.001, 0.020)\cr
-#'   Third cousin                              \tab 0.004 \tab (0.000, 0.012)\cr
-#'   Unrelated                                 \tab 0     \tab –              \cr
+#'   \strong{Relationship} \tab \strong{Kinship} \tab \strong{95\% CI} \cr
+#'   Identical twins / clones / same individual \tab 0.5   \tab -              \cr
+#'   Sibling / Parent-Offspring                \tab 0.25  \tab (0.204, 0.296)\cr
+#'   Half-sibling                              \tab 0.125 \tab (0.092, 0.158)\cr
+#'   First cousin                              \tab 0.062 \tab (0.038, 0.089)\cr
+#'   Half-cousin                               \tab 0.031 \tab (0.012, 0.055)\cr
+#'   Second cousin                             \tab 0.016 \tab (0.004, 0.031)\cr
+#'   Half-second cousin                        \tab 0.008 \tab (0.001, 0.020)\cr
+#'   Third cousin                              \tab 0.004 \tab (0.000, 0.012)\cr
+#'   Unrelated                                 \tab 0     \tab -              \cr
 #' }
 #' 
 #'
-#' @return A network plot showing kinship between individuals
-#' @author Custodian: Arthur Georges -- Post to
+#' @return Invisibly, a named list:
+#' \itemize{
+#' \item plot -- the network plot (ggplot object).
+#' \item kinship -- a matrix of pairwise kinship values (G / 2, or the
+#' standardised values when standardise = TRUE). Only the lower triangle is
+#' filled; the upper triangle is NA and the diagonal is set to 0. Rows and
+#' columns follow the row order of G.
+#' }
+#' @author Author(s): Arthur Georges. Custodian: Arthur Georges -- Post to
 #' \url{https://groups.google.com/d/forum/dartr}
 #' @examples
 #' if (requireNamespace("igraph", quietly = TRUE) & requireNamespace("rrBLUP",
@@ -161,11 +182,7 @@ gl.grm.network <- function(G,
   
   # FLAG SCRIPT START
   funname <- match.call()[[1]]
-  utils.flag.start(
-    func = funname,
-    build = "Jody",
-    verbose = verbose
-  )
+  funname <- utils.flag.start(func = funname, verbose = verbose)
   
   # CHECK DATATYPE
   datatype <- utils.check.datatype(x, verbose = verbose)
@@ -177,8 +194,7 @@ gl.grm.network <- function(G,
     if (verbose >= 2) {
       cat(
         important(
-          "  Population assignments not detected, individuals assigned
-                    to a single population labelled 'pop1'\n"
+          "  Population assignments not detected, individuals assigned to a single population labelled 'pop1'\n"
         )
       )
     }
@@ -197,14 +213,22 @@ gl.grm.network <- function(G,
     return(-1)
   }
   
-  if (!(method == "fr" ||
-        method == "kk" ||
-        method == "gh" || 
-        method == "mds")) {
-    if(verbose>0) cat(warn(
-      "Warning: Layout method must be one of fr, or kk, gh or mds, set to fr\n"
+  method <- match.arg(method, c("fr", "kk", "gh", "mds"))
+
+  # gl.run.EMIBD9 returns kinship (EMIBD9's r(1,2)) and tags it; other
+  # inputs, such as gl.grm, are relatedness (2 x kinship)
+  G.is.kinship <- identical(attr(G, "scale"), "kinship")
+  
+  # G must be a square matrix labelled with the individuals of x; otherwise
+  # the network silently gains isolated nodes or fails deep inside igraph
+  G <- as.matrix(G)
+  if (nrow(G) != ncol(G) || is.null(rownames(G)) || is.null(colnames(G)) ||
+      !setequal(rownames(G), indNames(x)) ||
+      !setequal(colnames(G), indNames(x))) {
+    stop(error(
+      "  G must be a square matrix whose row and column names are the",
+      "individual names of x (indNames(x))\n"
     ))
-    method <- "fr"
   }
   
   # DO THE JOB
@@ -216,24 +240,28 @@ gl.grm.network <- function(G,
   colnames(links) <- c("from", "to", "weight")
   
   if(isTRUE(standardise)){
-    # using the average inbreeding coefficient (1-f) of the diagonal elements as
-    #the reference value
-    MS <- mean(diag(G) - 1)
-    # the result of the GRM is the summation of the IBD of each allele .
-    links$kinship <- (links$weight / 2) - MS
+    # Goudet et al. (2018): kinship relative to the average pair of the
+    # sample, beta = (theta - mean_theta) / (1 - mean_theta), with
+    # mean_theta over all pairs of distinct individuals. Centring on the
+    # mean inbreeding (diagonal) instead shifts every pair by the Wahlund
+    # and missing-data effects in the diagonal
+    theta <- if (G.is.kinship) links$weight else links$weight / 2
+    mean_theta <- mean(theta, na.rm = TRUE)
+    links$kinship <- (theta - mean_theta) / (1 - mean_theta)
     links_tmp <- links[,c(1,2,4)]
   }
   
   if(isFALSE(standardise)){
-    links_tmp <- links
-    colnames(links_tmp) <- c("from","to","kinship")
-    links_tmp$kinship <- as.character(links_tmp$kinship)
-    colnames(links) <- c("from","to","kinship")
-    links_tmp <- links
+    # off-diagonal elements are relatedness coefficients (2 x kinship),
+    # unless G is tagged as kinship
+    links$kinship <- if (G.is.kinship) links$weight else links$weight / 2
+    links_tmp <- links[,c(1,2,4)]
   }
-  
-  links_tmp <- rbind(links_tmp,cbind(from=indNames(x),
-                                     to=indNames(x),kinship=0))
+
+  links_tmp <- rbind(links_tmp,
+                     data.frame(from = indNames(x),
+                               to = indNames(x),
+                               kinship = 0))
   
   links_matrix <- as.matrix(reshape2::acast(links_tmp, 
                                             from~to, value.var="kinship"))
@@ -246,8 +274,13 @@ gl.grm.network <- function(G,
   links_plot_3 <- links_plot_tmp[,c("to","kinship")]
   colnames(links_plot_3) <- c("label.node","kinship")
   links_plot <- rbind(links_plot_2,links_plot_3)
+  # one row per individual: keep the strongest relationship so the merge
+  # below doesn't duplicate a node with 2+ above-threshold relationships
+  if (nrow(links_plot) > 0) {
+    links_plot <- aggregate(kinship ~ label.node, data = links_plot, FUN = max)
+  }
   
-  nodes <- data.frame(cbind(x$ind.names, as.character(pop(x))))
+  nodes <- data.frame(cbind(indNames(x), as.character(pop(x))))
   colnames(nodes) <- c("name", "pop")
   
   network <- igraph::graph_from_data_frame(d = links,
@@ -337,78 +370,72 @@ gl.grm.network <- function(G,
     link.color <- link.color(255)
   }
   
-  names(colors_pops) <- as.character(levels(x$pop))
+  # keep the names given when they cover every population, otherwise
+  # colours follow levels(pop(x))
+  if (!all(levels(pop(x)) %in% names(colors_pops))) {
+    names(colors_pops) <- as.character(levels(pop(x)))
+  }
   new_levels <- unique(plotcord$pop[order(as.character(plotcord$pop))])
   # Rebuild the factor
   plotcord$pop <- factor(plotcord$pop, levels = new_levels)
   
-  breaks <- pretty(round(seq(min(edges$size),
-                      max(edges$size),
-                      0.1),1),4)
-  
-  if(categorise){
-    edges$cat <- NULL
-    edges[edges$size >0.3,"cat"] <- "Same Individual" 
-    edges[edges$size >0.2 & 
-            edges$size < 0.3,"cat"] <-"Full Siblings\nParent-Offspring"
-    edges[edges$size >0.1 & 
-            edges$size < 0.2,"cat"] <-"Half Siblings"
-
-p1 <-
-  ggplot() + 
-  geom_segment(data = edges,
-               aes( x = X1, 
-                    y = Y1, 
-                    xend = X2,
-                    yend = Y2,
-                    color = cat),
-               linewidth = link.size) +
-  scale_color_manual(
-    name = "Kinship",
-    values = color.categories
-  ) +
-  geom_point(data = plotcord,aes(x = X1,y = X2, fill = pop), 
-             pch = 21,
-             alpha=plotcord$kinship,
-             size = node.size) +
-  scale_fill_manual(name = legend.title, values = colors_pops)+
-  coord_fixed(ratio = 1) + 
-  theme_void() +
-  ggtitle(paste(title, "\n[", layout.name, "]")) + 
-  theme(legend.position = "bottom",
-        plot.title = element_text( hjust = 0.5, face = "bold",size = title.size),
-        legend.title = element_text(size = legend.size),
-        legend.text = element_text(size = 8)) 
-    
-  }else{
-    
-    p1 <-
-      ggplot() + 
-      geom_segment(data = edges,
-                   aes( x = X1, y = Y1, xend = X2,yend = Y2,color = size),
-                   linewidth = link.size) +
-      scale_colour_gradientn(
-        name = "Kinship",
-        colours = link.color,
-        breaks = breaks,
-        labels = as.character(breaks)
-      ) +
-      geom_point(data = plotcord,aes(x = X1,y = X2, fill = pop), 
-                 pch = 21,
-                 alpha=plotcord$kinship,
-                 size = node.size) +
-      scale_fill_manual(name = legend.title, values = colors_pops)+
-      coord_fixed(ratio = 1) + 
-      theme_void() +
-      ggtitle(paste(title, "\n[", layout.name, "]")) + 
-      theme(legend.position = "bottom",
-            plot.title = element_text( hjust = 0.5, face = "bold",size = title.size),
-            legend.title = element_text(size = legend.size),
-            legend.text = element_text(size = 8))  
-    
+  if (nrow(edges) == 0 && verbose >= 1) {
+    cat(warn(paste0(
+      "  No pairs of individuals have a kinship value at or above the",
+      " kinship.threshold (", kinship.threshold, "); the network is shown",
+      " with nodes only and no links.\n"
+    )))
   }
-  
-  if (node.label == T) {
+
+  if (categorise) {
+    edges$cat <- rep(NA_character_, nrow(edges))
+    if (nrow(edges) > 0) {
+      edges[edges$size >= 0.3, "cat"] <- "Same Individual"
+      edges[edges$size >= 0.2 & edges$size < 0.3, "cat"] <-
+        "Full Siblings\nParent-Offspring"
+      edges[edges$size >= 0.1 & edges$size < 0.2, "cat"] <- "Half Siblings"
+    }
+    color_layer <- list(
+      aes(color = cat),
+      # named so each category keeps its documented colour whichever
+      # categories are present
+      scale_color_manual(name = "Kinship",
+                         values = stats::setNames(
+                           color.categories,
+                           c("Same Individual",
+                             "Full Siblings\nParent-Offspring",
+                             "Half Siblings")))
+    )
+  } else {
+    color_layer <- list(
+      aes(color = size),
+      scale_colour_gradientn(name = "Kinship", colours = link.color)
+    )
+  }
+
+  p1 <-
+    ggplot() +
+    geom_segment(data = edges,
+                 mapping = modifyList(
+                   aes(x = X1, y = Y1, xend = X2, yend = Y2),
+                   color_layer[[1]]
+                 ),
+                 linewidth = link.size) +
+    color_layer[[2]] +
+    geom_point(data = plotcord,aes(x = X1,y = X2, fill = pop),
+               pch = 21,
+               alpha=plotcord$kinship,
+               size = node.size) +
+    scale_fill_manual(name = legend.title, values = colors_pops)+
+    coord_fixed(ratio = 1) +
+    theme_void() +
+    ggtitle(paste(title, "\n[", layout.name, "]")) +
+    theme(legend.position = "bottom",
+          plot.title = element_text( hjust = 0.5, face = "bold",size = title.size),
+          legend.title = element_text(size = legend.size),
+          legend.text = element_text(size = 8))
+
+  if (isTRUE(node.label)) {
     p1 <-
       p1 + geom_text(
         data = plotcord,
@@ -445,5 +472,5 @@ p1 <-
   
   # RETURN
   
-  return(invisible(list(p1, links_matrix)))
+  return(invisible(list(plot = p1, kinship = links_matrix)))
 }

@@ -1,0 +1,30 @@
+function,package,family,claimed_by,status
+gl.grm,dartR.captive,analysis,Claude,done#85
+gl.grm.network,dartR.captive,analysis,Claude,done#97 (r2; r1 done#87; kinship fix done#101; standardise fix done#109)
+gl.assign.grm,dartR.captive,analysis,Claude,done#88
+gl2colony,dartR.captive,io,Claude,done#98
+gl.run.colony,dartR.captive,io,Claude,done#99
+gl.run.EMIBD9,dartR.captive,io,Claude,done#100
+gl.report.parent.offspring,dartR.captive,report,Claude,done#102
+gl.filter.parent.offspring,dartR.captive,modify,Claude,done#103
+gl.kin,dartR.captive,analysis,Claude,done#108 (scale contract done#110)
+gl.sim.relatedness,dartR.captive,analysis,Claude,done#105
+gl.plot.network,dartR.captive,analysis,Claude,done#106
+gl.diagnostics.relatedness,dartR.captive,analysis,Claude,done#107
+gl.report.kinship,dartR.captive,report,Claude,done#112
+gl.report.kin.classes,dartR.captive,report,Claude,done#114 (addendum A1 done#116)
+gl.report.kin.confidence,dartR.captive,report,Claude,done#115
+gl.report.kin.groups,dartR.captive,report,Claude,done#119
+gl.report.ind.add,dartR.captive,report,Claude,done#120
+gl.report.ind.move,dartR.captive,report,Claude,done#122
+gl.report.gd.projection,dartR.captive,report,Claude,done#124
+gl.report.ind.remove,dartR.captive,report,Claude,done#123
+gl.report.repro.targets,dartR.captive,report,Claude,done#127
+gl.report.kin.sets,dartR.captive,report,Claude,done#125
+gl.report.mate.suitability,dartR.captive,report,Claude,done#126
+gl.select.pairs,dartR.captive,report,Claude,done#128
+gl.relatedness,dartR.captive,analysis,Claude,done#129
+utils.kin.check,dartR.captive,utility,luis,pr-open
+utils.kin.dgd,dartR.captive,utility,luis,pr-open
+utils.kin.dominant,dartR.captive,utility,luis,pr-open
+gl.inbreeding,dartR.captive,analysis,luis,pr-open#151

@@ -12,7 +12,7 @@ gl.filter.parent.offspring(
   method = "best",
   rm.monomorphs = FALSE,
   plot_theme = theme_dartR(),
-  plot_colors = gl.colors(2),
+  plot_colors = NULL,
   plot.file = NULL,
   plot.dir = NULL,
   verbose = NULL
@@ -29,9 +29,10 @@ gl.filter.parent.offspring(
 \item{range}{Specifies the range to extend beyond the interquartile range for
 delimiting outliers [default 1.5 interquartile ranges].}
 
-\item{method}{Method of selecting the individual to retain from each pair of
-parent offspring relationship, 'best' (based on CallRate) or 'random'
-[default 'best'].}
+\item{method}{Method of selecting the individual to remove from each pair
+in a parent offspring relationship: 'best' removes the individual with more
+missing genotypes (lower call rate) and keeps the other; 'random' removes
+one at random [default 'best'].}
 
 \item{rm.monomorphs}{If TRUE, remove monomorphic loci after filtering
 individuals [default FALSE].}
@@ -40,7 +41,7 @@ individuals [default FALSE].}
 [default theme_dartR()].}
 
 \item{plot_colors}{List of two color names for the borders and fill of the
-plots [default gl.colors(2)].}
+plots [default NULL, which uses gl.colors(2)].}
 
 \item{plot.file}{Name for the RDS binary file to save (base name only, exclude extension) [default NULL]}
 
@@ -52,9 +53,9 @@ progress log ; 3, progress and results summary; 5, full report
 [default 2, unless specified using gl.set.verbosity].}
 }
 \value{
-the filtered genlight object without A set of individuals in
-parent-offspring relationship. NULL if no parent-offspring relationships were
-found.
+The genlight object without one individual from each putative
+parent-offspring pair. If no pairs are found, the object is returned
+unchanged.
 }
 \description{
 This script removes individuals suspected of being related as
@@ -64,20 +65,20 @@ pedigree inconsistent loci, that is, those loci that are homozygotes in the
 parent for the reference allele, and homozygous in the offspring for the
 alternate allele. This condition is not consistent with any pedigree,
 regardless of the (unknown) genotype of the other parent.
-The pedigree inconsistent loci are counted as an indication of whether or not
-it is reasonable to propose the two individuals are in a parent-offspring
-relationship.
+The proportion of pedigree inconsistent loci is used as an indication of
+whether or not it is reasonable to propose the two individuals are in a
+parent-offspring relationship.
 }
 \details{
 If two individuals are in a parent offspring relationship, the true number of
 pedigree inconsistent loci should be zero, but SNP calling is not infallible.
-Some loci will be miss-called. The problem thus becomes one of determining if
-the two focal individuals have a count of pedigree inconsistent loci less
-than would be expected of typical unrelated individuals. There are some quite
+Some loci will be miscalled. The problem thus becomes one of determining if
+the two focal individuals have a proportion of pedigree inconsistent loci
+lower than would be expected of typical unrelated individuals. There are some quite
 sophisticated software packages available to formally apply likelihoods to
 the decision, but we use a simple outlier comparison.
 
-To reduce the frequency of miss-calls, and so emphasize the difference
+To reduce the frequency of miscalls, and so emphasize the difference
 between true parent-offspring pairs and unrelated pairs, the data can be
 filtered on read depth. Typically minimum read depth is set to 5x, but you
 can examine the distribution of read depths with the function
@@ -101,7 +102,14 @@ this report to decide min.rdepth and min.reproducibility and assess impact on
 your dataset.
 
 Note that if your dataset does not contain RepAvg or rdepth among the locus
-metrics, the filters for reproducibility and read depth are no used.
+metrics, the filters for reproducibility and read depth are not used.
+
+The pairs are identified with \code{\link{gl.report.parent.offspring}}
+using the same arguments. An individual that belongs to several pairs is
+removed first, because that resolves all of its pairs at once; the
+remaining pairs are resolved in order of evidence (lowest proportion of
+inconsistent loci first), and a pair drops out as soon as either member
+has been removed. This keeps the number of removed individuals low.
 
  Examples of other themes that can be used can be consulted in \itemize{
  \item \url{https://ggplot2.tidyverse.org/reference/ggtheme.html} and \item
@@ -117,7 +125,7 @@ out <- gl.filter.parent.offspring(testset.gl[1:10, 1:50])
 \code{\link{gl.report.parent.offspring}}
 }
 \author{
-Custodian: Arthur Georges -- Post to
+Author(s): Arthur Georges. Custodian: Arthur Georges -- Post to
  \url{https://groups.google.com/d/forum/dartr}
 }
 \concept{filter functions}

@@ -2,3 +2,5 @@
 ^\.Rproj\.user$
 ^\.github$
 README[.]
+^\.claude$
+^function-review$

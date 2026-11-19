@@ -31,13 +31,15 @@ gl.grm(
 
 \item{legendx}{x coordinates for the legend[default 0].}
 
-\item{legendy}{y coordinates for the legend[default 1].}
+\item{legendy}{y coordinates for the legend[default 0.5].}
 
 \item{label.size}{Specify the size of the population labels [default 0.75].}
 
 \item{legend.title}{Legend title [default "Populations"].}
 
-\item{plot.file}{Name for the RDS binary file to save (base name only, exclude extension) [default NULL]}
+\item{plot.file}{Name for the RDS binary file to save (base name only,
+exclude extension); saved only when \code{plotheatmap = TRUE}
+[default NULL]}
 
 \item{plot.dir}{Directory in which to save files [default = working directory]}
 
@@ -45,10 +47,15 @@ gl.grm(
 progress log ; 3, progress and results summary; 5, full report
 [default 2 or as specified using gl.set.verbosity].}
 
-\item{...}{Parameters passed to function A.mat from package rrBLUP.}
+\item{...}{Parameters passed to function A.mat from package rrBLUP.
+Unless min.MAF is given, it is set to 1/(2n) - 1e-10, so loci with a
+single copy of the minor allele are kept on every platform.}
 }
 \value{
-An identity by descent matrix
+A square genomic relationship matrix on the relatedness scale
+(diagonal 1+f, off-diagonal twice the kinship), with row and column names
+set to the individual names and attr(, "scale") = "relatedness", returned
+invisibly.
 }
 \description{
 This function calculates the mean probability of identity by state (IBS)
@@ -67,15 +74,27 @@ Identical by Descent (IBD) if they are inherited from a common ancestor.
 While IBS does not necessarily imply IBD, using high-density SNP data 
 improves the estimation of IBD probabilities from IBS measures.
 
-This function also plots a heatmap, and a dendrogram, of IBD values where
-each diagonal element has a mean that equals 1+f, where f is the inbreeding
-coefficient (i.e. the probability that the two alleles at a randomly chosen
-locus are IBD from the base population). As this probability lies between 0
- and 1, the diagonal elements range from 1 to 2. Because the inbreeding
- coefficients are expressed relative to the current population, the mean of
- the off-diagonal elements is -(1+f)/n, where n is the number of loci.
+The matrix is on the relatedness scale: each diagonal element estimates
+1+f, where f is the inbreeding coefficient of the individual, and each
+off-diagonal element estimates twice the kinship of the pair. Both are
+relative to the allele frequencies of the supplied individuals, so f can
+be negative (diagonal below 1), and the matrix sums to zero: the mean of
+the off-diagonal elements is -(mean of the diagonal)/(n-1), where n is
+the number of individuals. Kinship is half these values.
+
+This function also plots a heatmap, and a dendrogram, of the matrix.
  Individual names are shown in the margins of the heatmap and colors
  represent different populations.
+
+ A file-backed (FBM) object is not decoded as a whole for A.mat's
+ default method (mean imputation, no shrinkage; \code{min.MAF} and
+ \code{max.missing} may be given): the matrix is computed in blocks of
+ loci (\code{dartR.base::utils.fbm.grm}) and agrees with
+ \link[rrBLUP]{A.mat} to about 1e-13. Other A.mat options
+ (\code{shrink}, \code{impute.method = "EM"}, \code{return.imputed})
+ need the whole matrix: the object is then converted to a genlight, with
+ a warning stating the memory A.mat uses (about four doubles per
+ genotype). Gen-backed objects use \link[rrBLUP]{A.mat} as before.
 }
 \examples{
 if (isTRUE(getOption("dartR_fbm"))) platypus.gl <- gl.gen2fbm(platypus.gl)
@@ -94,10 +113,11 @@ realized relationship matrix. G3: Genes, Genomics, Genetics 2, 1405.
 \code{\link{gl.grm.network}}
 
 Other inbreeding functions: 
-\code{\link{gl.grm.network}()}
+\code{\link{gl.grm.network}()},
+\code{\link{gl.inbreeding}()}
 }
 \author{
-Custodian: Arthur Georges -- Post to
+Author(s): Arthur Georges. Custodian: Arthur Georges -- Post to
 \url{https://groups.google.com/d/forum/dartr}
 }
 \concept{inbreeding functions}

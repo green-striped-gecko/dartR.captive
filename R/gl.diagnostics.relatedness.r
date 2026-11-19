@@ -1,425 +1,809 @@
 #' @name gl.diagnostics.relatedness
 #'
-#' @title Run simulations and relatedness analyses on genlight objects
+#' @title Measure the bias and accuracy of relatedness estimators on data
+#' simulated to match a genlight object
 #'
 #' @description
-#' This function wraps a variety of methods for estimating relatedness, such
-#' that they can be directly compared for accuracy and precision. It also 
-#' provides the ability to run the gl.sim function for a minimum of 3 generations, 
-#' providing further functionality with regards to estimating gene flow and population 
-#' dynamics. It supports multiple simulation back ends, correlation
-#' output, error checking, RMSE/variance summaries, and optional plotting.
+#' Relatedness estimates are biased when a dataset has population structure,
+#' inbreeding, or a sample made of families, and the size of the bias depends
+#' on the estimator, the relationship and the data. This function measures
+#' it for the data at hand. It simulates a population that reproduces the
+#' structure, diversity, inbreeding, effective population size, missing data
+#' and (optionally) family composition of \code{x}, lets it mate at random
+#' for a few generations so that every pairwise relationship is known from
+#' the pedigree, estimates relatedness with every available estimator on
+#' samples like \code{x}, and reports each estimator's bias and error against
+#' the true kinship, by relationship class. Without a simulation, it compares
+#' the estimators on \code{x} itself, and against a pedigree attached to
+#' \code{x} when there is one.
 #'
-#' @param x A genlight object containing SNP or SilicoDArT data [required].
-#' @param cleanup Logical. Apply callrate, heterozygosity and all-NA filters
-#'   before simulation [default = FALSE].
-#' @param ref_variables Path to reference variable file [optional].
-#' @param sim_variables Path to simulation variable file [optional].
-#' @param which_tests Character vector of relatedness tests to apply
-#'   [default = "wang"].
-#' @param run_sim Logical. If TRUE, run simulations [default = FALSE].
-#' @param IncludePlots Logical. If TRUE, generate and return plots
-#'   [default = FALSE].
-#' @param plotOut Logical. If TRUE, prints plots [default = FALSE]. 
-#' @param varOut Logical. If TRUE, return variance results [default = FALSE].
-#' @param rmseOut Logical. If TRUE, return RMSE results [default = FALSE].
-#' @param numberIterations Integer. Number of simulation iterations
-#'   [default = 1].
-#' @param numberGenerations Integer. Number of generations to simulate
-#'   [default = 3].
-#' @param genToSave Either "all" or a numeric vector of generations to save
-#'   [default = "all"].
-#' @param runE9 Logical. If TRUE, include E9 analysis [default = FALSE].
-#' @param E9Inbreed Logical. If TRUE, then runs EMIBD9 twice - once with inbreeding once w/out 
-#'   [default = FALSE].
-#' @param e9Path Path to external E9 binary [optional].
-#' @param verbose Verbosity level: 0–5. If NULL, set by
-#'   \code{gl.set.verbosity()} [default = NULL].
-#' @param e9parallel Logical. Run E9 in parallel [default = FALSE].
-#' @param nCores Integer. Number of cores if running E9 in parallel
-#'   [default = 1].
-#' @param includedPed Logical. If TRUE then input file has attache pedigree 
-#'   [default = FALSE]
+#' @param x A genlight object containing SNP data [required].
+#' @param cleanup Logical. Before anything else, keep only loci with no
+#'   missing data (call rate 1), filter individuals by heterozygosity
+#'   (\code{gl.filter.heterozygosity} defaults) and drop all-NA loci
+#'   [default FALSE].
+#' @param ref_variables Path to the reference variable file for
+#'   \code{dartR.sim::gl.sim.WF.table} [default NULL, which builds one that
+#'   mirrors x; see Details].
+#' @param sim_variables Path to the simulation variable file for
+#'   \code{dartR.sim::gl.sim.WF.run} [default NULL, which builds one that
+#'   mirrors x; see Details]. A file given here is used as it is.
+#' @param which_tests Relatedness estimators of \code{gl.relatedness}: any
+#'   of "wang", "lynchli", "lynchrd", "ritland", "quellergt",
+#'   "dyadml" and "trioml". rrBLUP (genomic relationship matrix) is always
+#'   added. "trioml" is left out of the default: with biallelic SNPs it
+#'   gives the same estimates as "dyadml" (pairwise correlation 0.999 on
+#'   platypus.gl, with bias and RMSE within 0.001 by relationship class)
+#'   at about 150 times the run time (about 25 minutes for 300 individuals)
+#'   [default all but "trioml"].
+#' @param run_sim Logical. If TRUE, simulate data that mirror x and measure
+#'   bias against the simulated pedigree [default FALSE].
+#' @param IncludePlots Logical. If TRUE, build and return plots
+#'   [default FALSE].
+#' @param plotOut Logical. If TRUE, print the plots (requires
+#'   \code{IncludePlots = TRUE}) [default FALSE].
+#' @param varOut Logical. If TRUE, return the variance of each estimator by
+#'   relationship class [default FALSE].
+#' @param rmseOut Logical. If TRUE, return the root mean square error of each
+#'   estimator against the pedigree kinship, by relationship class
+#'   [default FALSE].
+#' @param numberIterations Integer. Number of independent simulations
+#'   [default 1].
+#' @param numberGenerations Integer. Number of generations of random mating
+#'   after the founders; minimum 3 [default 3].
+#' @param genToSave "all", or the positions of the stored generations to
+#'   keep, generation 0 (the founders) being the first [default "all"].
+#' @param run.e9 Logical. If TRUE, also estimate kinship with EMIBD9
+#'   [default FALSE].
+#' @param E9Inbreed Logical. If TRUE, run EMIBD9 a second time allowing for
+#'   inbreeding [default FALSE].
+#' @param e9Path Path to the folder with the EMIBD9 binaries, needed when
+#'   \code{run.e9 = TRUE} [default NULL].
+#' @param verbose Verbosity: 0, silent or fatal errors; 1, begin and end and
+#'   warnings; 2, progress log, including Ne, founder inbreeding and family
+#'   sizes used; 3, progress and results summary; 5, full report
+#'   [default 2, unless specified using gl.set.verbosity].
+#' @param e9parallel Logical. Run EMIBD9 in parallel [default FALSE].
+#' @param nCores Integer. Number of cores for EMIBD9 in parallel
+#'   [default 1].
+#' @param includedPed Logical. If TRUE (and \code{run_sim = FALSE}), x has a
+#'   pedigree in \code{x@other$ind.metrics} (columns id, dad, mom; missing
+#'   parents 0 or NA) and the estimates of x are compared with it
+#'   [default FALSE].
+#' @param biasOut Logical. If TRUE, return the bias of each estimator (mean
+#'   of estimated minus pedigree kinship), by relationship class
+#'   [default FALSE].
+#' @param simMissing Logical. If TRUE, each simulated individual takes the
+#'   missing loci of a random individual of x from the same population, so
+#'   the estimators face the missing data of x [default TRUE].
+#' @param Ne Effective population size of each population of x, one value
+#'   or one per population in the order of \code{levels(pop(x))}
+#'   [default NULL, which estimates it with \code{dartR.popgen::gl.LDNe}
+#'   when \code{neest.path} is given]. Give it whenever you can: LDNe needs
+#'   larger samples than most relatedness studies have (see Details).
+#' @param neest.path Path to the folder with the NeEstimator binary, used to
+#'   estimate Ne when \code{Ne} is NULL [default NULL].
+#' @param analysisUnit "generation" estimates relatedness within each stored
+#'   generation, a sample the size of x, so the estimators take their allele
+#'   frequencies from a sample like x; pairs from different generations
+#'   (parent-offspring, grandparent-grandchild, avuncular) are then estimated
+#'   only when parents are sampled with their offspring. "pooled" estimates
+#'   relatedness among all stored generations of an iteration together
+#'   [default "generation"].
+#' @param families Family structure of x to reproduce in the simulated
+#'   samples: the name of a column of \code{x@other$ind.metrics} with a
+#'   full-sib family identifier for each individual (NA or "" when not in a
+#'   family), or "colony" to reconstruct full-sib families with
+#'   \code{gl.run.colony} (needs \code{colony.path}) [default NULL, samples
+#'   of unrelated individuals].
+#' @param colony.path Path to the folder with the COLONY executable, used
+#'   when \code{families = "colony"} [default NULL].
+#' @param familyParents Logical. If TRUE, x also contains the parents of its
+#'   families, and the simulated samples include them; they count towards
+#'   the sample size [default FALSE].
+#' @param coancestry.path Path to the folder with the program
+#'   \code{dartR_coancestry}, which computes the estimators in
+#'   \code{which_tests}; see \code{gl.relatedness} [required].
 #'
 #' @details
-#' The function manages filtering, simulation setup, correlation
-#' and relatedness outputs, and optional plotting. It handles quality
-#' control checks on input objects and file paths before analysis.
+#' \subsection{What the output means}{
+#' Every relatedness estimator measures kinship against allele frequencies
+#' taken from the sample itself, so its values shift with the composition
+#' of the sample: population structure raises estimates within populations
+#' and lowers them between populations, inbreeding raises the kinship of
+#' relatives beyond what the estimators expect, and a sample of a few
+#' families makes unrelated pairs look related. The simulated individuals
+#' have known relationships, so the difference between each estimate and the
+#' true kinship, averaged by relationship class, is the bias to expect when
+#' the same estimator is applied to x. A small bias and RMSE for a class
+#' means the estimator can be trusted for that relationship in data like x;
+#' the most suitable estimator is the one with the smallest bias and RMSE
+#' for the relationships that matter to the question.
+#' }
 #'
-#' @return Returns an S4 object containing simulation and/or relatedness
-#'   outputs. The slots for the output class are as follows: 
+#' \subsection{How the simulation mirrors x}{
+#' When \code{ref_variables} and \code{sim_variables} are NULL, the
+#' variable files are built from the ones shipped with dartR.sim so that the
+#' simulated population matches x:
+#' \itemize{
+#' \item Loci: the loci of x with their allele frequencies in each
+#' population, and no other loci (real_freq, chunk_neutral_loci = 0). x with
+#' 100 loci or fewer gets fewer, longer chromosome chunks on the same
+#' 1000 cM map, as dartR.sim needs more loci than chunks.
+#' \item Population structure: the populations of x (real_pops; x without
+#' populations is one population). With two or more populations, founder
+#' allele frequencies are shrunk toward their mean to remove the sampling
+#' noise of x (real_freq_shrink = "auto"), and migration is set from the
+#' FST of x (real_migration); dispersal starts in generation 2.
+#' \item Effective population size: each population has the Ne of the
+#' matching population of x (ne_phase2) and a census size of
+#' 2 x ceiling(max(1.25 Ne, n / 2)), above 2 Ne because parents that mate
+#' with several partners halve Ne. There is no default Ne: the function
+#' stops when \code{Ne} is not given and cannot be estimated.
+#' \code{gl.LDNe} estimates are flagged as unreliable when their jackknife
+#' upper limit is infinite or they exceed 10 times the sample size; in
+#' tests on five datasets with 9-41 individuals per population, gl.LDNe
+#' failed or was flagged for at least one population in every dataset.
+#' \item Inbreeding: the founders carry the inbreeding of their population
+#' in x (inbreeding_founders), F = 1 - sum(Ho) / sum(uHe) measured on loci
+#' called in at least 99\% of individuals (the threshold is lowered in steps
+#' of 0.01 until 100 loci pass; negative values are set to 0), because
+#' heterozygote calls lost at poorly called loci inflate F. Mating is random
+#' afterwards (sib_mating_phase2 = 0), so the founders' inbreeding is not
+#' passed on to their offspring.
+#' \item Mating: parents are drawn with replacement (replace_parents), so an
+#' individual can mate with several partners and half sibs occur.
+#' \item Samples: every stored generation holds a sample with the sample
+#' sizes of x (real_sample_size), including the founders (generation 0,
+#' store_founders), and simulated genotypes take the missing data of x
+#' (\code{simMissing}).
+#' \item Families: with \code{families}, every stored generation from
+#' generation 1 on is sampled with the family sizes of x per population, and
+#' with their parents when \code{familyParents = TRUE} (sample_families,
+#' sample_parents); generation 0, never sampled as families, is then left
+#' out of the analysis. Family sizes are reported at verbose >= 2 so they can
+#' be checked; kinship estimates are not used to find families, as they
+#' carry the bias being measured. Families that share parents (e.g. two
+#' sires crossed with two dams) need a variable file with dartR.sim's
+#' sample_crosses or sample_design, given in \code{sim_variables}.
+#' }
+#' All other variables take the values of the files shipped with dartR.sim.
+#' Options that the installed dartR.sim does not know are left out.
+#' }
+#'
+#' \subsection{The true kinship}{
+#' All estimates are on the kinship scale (\code{gl.relatedness} returns
+#' relatedness, which is halved). Each pair gets its exact pedigree kinship
+#' (column rel) from the full simulated pedigree, including ancestors that
+#' were not sampled (dartR.sim store_pedigree), computed recursively with
+#' founders unrelated to each other; a founder's kinship with itself is
+#' (1 + F) / 2, with F its realised inbreeding. Each pair also gets its
+#' closest relationship class (column RelDegree): parent_offspring,
+#' full_sibs, half_sibs, grandparent_grandchild, avuncular (aunt or uncle and
+#' niece or nephew), full_first_cousins, great_grandparent_grandchild,
+#' half_avuncular, half_first_cousins, second_cousins, other_relatives
+#' (pedigree kinship above 0 but none of these classes) or unrelated
+#' (pedigree kinship 0). Bias is the mean of estimate minus rel and RMSE the
+#' root mean square of the same differences, by class.
+#' }
+#'
+#' \subsection{What is not simulated}{
+#' Genotyping error is not simulated: missing data are copied from x, but
+#' lost heterozygote calls, allelic dropout and paralogous loci (loci
+#' heterozygous in nearly every individual) are not, so for data with these
+#' problems the bias is under-reported; remove such loci before running the
+#' function. Loci are placed on a simulated map, so the linkage between the
+#' loci of x is not reproduced. Substructure within the populations of x
+#' (e.g. sites within a lineage) is reproduced only when the sites are given
+#' as the populations of x.
+#' }
+#'
+#' \subsection{Requirements}{
+#' The estimators in \code{which_tests} are computed by
+#' \code{gl.relatedness}, which needs the separately downloaded program
+#' \code{dartR_coancestry} (argument \code{coancestry.path}; see
+#' \code{gl.relatedness}). The
+#' simulation needs a recent dartR.sim (store_founders, store_pedigree,
+#' ne_phase2, inbreeding_founders, sample_families). Estimating Ne needs
+#' dartR.popgen and NeEstimator; reconstructing families needs COLONY; the
+#' EMIBD9 estimates need EMIBD9. A run of 2 iterations on 81 individuals and
+#' 557 loci takes about a minute.
+#' }
+#'
+#' @return An S4 object with the slots:
 #'   \itemize{
-#'     \item @InputDf: Original genlight input
-#'     \item @SimOutput: Genlight object of simulation outputs
-#'     \item @corOutList: Results of correlation analysis
-#'     \item @corVals: Output of correlation results between methods
-#'     \item @plotList: List of plots
+#'     \item @InputDf: x, after filtering when \code{cleanup = TRUE}.
+#'     \item @SimOutput: one genlight per iteration with all stored
+#'       generations; \code{@other$ind.metrics} holds each individual's
+#'       parents, generation and sampling role, and \code{@other$sim.vars}
+#'       the simulation variables, including values derived from x (e.g.
+#'       ne_expected, migrants_real, freq_shrink_lambda).
+#'     \item @MergedDf: one data frame per iteration, one row per pair, with
+#'       the estimates of each estimator; with a pedigree, also RelDegree
+#'       and rel; with a simulation, the generation of the pair.
+#'     \item @corOutList: tables of bias, RMSE and variance by relationship
+#'       class (\code{biasOut}, \code{rmseOut}, \code{varOut}).
+#'     \item @corVals: correlations between estimators and with rel.
+#'     \item @plotList: plots per iteration; with a pedigree, estimates by
+#'       relationship class (boxplots and densities) and a tile plot of the
+#'       bias and RMSE of each estimator by class.
 #'   }
 #'
-#' @author Ethan, Luis (Post to
-#'   \url{https://groups.google.com/d/forum/dartr})
+#' @author Author(s): Ethan, Luis Mijangos. Custodian: Luis Mijangos -- Post
+#'   to \url{https://groups.google.com/d/forum/dartr}
 #'
 #' @examples
 #' \dontrun{
-#' if (isTRUE(getOption("dartR_fbm"))) testset.gl <- gl.gen2fbm(testset.gl)
-#' gl.diagnostics.relatedness(testset.gl, run_sim = TRUE, IncludePlots = TRUE)
+#' # requires the program dartR_coancestry (see gl.relatedness)
+#' dartRverse::gl.download.binary(software = "coancestry", out.dir = tempdir())
+#' x <- gl.filter.callrate(platypus.gl, threshold = 0.9)
+#' x <- gl.filter.monomorphs(x)
+#' res <- gl.diagnostics.relatedness(x, run_sim = TRUE,
+#'                                   coancestry.path = file.path(tempdir(),
+#'                                                               "coancestry"),
+#'                                   numberIterations = 2,
+#'                                   Ne = c(40, 40, 90),
+#'                                   biasOut = TRUE, rmseOut = TRUE,
+#'                                   IncludePlots = TRUE)
+#' res@corOutList@biasPlot   # bias (RMSE) by estimator and class
+#' res@plotList[[1]][[3]]     # the same as a tile plot
+#'
+#' # sibs: a genlight made of full-sib families, whose families are
+#' # reconstructed with COLONY
+#' res2 <- gl.diagnostics.relatedness(sibs, run_sim = TRUE, Ne = 30,
+#'                                    families = "colony",
+#'                                    colony.path = "~/programs",
+#'                                    biasOut = TRUE)
 #' }
 #'
-#' @seealso \code{\link{gl.filter.callrate}},
-#'   \code{\link{gl.filter.heterozygosity}}
+#' @seealso \code{\link{gl.relatedness}}, \code{\link{gl.run.colony}},
+#'   \code{\link[dartR.sim]{gl.sim.WF.run}},
+#'   \code{\link[dartR.base]{gl.filter.callrate}}
 #'
+#' @family captive management
 #' @export
 #' @import methods
 #' @import stats
 #' @import dartR.sim
-#' @import digest
 #' @importFrom gridExtra tableGrob
 #' @importFrom gridExtra ttheme_default
 #' @importFrom magrittr %>%
 #' @importFrom tidyr pivot_wider
 #' @importFrom reshape2 acast
-# @importFrom related coancestry
 gl.diagnostics.relatedness <- function(
     x,
     cleanup = FALSE,
     ref_variables = NULL,
     sim_variables = NULL,
-    which_tests = "wang",
+    which_tests = c("wang", "lynchli", "lynchrd", "ritland", "quellergt",
+                    "dyadml"),
     run_sim = FALSE,
     IncludePlots = FALSE,
-    plotOut = FALSE, 
+    plotOut = FALSE,
     varOut = FALSE,
     rmseOut = FALSE,
     numberIterations = 1,
     numberGenerations = 3,
     genToSave = "all",
-    runE9 = FALSE,
-    E9Inbreed = FALSE, 
+    run.e9 = FALSE,
+    E9Inbreed = FALSE,
     e9Path = NULL,
     verbose = NULL,
     e9parallel = FALSE,
-    nCores = 1, 
-    includedPed = FALSE
+    nCores = 1,
+    includedPed = FALSE,
+    biasOut = FALSE,
+    simMissing = TRUE,
+    Ne = NULL,
+    neest.path = NULL,
+    analysisUnit = c("generation", "pooled"),
+    families = NULL,
+    colony.path = NULL,
+    familyParents = FALSE,
+    coancestry.path = NULL
 ) {
-  
-  ID1 <- NA
-  ID2 <- NA
-  RelDegree <- NA
-  child1 <- NA
-  child2 <- NA
-  dad <- NA
-  id <- NA
-  id1 <- NA
-  id2 <- NA
-  ind1 <- NA
-  ind2 <- NA
-  mom <- NA
-  relationship <- NA
-  value <- NA
-  variable <- NA
-  yintercept<- NA
-  
+
   # SET VERBOSITY ----
   verbose <- gl.check.verbosity(verbose)
-  
+
   # FLAG SCRIPT START ----
   funname <- match.call()[[1]]
-  utils.flag.start(func = funname, build = "Jody", verbose = verbose)
-  
+  funname <- utils.flag.start(func = funname, verbose = verbose)
+
   # CHECK DATATYPE ----
   datatype <- utils.check.datatype(x, verbose = verbose)
-  
+
   # FUNCTION SPECIFIC ERROR CHECKING ----
-  # Check required packages
-  # needed_pkgs <- c(
-  #   "dartRverse", "related", "Rcpp",
-  #   "ggplot2", "tidyverse", "reshape2", "data.table"
-  # )
-  needed_pkgs <- c(
-    "dartRverse", "Rcpp",
-    "ggplot2", "tidyverse", "reshape2", "data.table"
-  )
-  for (pkg in needed_pkgs) {
-    if (!requireNamespace(pkg, quietly = TRUE)) {
-      stop("Package ", pkg,
-           " needed for this function to work. Please install it."
-      )
-    }
+  analysisUnit <- match.arg(analysisUnit)
+  # gl.relatedness computes the which_tests estimators with the program
+  # 'dartR_coancestry', downloaded separately; check for it before a long
+  # simulation runs
+  invisible(utils.coancestry.exe(coancestry.path))
+  valid.tests <- c("wang", "lynchli", "lynchrd", "ritland", "quellergt",
+                   "dyadml", "trioml")
+  bad.tests <- setdiff(which_tests, valid.tests)
+  if (length(bad.tests) > 0) {
+    stop(error(
+      "  Unknown estimator(s) in which_tests:", paste(bad.tests, collapse = ", "),
+      "; valid are", paste(valid.tests, collapse = ", "), "\n"))
   }
-  
-  # Validate input parameters
-  if (!inherits(x, "genlight")) {
-    stop("Input x must be a genlight object\n")
+
+  # gl.relatedness and gl.grm need SNP genotypes
+  if (datatype == "SilicoDArT") {
+    stop(error(
+      "  Only SNP data are supported; x contains SilicoDArT data\n"
+    ))
   }
-  if (!is.logical(cleanup) || length(cleanup) != 1) {
-    stop("cleanup must be TRUE or FALSE\n")
-  }
-  
+
   # Check file paths
-  if (!is.null(ref_variables) && !is.null(sim_variables)) {
-    if (!file.exists(ref_variables)) {
-      stop("ref_variables file not found: ", ref_variables, "\n")
-    }
-    if (!file.exists(sim_variables)) {
-      stop("sim_variables file not found: ", sim_variables, "\n")
-    }
+  if (!is.null(ref_variables) && !file.exists(ref_variables)) {
+    stop(error("ref_variables file not found: ", ref_variables, "\n"))
   }
-  
-  if (!is.character(which_tests) && !is.vector(which_tests)) {
-    stop("which_tests must be a character vector\n")
+  if (!is.null(sim_variables) && !file.exists(sim_variables)) {
+    stop(error("sim_variables file not found: ", sim_variables, "\n"))
+  }
+
+
+  # Validate input parameters
+  if (!is.logical(cleanup) || length(cleanup) != 1) {
+    stop(error("cleanup must be TRUE or FALSE\n"))
+  }
+
+  if (!is.character(which_tests)) {
+    stop(error("which_tests must be a character vector\n"))
   }
   if (!is.logical(run_sim) || length(run_sim) != 1) {
-    stop("run_sim must be TRUE or FALSE\n")
+    stop(error("run_sim must be TRUE or FALSE\n"))
   }
   if (!is.logical(IncludePlots) || length(IncludePlots) != 1) {
-    stop("IncludePlots must be TRUE or FALSE\n")
+    stop(error("IncludePlots must be TRUE or FALSE\n"))
   }
   if (!is.numeric(numberIterations) || numberIterations <= 0) {
-    stop("numberIterations must be a positive number\n")
+    stop(error("numberIterations must be a positive number\n"))
   }
-  if (!is.numeric(numberGenerations) || numberGenerations <= 0) {
-    stop("numberGenerations must be a positive number\n")
+  if (!is.numeric(numberGenerations) || numberGenerations < 3) {
+    stop(error("numberGenerations must be at least 3\n"))
   }
   if (!(identical(genToSave, "all") || is.numeric(genToSave))) {
-    stop("genToSave must be 'all' or a numeric vector\n")
+    stop(error("genToSave must be 'all' or a numeric vector\n"))
   }
-  if(includedPed && is.null(x$other$ind.metrics)){
-    stop("includedPed set to True but input does not contain pedigree, set includedPed
-         to False, or attach pedigree")
+  if (includedPed && is.null(x@other$ind.metrics)) {
+    stop(error(
+      "includedPed set to TRUE but input does not contain a pedigree; set",
+      " includedPed to FALSE, or attach a pedigree\n"))
   }
-  if(runE9 && is.null(e9Path)){
-    stop("Cannot run EMIBD9 without necessary files, please provide path to file containing EMIBD9
-         binaries.")
+  if (run.e9 && is.null(e9Path)) {
+    stop(error(
+      "Cannot run EMIBD9 without the binary; please provide e9Path, the path",
+      " to the folder containing the EMIBD9 binaries\n"))
   }
-  if(includedPed && run_sim){
-    warning("run_sim and includedPed both True - attached pedigree will be overwritten, 
-            pedigree from simulation to be used instead. To use attached pedigree,
-            run separately without simulation (ie run_sim=F)")
+  if (includedPed && run_sim && verbose >= 1) {
+    cat(warn(
+      "  run_sim and includedPed both TRUE - the attached pedigree will be",
+      " ignored and the pedigree from the simulation used instead. To use the",
+      " attached pedigree, run separately with run_sim = FALSE\n"))
   }
-  if (!(run_sim | includedPed) & (varOut | rmseOut)) {
-    stop("Cannot calculate variance or RMSE without pedigree, either from simulation or 
-         appended to original dataset. Please set varOut and rmseOut to F or run_sim=T")
+  if (!(run_sim || includedPed) && (varOut || rmseOut || biasOut)) {
+    stop(error(
+      "Cannot calculate variance, RMSE or bias without a pedigree, either",
+      " from simulation or attached to the input. Set varOut, rmseOut and",
+      " biasOut to FALSE or run_sim to TRUE\n"))
   }
-  
-  # Warn if no loci present
-  if (nLoc(x) == 0) {
-    warning(
-      "Input genlight object has no loci - results may be meaningless\n"
-    )
+  if (!is.null(Ne) &&
+      (!is.numeric(Ne) || anyNA(Ne) || any(!is.finite(Ne)) || any(Ne <= 0))) {
+    stop(error("Ne must be positive numbers, one or one per population\n"))
   }
-  
-  if (numberGenerations < 3) {
-    stop("numberGenerations must be at least 3\n")
+  if (nLoc(x) == 0 && verbose >= 1) {
+    cat(warn(
+      "  Input genlight object has no loci - results may be meaningless\n"))
   }
-  
-  
-  # do the job 
-  
-  if (!is.null(ref_variables) && !is.null(sim_variables)) {
-    if (!file.exists(ref_variables) || !file.exists(sim_variables)) {
-      stop("Input must have valid file path")
+
+  # DO THE JOB ----
+
+  if (cleanup) {
+    x <- gl.filter.callrate(x, threshold = 1, verbose = 0, mono.rm = FALSE)
+    x <- gl.filter.heterozygosity(x, verbose = 0)
+    x <- gl.filter.allna(x, verbose = 0)
+  }
+
+  pedOrSim <- run_sim || includedPed
+
+  finalClassValues <- list(InputDf = x)
+
+  # CLEAN NAMES AND ALL-NA DATA ----
+  # Whitespace in individual names is replaced (original names are restored
+  # in the output), and loci and individuals scored NA throughout are dropped
+  # (a common state after subsetting a filtered object by population).
+  orig.names <- indNames(x)
+  safe.names <- gsub("[[:space:]]+", "_", orig.names)
+  names.changed <- !identical(safe.names, orig.names)
+  if (names.changed) {
+    if (anyDuplicated(safe.names)) {
+      stop(error(
+        "Individual names differ only by whitespace and collide once spaces",
+        "are replaced; please make individual names unique\n"))
+    }
+    indNames(x) <- safe.names
+    if (includedPed) {
+      for (cn in intersect(c("id", "dad", "mom"),
+                           colnames(x@other$ind.metrics))) {
+        x@other$ind.metrics[[cn]] <-
+          gsub("[[:space:]]+", "_", as.character(x@other$ind.metrics[[cn]]))
+      }
+    }
+    if (verbose >= 1) {
+      cat(warn(
+        "  Individual names contain spaces; sanitised names are used",
+        "internally and the original names restored in the output\n"))
     }
   }
-  
-  if (!is.logical(cleanup)) stop("Cleanup value must be TRUE or FALSE")
-  if (cleanup) {
-    x <- x %>% 
-      {. <- gl.filter.callrate(., threshold = 1, verbose = 0, mono.rm = F);.} %>%
-      {. <- gl.filter.heterozygosity(.);.} %>%
-      {. <- gl.filter.allna(.);.}
+  name.map <- stats::setNames(orig.names, safe.names)
+
+  # called genotypes per locus and per individual, counted over blocks of
+  # loci (dartR.base::utils.fbm.*): no whole-matrix decode for this check
+  keep.loc <- dartR.base::utils.fbm.colwise(x, function(m) {
+    colSums(!is.na(m))
+  }) > 0
+  keep.ind <- dartR.base::utils.fbm.rowwise(x, function(m) {
+    rowSums(!is.na(m))
+  }) > 0
+if (!all(keep.loc)) x <- x[, keep.loc]
+  if (!all(keep.ind)) x <- x[keep.ind, ]
+  if ((!all(keep.loc) || !all(keep.ind)) && verbose >= 1) {
+    cat(warn(sprintf(
+      "  Dropped %d all-NA loci and %d all-NA individuals before the relatedness analysis\n",
+      sum(!keep.loc), sum(!keep.ind))))
   }
-  
-  datatype <- utils.check.datatype(x)
-  corOutList <- NULL
-  pedOrSim <-FALSE
-  if(run_sim ==T | includedPed==T){
-    pedOrSim <- TRUE
-  }
-  
-  finalClassValues <- NULL
-  finalClassValues[["InputDf"]] <- x
-  defaultAnalysisDf <- NULL
-  defaultAnalysisDf[[1]] <- x
-  
+
+  defaultAnalysisDf <- list(x)
+
   pedigreeDfFinal <- NULL
   corOutList <- NULL
-  corValStore <- NULL
   finalOutputPlots <- NULL
-  finalSimOutput <- NULL
-  slotNeedsClass <- NULL
-  
-  
-  # 1. Run sim and store output 
-  if(run_sim){
-    defaultAnalysisDf <- NULL
-    # --- Define class for storing Simulation output --- 
+
+  # 1. Run sim and store output
+  if (run_sim) {
+    # real_pops needs populations; x without them is one population
+    if (is.null(pop(x)) || nPop(x) == 0) {
+      pop(x) <- factor(rep("pop1", nInd(x)))
+    }
+
+    use.families <- FALSE
+    # A variable file that is not given is built from the one shipped with
+    # dartR.sim so that the simulation mirrors x: its loci and allele
+    # frequencies (no extra neutral loci), its populations and sample sizes,
+    # founders as inbred as x (real_inbreeding) followed by random mating
+    # (no sib mating), parents that mate with several partners, so that
+    # half sibs occur, and the FST of x (founder frequencies stripped of
+    # their sampling noise, real_freq_shrink, and migration set from FST,
+    # real_migration). Variables that the installed dartR.sim does not know
+    # are left out of the file.
+    # real_freq must agree between the two files, so a missing file takes it
+    # from the one given.
+    if (is.null(ref_variables)) {
+      real.freq <- if (is.null(sim_variables)) "TRUE" else
+        simVariableValue(sim_variables, "real_freq")
+      ref.changes <- list(real_freq = real.freq)
+      if (real.freq == "TRUE") {
+        ref.changes$chunk_neutral_loci <- "0"
+        # dartR.sim needs more loci than chromosome chunks; fewer, longer
+        # chunks keep the default map length of 1000 cM
+        if (nLoc(x) <= 100) {
+          n.chunks <- max(nLoc(x) - 1, 1)
+          ref.changes$chunk_number <- as.character(n.chunks)
+          ref.changes$chunk_cM <- as.character(1000 / n.chunks)
+        }
+      }
+      ref_variables <- simVariableFile(
+        system.file("extdata", "ref_variables.csv", package = "dartR.sim"),
+        ref.changes)
+    }
+    if (is.null(sim_variables)) {
+      sim.shipped <- system.file("extdata", "sim_variables.csv",
+                                 package = "dartR.sim")
+      sim.changes <- list(
+        real_freq = simVariableValue(ref_variables, "real_freq"),
+        real_pops = "TRUE", real_pop_size = "TRUE",
+        replace_parents = "TRUE", real_inbreeding = "TRUE",
+        sib_mating_phase2 = "0")
+      # shrinking toward the mean of the populations and migration between
+      # them need at least two populations
+      if (nPop(x) > 1) {
+        sim.changes$real_freq_shrink <- '"auto"'
+        sim.changes$real_migration <- "TRUE"
+      }
+      # With a dartR.sim that controls Ne, each population has the Ne of x
+      # and a census size above 2 Ne (the most Ne can be when parents mate
+      # with several partners), and each generation stores a sample of the
+      # size of x, so the number of pairs does not grow with N
+      if (length(simVariableValue(sim.shipped, "ne_phase2")) > 0) {
+        ne.pop <- resolveNe(x, Ne, neest.path, verbose)
+        n.pop <- as.vector(table(pop(x)))
+        census <- 2 * ceiling(pmax(1.25 * ne.pop, n.pop / 2))
+        sim.changes$real_pop_size <- "FALSE"
+        sim.changes$real_sample_size <- "TRUE"
+        sim.changes$ne_phase2 <- paste0('"', paste(signif(ne.pop, 4),
+                                                   collapse = " "), '"')
+        sim.changes$population_size_phase2 <- paste0(
+          '"', paste(census, collapse = " "), '"')
+        if (verbose >= 2) {
+          cat(report("  Simulated populations (Ne / census size):",
+                     paste0(levels(pop(x)), " ", signif(ne.pop, 3), " / ",
+                            census, collapse = "; "), "\n"))
+        }
+      }
+      # Founder inbreeding measured on loci called in >= 99% of
+      # individuals: lost heterozygote calls at poorly called loci inflate
+      # 1 - Ho/He (platypus.gl: 0.04-0.09 at call rate 0.9, 0.00-0.03 at
+      # 0.99). Needs a dartR.sim with inbreeding_founders
+      if (length(simVariableValue(sim.shipped, "inbreeding_founders")) > 0) {
+        f.pop <- inbreedingHighCallrate(x, threshold = 0.99, min.loci = 100)
+        f.use <- pmax(ifelse(is.na(f.pop), 0, f.pop), 0)
+        sim.changes$real_inbreeding <- "FALSE"
+        sim.changes$inbreeding_founders <- paste0(
+          '"', paste(signif(f.use, 4), collapse = " "), '"')
+        if (verbose >= 2) {
+          cat(report("  Founder inbreeding (1 - Ho/He on",
+                     attr(f.pop, "n.loci"), "loci with call rate >=",
+                     paste0(attr(f.pop, "threshold"), "):"),
+                     paste0(levels(pop(x)), " ", signif(f.pop, 3),
+                            collapse = "; "), "\n"))
+        }
+      }
+      # A sample made of families is a source of bias (reference allele
+      # frequencies from a few families), so each stored generation from
+      # generation 1 on is sampled with the family sizes of x
+      if (!is.null(families)) {
+        if (length(simVariableValue(sim.shipped, "sample_families")) > 0) {
+          fam.sizes <- resolveFamilies(x, families, colony.path, verbose)
+          sim.changes$sample_families <- paste0(
+            '"', paste(vapply(fam.sizes, paste, character(1),
+                              collapse = " "), collapse = "; "), '"')
+          sim.changes$sample_parents <- if (familyParents) "TRUE" else
+            "FALSE"
+          largest <- max(c(0, unlist(fam.sizes)))
+          sim.changes$number_offspring_phase2 <- as.character(
+            max(10, ceiling(1.3 * largest)))
+          use.families <- TRUE
+        } else if (verbose >= 1) {
+          cat(warn("  The installed dartR.sim cannot sample families",
+                   "(sample_families); families is ignored\n"))
+        }
+      }
+      sim_variables <- simVariableFile(sim.shipped, sim.changes)
+    }
     sim_new <- new("DartSim",
                    input_data = x,
                    table_input = ref_variables,
-                   sim_input = sim_variables, 
-                   gen_number = numberGenerations, 
+                   sim_input = sim_variables,
+                   gen_number = numberGenerations,
                    number_iterations = numberIterations)
-    
+
     dartSim <- do_sim(sim_new)
-    
-    
-    if(genToSave == "all" | genToSave == "All"){
-      dartSim <- dartSim
-    }else if(typeof(genToSave) == "double"){
-      for(i in 1:length(dartSim)){
+
+    # Full pedigree of every simulated individual, sampled or not, from
+    # dartR.sim versions that return it (store_pedigree); read before the
+    # generations are subset, which drops list attributes
+    fullPedigrees <- lapply(dartSim, attr, which = "pedigree")
+
+    if (is.numeric(genToSave)) {
+      for (i in seq_along(dartSim)) {
         dartSim[[i]] <- dartSim[[i]][genToSave]
       }
-    }else{
-      stop("Must be double or 'all'; Come on BRO!!")
     }
-    
+
     # Combine simulation outputs
-    finalSimOutput <- lapply(dartSim, function(sim) do.call(rbind, sim))
-    finalClassValues[["SimOutput"]] <- finalSimOutput
-    defaultAnalysisDf <- finalSimOutput
-    
-    # Extract pedigree from simulation 
-    RelatedDataTable <- lapply(seq_along(dartSim), function(i) {
-      ExtractParents(dartSim, iteration = numberIterations) %>%
-        CleanupExtractParents() %>%
-        as.matrix()
+    # rbind drops ind.metrics, which hold the parents of each individual
+    finalSimOutput <- lapply(dartSim, function(sim) {
+      out <- do.call(rbind, sim)
+      out@other$ind.metrics <- bindIndMetrics(lapply(names(sim), function(g) {
+        im <- sim[[g]]@other$ind.metrics
+        im$generation <- rep(g, nrow(im))
+        im
+      }))
+      # a parent sampled with its offspring (sample_parents) can also be in
+      # the sample of its own generation, so ids can repeat across
+      # generations
+      rownames(out@other$ind.metrics) <- make.unique(indNames(out))
+      # the simulation variables, including values dartR.sim derives from x
+      # (e.g. freq_shrink_lambda, migrants_real)
+      out@other$sim.vars <- sim[[length(sim)]]@other$sim.vars
+      out
     })
-    
-    # Apply manual recoding, add relationship level, and fix column names
-    RelatedManualRecode <- NULL
-    for(i in 1:length(RelatedDataTable)){
-      RelatedManualRecode[[i]] <- RelatedDataTable[[i]] %>%
-        {colnames(.) <- c("id1", "id2", "RelDegree", "relationship");.} 
-    }
-    
-  }
-  
-  # 2. Run analysis 
-  analysisOutputDf <- lapply(defaultAnalysisDf, cleanup_rel, testSelect = which_tests)
-  for(i in 1:length(analysisOutputDf)){
-    analysisOutputDf[[i]] <- na.omit(analysisOutputDf[[i]])
-  }
-  which_tests <- c(which_tests, "rrBLUP")
-  
-  if (isTRUE(runE9)) {
-    which_tests <- c(which_tests, "E9")
-    for(i in 1:length(defaultAnalysisDf)){
-      e9Run <- runE9(defaultAnalysisDf[[i]], 
-                     e9Path, 
-                     e9parallel=e9parallel, 
-                     numCores=nCores) %>%
-        {. <- mergeE9Related(., 
-                             analysisOutputDf[[i]], 
-                             test_select = which_tests);.}
-      analysisOutputDf[[i]] <- e9Run
-    }
-    
-    if(isTRUE(E9Inbreed)){
-      which_tests <- c(which_tests, "E9_Inbred")
-      for(i in 1:length(defaultAnalysisDf)){
-        e9Run <- runE9(defaultAnalysisDf[[i]], 
-                       e9Path, 
-                       e9parallel=e9parallel, 
-                       numCores=nCores, 
-                       E9Inbreed = T) %>%
-          {. <- mergeE9Related(., 
-                               analysisOutputDf[[i]], 
-                               test_select = which_tests);.}
-        analysisOutputDf[[i]] <- e9Run
+
+    # the simulated genotypes have no missing data; copy the pattern of x so
+    # that the estimators face the same missingness
+    if (simMissing) {
+      if (all(vapply(finalSimOutput, nLoc, numeric(1)) == nLoc(x))) {
+        finalSimOutput <- lapply(finalSimOutput, copyMissing, x = x)
+      } else if (verbose >= 1) {
+        cat(warn(
+          "  The simulated data do not have the loci of x, so its missing",
+          "data pattern is not copied (simMissing ignored)\n"))
       }
     }
-    
+    finalClassValues[["SimOutput"]] <- finalSimOutput
+    defaultAnalysisDf <- finalSimOutput
+
+    # Pedigree (id, dad, mom) of each iteration
+    # With the full pedigree, unsampled ancestors link sampled relatives;
+    # it is cut to the stored individuals and their ancestors. Otherwise the
+    # parents recorded for the stored individuals are used
+    simPedigrees <- lapply(seq_along(dartSim), function(i) {
+      full <- fullPedigrees[[i]]
+      if (is.null(full)) {
+        return(ExtractParents(dartSim, iteration = i))
+      }
+      ped <- data.frame(id = as.character(full$id),
+                        dad = as.character(full$pat),
+                        mom = as.character(full$mat),
+                        F = if (!is.null(full$F_founder))
+                          as.numeric(full$F_founder) else NA_real_,
+                        stringsAsFactors = FALSE)
+      ancestorPedigree(ped, indNames(finalSimOutput[[i]]))
+    })
+
   }
-  
+
+  # 2. Run analysis
+  # estimators, rrBLUP and optionally EMIBD9 on one sample of individuals
+  analyseSample <- function(g) {
+    out <- stats::na.omit(cleanup_rel(g, testSelect = which_tests,
+                                      coancestry.path = coancestry.path))
+    if (isTRUE(run.e9)) {
+      out <- runE9(g, e9Path, e9parallel = e9parallel, numCores = nCores) %>%
+        mergeE9Related(out, test_select = c(which_tests, "rrBLUP", "E9"))
+      if (isTRUE(E9Inbreed)) {
+        out <- runE9(g, e9Path, e9parallel = e9parallel, numCores = nCores,
+                     E9Inbreed = TRUE) %>%
+          mergeE9Related(out, test_select = c(which_tests, "rrBLUP", "E9",
+                                              "E9_Inbred"))
+      }
+    }
+    out
+  }
+
+  # With analysisUnit = "generation", each stored generation (a sample the
+  # size of x) is analysed on its own, so the estimators take their allele
+  # frequencies from a sample like x; "pooled" analyses all generations of
+  # an iteration together
+  if (run_sim && analysisUnit == "generation") {
+    analysisOutputDf <- lapply(defaultAnalysisDf, function(sim) {
+      gen <- sim@other$ind.metrics$generation
+      units <- split(seq_len(nInd(sim)), gen)
+      # founders are never sampled as families, so with families they do
+      # not mirror x
+      if (use.families) units <- units[names(units) != "generation_0"]
+      lapply(units, function(ix) analyseSample(sim[ix, ]))
+    })
+  } else {
+    # an individual stored in two generations is analysed once
+    analysisOutputDf <- lapply(defaultAnalysisDf, function(g) {
+      analyseSample(g[!duplicated(indNames(g)), ])
+    })
+  }
+  which_tests <- c(which_tests, "rrBLUP")
+  if (isTRUE(run.e9)) which_tests <- c(which_tests, "E9")
+  if (isTRUE(run.e9) && isTRUE(E9Inbreed)) {
+    which_tests <- c(which_tests, "E9_Inbred")
+  }
+
   finalClassValues[["MergedDf"]] <- analysisOutputDf
-  
-  
+
   # 3. Pedigree calculation - either after sim/added pedigree
-  if((!(includedPed) && run_sim) || (includedPed && run_sim)){
-    pedigreeDfFinal <- mapply(mergeRelatedManual, 
-                              relatedDf = analysisOutputDf, 
-                              RecodeDf = RelatedManualRecode, 
-                              SIMPLIFY = FALSE)
+  # When both run_sim and includedPed are TRUE, the simulated pedigree wins
+  # (warned above).
+  if (run_sim) {
+    if (analysisUnit == "generation") {
+      # truth added generation by generation (ids are unique within one)
+      pedigreeDfFinal <- mapply(function(units, ped) {
+        do.call(rbind, lapply(names(units), function(g) {
+          df <- mergePedigreeTruth(units[[g]], ped)
+          df$generation <- rep(g, nrow(df))
+          df
+        }))
+      }, analysisOutputDf, simPedigrees, SIMPLIFY = FALSE)
+    } else {
+      pedigreeDfFinal <- mapply(mergePedigreeTruth,
+                                relatedDf = analysisOutputDf,
+                                ped = simPedigrees,
+                                SIMPLIFY = FALSE)
+      # generation of each pair (NA for pairs across generations)
+      pedigreeDfFinal <- mapply(function(df, sim) {
+        keep <- !duplicated(indNames(sim))
+        gen <- stats::setNames(sim@other$ind.metrics$generation[keep],
+                               indNames(sim)[keep])
+        g1 <- gen[df$ind1]
+        df$generation <- ifelse(g1 == gen[df$ind2], g1, NA_character_)
+        df
+      }, pedigreeDfFinal, finalSimOutput, SIMPLIFY = FALSE)
+    }
     finalClassValues[["MergedDf"]] <- pedigreeDfFinal
-  }else if (includedPed && !(run_sim)){
-    pedigreeDfFinal <- generateRelatedTableBaseInput(x, analysisOutputDf[[1]])
+  } else if (includedPed) {
+    pedigreeDfFinal <- list(mergePedigreeTruth(analysisOutputDf[[1]],
+                                               attachedPedigree(x)))
     finalClassValues[["MergedDf"]] <- pedigreeDfFinal
   }
-  
-  
-  # 4. Construct correlation values 
-  if(rmseOut || varOut){
-    if(rmseOut == T){
-      rmseDf <- calcRMSE(pedigreeDfFinal, which_tests) %>%
-        tableOut()
-      corOutList[["rmseDf"]] <- rmseDf
+
+  # Restore original individual names in the output tables
+  if (names.changed) {
+    finalClassValues[["MergedDf"]] <- lapply(
+      finalClassValues[["MergedDf"]], function(df) {
+        for (cn in intersect(c("ind1", "ind2", "id1", "id2"), colnames(df))) {
+          v <- as.character(df[[cn]])
+          hit <- v %in% names(name.map)
+          v[hit] <- name.map[v[hit]]
+          df[[cn]] <- v
+        }
+        df
+      })
+    if (!is.null(pedigreeDfFinal)) {
+      pedigreeDfFinal <- finalClassValues[["MergedDf"]]
     }
-    
-    if(varOut==T){
-      varDf <- calcVar(pedigreeDfFinal, which_tests) %>%
+  }
+
+  # 4. Construct correlation values
+  if (rmseOut || varOut || biasOut) {
+    if (biasOut) {
+      corOutList[["biasDf"]] <- calcBias(pedigreeDfFinal, which_tests) %>%
         tableOut()
-      corOutList[["varDf"]] <- varDf
     }
-    
+
+    if (rmseOut) {
+      corOutList[["rmseDf"]] <- calcRMSE(pedigreeDfFinal, which_tests) %>%
+        tableOut()
+    }
+
+    if (varOut) {
+      corOutList[["varDf"]] <- calcVar(pedigreeDfFinal, which_tests) %>%
+        tableOut()
+    }
+
     # Select which columns are doubles to then calculate r^2
     numTrue <- vapply(pedigreeDfFinal[[1]], function(col) {
       typeof(col[[1]]) == "double"
     }, logical(1))
-    
+
     corVals <- lapply(pedigreeDfFinal, function(df) cor(df[, numTrue]))
-    
-    #slotNeedsClass[["corOutList"]] <- createTemplateClass
-    #slotNeedsClass[["corVals"]] <- createCorOutput 
-    finalClassValues[["corOutList"]] <- new("corOutList", 
-                                            rmsePlot = corOutList[["rmseDf"]], 
-                                            varPlot = corOutList[["varDf"]])
-    finalClassValues[["corVals"]] <- new("corVals", 
+
+    finalClassValues[["corOutList"]] <- new("corOutList",
+                                            rmsePlot = corOutList[["rmseDf"]],
+                                            varPlot = corOutList[["varDf"]],
+                                            biasPlot = corOutList[["biasDf"]])
+    finalClassValues[["corVals"]] <- new("corVals",
                                          corVals = corVals)
-    
+
   }
-  
-  
-  # 5. Construct plots 
-  if(IncludePlots){
-    for(i in 1:length(finalClassValues[["MergedDf"]])){
-      finalOutputPlots[[paste("Iteration", i,sep="")]] <- 
-        relatedLevelPlots(finalClassValues[["MergedDf"]][[i]], 
-                          which_tests=which_tests,
-                          pedSim=pedOrSim)
+
+  # 5. Construct plots
+  if (IncludePlots) {
+    for (i in seq_along(finalClassValues[["MergedDf"]])) {
+      finalOutputPlots[[paste0("Iteration", i)]] <-
+        relatedLevelPlots(finalClassValues[["MergedDf"]][[i]],
+                          which_tests = which_tests,
+                          pedSim = pedOrSim)
     }
-    
-    # If run_sim True - includes function to create layered list of sim plots 
-    # for different iterations
-    if(run_sim){
-      #slotNeedsClass[["plotList"]] <- createTemplateClass
-      finalClassValues[["plotList"]] <- finalOutputPlots
-    }
-    
+
     finalClassValues[["plotList"]] <- finalOutputPlots
-    
-    templateClass <- finalOutputPlots
-    
+
+    if (plotOut) {
+      # relatedLevelPlots returns a single ggplot, or a list of them when a
+      # pedigree is available
+      for (p in finalOutputPlots) {
+        if (inherits(p, "ggplot")) print(p) else lapply(p, print)
+      }
+    }
   }
-  
-  finalClassValues <- finalClassValues
-  
-  # 6. Construct final class to store everything 
-  #finalOutput <- createOutputClass(finalClassValues, 
-  #                                 slotNeedsClass, 
-  #                                 slotDescriptions)
-  
+
+  # 6. Construct final class to store everything
   templateClass <- new("finalOutputClass")
-  templateClass@InputDf <- x
+  templateClass@InputDf <- finalClassValues[["InputDf"]]
   templateClass@SimOutput <- finalClassValues[["SimOutput"]]
+  templateClass@MergedDf <- finalClassValues[["MergedDf"]]
   templateClass@corVals <- finalClassValues[["corVals"]]
   templateClass@corOutList <- finalClassValues[["corOutList"]]
   templateClass@plotList <- finalClassValues[["plotList"]]
-  
-  if(plotOut){
-    finalClassValues[["plotList"]]
-  }
-  
+
   return(templateClass)
-  
-  
+
 }
