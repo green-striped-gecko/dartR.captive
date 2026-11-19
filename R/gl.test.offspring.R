@@ -230,7 +230,10 @@ gl.test.offspring <- function(
     allG <- allG[!duplicated(allNames), , drop = FALSE]
     ncall <- colSums(!is.na(allG))
     qobs <- (colSums(allG, na.rm = TRUE) + 1) / (2 * ncall + 2)
-    q <- (qobs - epsilon) / (1 - 2 * epsilon)
+    # The correction for genotyping error moves an estimate within epsilon
+    # of 0 or 1 outside [0, 1]: a locus that is fixed, or nearly, once
+    # about 1 / (2 * epsilon) individuals are pooled. Limit it to the range.
+    q <- pmin(pmax((qobs - epsilon) / (1 - 2 * epsilon), 0), 1)
     freq.source <- 'estimated (pooled unique individuals; Beta(1,1) shrinkage)'
   } else {
     if (!is.numeric(allele.freq) || !length(allele.freq) ||
