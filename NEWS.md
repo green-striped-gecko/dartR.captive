@@ -20,6 +20,12 @@
   objects are unchanged.
 * `gl.relatedness()` cites Coancestry and the paper behind each estimator,
   and Jinliang Wang, the author of Coancestry, is listed as a contributor.
+* `gl.test.offspring()` no longer stops with "Allele frequencies must be
+  finite and in [0,1]" when it estimates the allele frequencies from about
+  `1 / (2 * epsilon)` individuals or more (50 at the default) and a locus
+  is fixed or nearly fixed. The estimate corrected for genotyping error
+  falls outside [0, 1] for such a locus and is now limited to that range;
+  frequencies supplied through `allele.freq` are checked as before.
 
 # dartR.captive 1.2.7
 

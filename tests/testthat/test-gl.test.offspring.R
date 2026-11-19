@@ -178,6 +178,39 @@ test_that("allele.freq can be one value, a vector in locus order or named", {
                "finite numeric")
 })
 
+test_that("estimated allele frequencies stay in range with 50 or more individuals", {
+  # The estimate is shrunk, qobs = (count + 1) / (2n + 2), and then corrected
+  # for genotyping error, (qobs - epsilon) / (1 - 2 * epsilon). Once n reaches
+  # 1 / (2 * epsilon) individuals, 50 at the default, the correction puts a
+  # locus without the alternative allele below 0 and a locus fixed for it
+  # above 1. The function used to stop on such a locus with "Allele
+  # frequencies must be finite and in [0,1]", i.e. on almost any dataset.
+  x <- platypus.gl[1:60, 1:300]
+  G <- as.matrix(x)
+  count <- colSums(G, na.rm = TRUE)
+  n <- colSums(!is.na(G))
+  q <- ((count + 1) / (2 * n + 2) - 0.01) / (1 - 2 * 0.01)
+  # the data must hold the three cases for the test to mean anything
+  expect_true(any(q < 0))
+  expect_true(any(q > 1))
+  inside <- q > 1e-6 & q < 1 - 1e-6
+  expect_true(any(inside))
+
+  res <- run_test(p1 = x[1:5, ], p2 = x[6:10, ], off = x[11:60, ])
+  af <- unname(res$allele.freq)
+  expect_match(res$settings$allele.freq.source, "estimated")
+  expect_equal(nrow(res$results), 5 * 5 * 50)
+  # out of range: limited, as every frequency is, to [1e-6, 1 - 1e-6]
+  expect_equal(af[q < 0], rep(1e-6, sum(q < 0)))
+  expect_equal(af[q > 1], rep(1 - 1e-6, sum(q > 1)))
+  # in range: the corrected estimate itself
+  expect_equal(af[inside], unname(q[inside]))
+  # a frequency the user supplies out of range is still an error
+  expect_error(run_test(p1 = x[1:5, ], p2 = x[6:10, ], off = x[11:60, ],
+                        allele.freq = -0.01),
+               "finite and in \\[0,1\\]")
+})
+
 test_that("invalid arguments give clear errors", {
   d <- make_trios(200)
   expect_error(run_test(p1 = d$dads, p2 = d$mums, off = d$kids, epsilon = 0.5),
