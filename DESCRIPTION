@@ -1,7 +1,7 @@
 Package: dartR.captive
 Type: Package
 Title: Analysing 'SNP' Data to Support Captive Breeding
-Version: 1.3.0
+Version: 1.3.1
 Revision: Hardy Hedgehog
 Date: 2026-11-18
 Authors@R: c(
