@@ -33,11 +33,6 @@ jobs:
       # CRAN releases (DARTR_BRANCH empty). This file is the same on all
       # branches, so merges between them do not change it.
       DARTR_BRANCH: ${{ contains(fromJSON('["dev", "beta"]'), github.base_ref || github.ref_name) && (github.base_ref || github.ref_name) || '' }}
-      # SIBER (suggested by dartR.base) needs rjags, and rjags 5 does not build
-      # against JAGS 4.3.2, the version Ubuntu ships. It is skipped on Linux
-      # until JAGS 5 is available there; R CMD check does not require suggested
-      # packages (_R_CHECK_FORCE_SUGGESTS_ is false).
-      IGNORE_ON_LINUX: SIBER=?ignore
 
     steps:
       - uses: actions/checkout@v3
@@ -50,13 +45,29 @@ jobs:
           http-user-agent: ${{ matrix.config.http-user-agent }}
           use-public-rspm: true
 
+      # SIBER (suggested by dartR.base) needs rjags, and rjags 5 needs JAGS 5.
+      # Where the system offers only an older JAGS (Ubuntu ships 4.3.2), rjags
+      # cannot be built, so SIBER is skipped; R CMD check does not require
+      # suggested packages. Once JAGS 5 is available, SIBER is installed again.
+      - name: Skip SIBER while JAGS 5 is not available
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update -qq
+          v=$(apt-cache policy jags | awk '/Candidate:/ {print $2}' | sed 's/^[0-9]*://')
+          echo "JAGS offered by apt: ${v:-none}"
+          case "$v" in
+            [5-9]*|[1-9][0-9]*) echo "JAGS 5 or newer: SIBER is installed" ;;
+            *) echo "IGNORE_ON_LINUX=SIBER=?ignore" >> "$GITHUB_ENV"
+               echo "No JAGS 5: SIBER is skipped" ;;
+          esac
+
       # main: dartR dependencies from CRAN
       - uses: r-lib/actions/setup-r-dependencies@v2
         if: env.DARTR_BRANCH == ''
         with:
           extra-packages: |
             any::rcmdcheck
-            ${{ runner.os == 'Linux' && env.IGNORE_ON_LINUX || '' }}
+            ${{ env.IGNORE_ON_LINUX }}
           needs: check
 
       # dev and beta: dartR dependencies from the same Github branch
@@ -68,7 +79,7 @@ jobs:
             github::green-striped-gecko/dartR.data@${{ env.DARTR_BRANCH }}
             github::green-striped-gecko/dartR.base@${{ env.DARTR_BRANCH }}
             github::green-striped-gecko/dartR.sim@${{ env.DARTR_BRANCH }}
-            ${{ runner.os == 'Linux' && env.IGNORE_ON_LINUX || '' }}
+            ${{ env.IGNORE_ON_LINUX }}
           needs: check
 
       - uses: r-lib/actions/check-r-package@v2
