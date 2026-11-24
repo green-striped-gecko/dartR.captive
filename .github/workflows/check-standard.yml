@@ -27,6 +27,17 @@ jobs:
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
       R_KEEP_PKG_SOURCE: yes
+      # The dartR packages this package needs come from the Github branch that
+      # matches the branch being checked: dev from dev, beta from beta (also for
+      # pull requests into them). main matches CRAN and is checked against the
+      # CRAN releases (DARTR_BRANCH empty). This file is the same on all
+      # branches, so merges between them do not change it.
+      DARTR_BRANCH: ${{ contains(fromJSON('["dev", "beta"]'), github.base_ref || github.ref_name) && (github.base_ref || github.ref_name) || '' }}
+      # SIBER (suggested by dartR.base) needs rjags, and rjags 5 does not build
+      # against JAGS 4.3.2, the version Ubuntu ships. It is skipped on Linux
+      # until JAGS 5 is available there; R CMD check does not require suggested
+      # packages (_R_CHECK_FORCE_SUGGESTS_ is false).
+      IGNORE_ON_LINUX: SIBER=?ignore
 
     steps:
       - uses: actions/checkout@v3
@@ -39,13 +50,25 @@ jobs:
           http-user-agent: ${{ matrix.config.http-user-agent }}
           use-public-rspm: true
 
+      # main: dartR dependencies from CRAN
       - uses: r-lib/actions/setup-r-dependencies@v2
+        if: env.DARTR_BRANCH == ''
         with:
           extra-packages: |
             any::rcmdcheck
-            github::green-striped-gecko/dartR.base@dev
-            github::green-striped-gecko/dartR.data@dev
-            github::green-striped-gecko/dartR.sim@dev
+            ${{ runner.os == 'Linux' && env.IGNORE_ON_LINUX || '' }}
+          needs: check
+
+      # dev and beta: dartR dependencies from the same Github branch
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        if: env.DARTR_BRANCH != ''
+        with:
+          extra-packages: |
+            any::rcmdcheck
+            github::green-striped-gecko/dartR.data@${{ env.DARTR_BRANCH }}
+            github::green-striped-gecko/dartR.base@${{ env.DARTR_BRANCH }}
+            github::green-striped-gecko/dartR.sim@${{ env.DARTR_BRANCH }}
+            ${{ runner.os == 'Linux' && env.IGNORE_ON_LINUX || '' }}
           needs: check
 
       - uses: r-lib/actions/check-r-package@v2
